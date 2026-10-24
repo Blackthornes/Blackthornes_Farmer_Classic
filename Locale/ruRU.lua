@@ -1704,3 +1704,6 @@ L["The last came in %s."] = "Последнее пришло %s."
 L["You're not in a guild on this character."] = "Этот персонаж не состоит в гильдии."
 L["guildmate"] = "согильдийца"
 L["guildmates"] = "согильдийцев"
+-- The fold gem beside a window's close gem (2026-10-24)
+L["Collapse this window"] = "Свернуть это окно"
+L["Expand this window"] = "Развернуть это окно"

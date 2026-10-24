@@ -1697,3 +1697,6 @@ L["The last came in %s."] = "最近一次是%s。"
 L["You're not in a guild on this character."] = "这个角色不在公会里。"
 L["guildmate"] = "位公会成员"
 L["guildmates"] = "位公会成员"
+-- The fold gem beside a window's close gem (2026-10-24)
+L["Collapse this window"] = "收起这个窗口"
+L["Expand this window"] = "展开这个窗口"

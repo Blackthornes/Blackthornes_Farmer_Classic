@@ -1703,3 +1703,6 @@ L["The last came in %s."] = "Das Letzte kam %s."
 L["You're not in a guild on this character."] = "Dieser Charakter ist in keiner Gilde."
 L["guildmate"] = "Gildenmitglied"
 L["guildmates"] = "Gildenmitgliedern"
+-- The fold gem beside a window's close gem (2026-10-24)
+L["Collapse this window"] = "Dieses Fenster einklappen"
+L["Expand this window"] = "Dieses Fenster aufklappen"

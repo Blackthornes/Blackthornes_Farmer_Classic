@@ -254,6 +254,15 @@ function UI:Build()
     -- as it opens and settles.
     Theme.Halo(frame, 12, HALO_REST)
 
+    -- The fold gem beside the close gem folds the window down to its plate
+    -- (UI/FoldWindow.lua, a player asked, 2026-10-24).
+    if ns.FoldWindow then
+        ns.FoldWindow:Add(frame, { onToggle = function(folded)
+            if ns.GoalsUI then ns.GoalsUI:CheckPicker() end
+            if not folded then UI:Refresh() end
+        end })
+    end
+
     frame:SetScript("OnDragStart", function(self)
         -- Land an opening still running, or it would pull the window back.
         ns.Motion:Stop(self, "open", true)
@@ -1513,7 +1522,11 @@ end
 function UI:Show()
     self:Build()
 
-    if self.frame:IsShown() then return end
+    -- Asked for again while folded: open it full.
+    if self.frame:IsShown() then
+        if ns.FoldWindow then ns.FoldWindow:Unfold(self.frame) end
+        return
+    end
 
     self:RestorePosition()
     self.frame:Show()
