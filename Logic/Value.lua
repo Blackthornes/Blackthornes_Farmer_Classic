@@ -526,7 +526,10 @@ function Value.FoldSuffixes(priced)
         local base = Harvest.RollBase(entry.name, Tracker:LookOf(entry.name).id)
         local into = base and byName[base]
         if base and not into then
-            into = { name = base, perKill = 0, chance = 0, from = entry.from }
+            -- Every roll shares the item's ID and quality, so the first
+            -- roll's loot link stands in for them (Skip Uncommon reads it).
+            into = { name = base, perKill = 0, chance = 0, from = entry.from,
+                id = entry.id or Tracker:LookOf(entry.name).id, lookName = entry.name }
             byName[base] = into
             out[#out + 1] = into
         end

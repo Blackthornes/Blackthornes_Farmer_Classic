@@ -177,7 +177,7 @@ function Rankings.IsUncommonOrBetter(drop)
     local id = drop.id
     if not id and ns.Tracker and ns.Tracker.LookOf then id = ns.Tracker:LookOf(drop.name).id end
     if not id and ns.Value.ItemID then id = ns.Value:ItemID(drop.name) end
-    local quality = WorldDrops.QualityOf(id, drop.name)
+    local quality = WorldDrops.QualityOf(id, drop.lookName or drop.name)
     return type(quality) == "number" and quality >= 2
 end
 
