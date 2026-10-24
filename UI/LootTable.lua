@@ -834,6 +834,9 @@ function LootTableUI:Show(mobName)
 
     self:Render()
     self.frame:Show()
+    -- A click on the main window lifts it over this one, so a second mob
+    -- picked there would open behind it; bring this window to the front.
+    self.frame:Raise()
     if opening then ns.Motion:Open(self.frame) end
 
     return true

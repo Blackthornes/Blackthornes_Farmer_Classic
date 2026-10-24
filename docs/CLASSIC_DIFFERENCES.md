@@ -87,6 +87,13 @@ used only once the character knows it, so they need no change.
 - `CLAUDE.md` opens with "This repo is the Classic Era copy".
 - `README.md` names the Classic CurseForge project.
 
+### The loot table comes to the front for each mob
+- `LootTableUI:Show` in `UI/LootTable.lua` calls `self.frame:Raise()`
+  every time, not only when it opens, so a second mob picked from the
+  main window no longer opens behind it. Brought over from Farmer Retail
+  (its `de4aaa5`); Forever still lacks it, so a catch-up keeps the line.
+  Tested in `tools/test_loottable.lua`.
+
 ### Discord release posts
 - `tools/announce_discord.py` and `tools/post_general.py` start both
   posts with "Classic Era: " (their `GAME`), where Forever's start with
