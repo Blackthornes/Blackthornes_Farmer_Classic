@@ -606,11 +606,26 @@ function DB:IsHiddenSource(name)
     return key ~= nil and self:HiddenList("source")[key] ~= nil
 end
 
---- Is the item (or item named `name`) on the hide list?
+--- The item's own name for a random suffix ("Primal Leggings of the
+--- Monkey" is Primal Leggings), or nil when `name` has none.
+local function RollBaseOf(name)
+    local Harvest, Tracker = ns.Harvest, ns.Tracker
+    if type(name) ~= "string" or not (Harvest and Harvest.RollBase and Tracker) then return nil end
+    local ok, base = pcall(function() return Harvest.RollBase(name, Tracker:LookOf(name).id) end)
+    return ok and base ~= name and base or nil
+end
+
+--- Is the item (or item named `name`) on the hide list? A random suffix
+--- counts as its item, so hiding Primal Leggings hides every roll of it
+--- (the lists show the item once, by its own name).
 function DB:IsHiddenItem(name)
     if not self:HidesAny("item") then return false end
+    local list = self:HiddenList("item")
     local key = ItemKey(name)
-    return key ~= nil and self:HiddenList("item")[key] ~= nil
+    if key ~= nil and list[key] ~= nil then return true end
+    local base = RollBaseOf(name)
+    local baseKey = base and ItemKey(base)
+    return baseKey ~= nil and list[baseKey] ~= nil
 end
 
 --- Is the item named `name` (or the item itself) left out right now: from

@@ -59,6 +59,17 @@ used only once the character knows it, so they need no change.
 - `UI/Settings.lua`'s About page shows no tick box while nobody is named.
 - Tested in `tools/test_contribute.lua`.
 
+### Hiding an item hides its random rolls
+- `DB:IsHiddenItem` in `Data/Database.lua` also checks the item's own name
+  for a random roll (`RollBaseOf`, through `Harvest.RollBase`), so hiding
+  "Primal Leggings" from Rankings (which shows the item once) leaves every
+  "of the ..." roll out of a mob's worth and best drop. Forever has the same
+  bug; keep this on a catch-up.
+- `Value.FoldSuffixes` gives the folded drop the item's `id` and a roll's
+  `lookName`, and `Rankings.IsUncommonOrBetter` reads it, so "Skip Uncommon
+  and better" leaves out a folded green too.
+- Tested in `tools/test_suffixdrops.lua`.
+
 ### Notes and docs
 - `CLAUDE.md` opens with "This repo is the Classic Era copy".
 - `README.md` names the Classic CurseForge project.

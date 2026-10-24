@@ -103,5 +103,35 @@ local folded = ns.Value.FoldSuffixes({
 suite.check("best drops name the item once", #folded == 2 and folded[1].name == "Lead Band", #folded)
 suite.check("with the suffixes' worth together", folded[1].perKill == 6 and folded[1].chance == 6)
 
+suite.check("the folded drop carries the item's ID", folded[1].id == BAND, folded[1].id)
+suite.check("and a roll's loot link for its quality", folded[1].lookName == "Lead Band of the Monkey")
+suite.check("so Skip Uncommon sees it is green", ns.Rankings.IsUncommonOrBetter(folded[1]) == true)
+
+-- Hiding the item by its own name (the name the lists show) hides every
+-- roll of it, so none of them counts toward a mob's worth.
+local DB = ns.DB
+ns.Value.UnitPrice = function() return 100, "auction" end
+-- Does the mob's worth name an item, priced or not?
+local function Mentions(item)
+    local _, details = ns.Value:FromTally("Defias Thug")
+    for _, list in ipairs({ details and details.priced or {}, details and details.unpriced or {} }) do
+        for _, drop in ipairs(list) do
+            local name = type(drop) == "table" and drop.name or drop
+            if name:find(item, 1, true) then return true end
+        end
+    end
+    return false
+end
+suite.check("the item counts before it's hidden", Mentions("Lead Band"))
+suite.check("a roll is not hidden before", not DB:IsHiddenItem("Lead Band of the Owl"))
+DB:Hide("item", "Lead Band")
+suite.check("hiding the item hides its rolls", DB:IsHiddenItem("Lead Band of the Owl")
+    and DB:IsHiddenItem("Lead Band of the Monkey"))
+suite.check("other items stay shown", not DB:IsHiddenItem("Linen Cloth"))
+suite.check("a hidden item's rolls leave the worth and best drops", not Mentions("Lead Band"))
+suite.check("the rest still counts", Mentions("Linen Cloth"))
+DB:Unhide("item", "Lead Band")
+suite.check("Show again brings the rolls back", not DB:IsHiddenItem("Lead Band of the Owl"))
+
 C_Item = savedItem
 suite.done()
