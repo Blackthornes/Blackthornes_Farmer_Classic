@@ -763,5 +763,5 @@ skips any site whose secret is missing:
 | `WOWI_API_TOKEN` | WoWInterface |
 
 Each site also needs its project ID in the TOC (`X-Curse-Project-ID`,
-`X-Wago-ID`, `X-WoWI-ID`). CurseForge's is 1710618, the existing Farmer
-project; the other two stay commented out until those projects exist.
+`X-Wago-ID`, `X-WoWI-ID`). CurseForge's is 1763311, the Farmer Classic
+project (never Forever's 1710618); the other two stay commented out until those projects exist.
