@@ -10,6 +10,9 @@ Copied over since, one at a time:
 - `16167e1` Add a fold gem beside the close gem (2026-10-24, cherry-picked
   as it is; `UI/FoldWindow.lua`, its art tool and test match the other
   Classic repos).
+- `c493162` Start release posts with the game name (2026-10-24, copied
+  by hand with "Classic Era" in place of "Forever"; see
+  `docs/CLASSIC_DIFFERENCES.md`).
 
 Every catch-up reads `docs/CLASSIC_DIFFERENCES.md` first, and the PR that
 brings Forever commits over updates the line above to the newest one it took.
