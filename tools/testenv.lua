@@ -424,6 +424,15 @@ local UI_FILES = {
     "UI/Settings.lua",
 }
 
+-- Forever's own data and the Legacy perks the Classic Era TOC leaves out.
+-- `opts.era` loads the addon without them, as Era does (tools/test_era.lua).
+env.FOREVER_DATA = {
+    ["Data/ForeverNpcNames.lua"] = true,
+    ["Data/Harvest_Carryover.lua"] = true,
+    ["Data/Data_Harvested.lua"] = true,
+    ["Logic/Legacy.lua"] = true,
+}
+
 --- Is there a generated harvest file to load?
 function env.HasHarvested()
     local handle = io.open(ROOT .. "/" .. HARVESTED, "r")
@@ -464,9 +473,11 @@ function env.Load(opts)
         chunk("Blackthornes_Farmer", ns)
     end
 
-    for _, file in ipairs(FILES) do Run(file) end
+    for _, file in ipairs(FILES) do
+        if not (opts.era and env.FOREVER_DATA[file]) then Run(file) end
+    end
 
-    if opts.harvested and env.HasHarvested() then Run(HARVESTED) end
+    if opts.harvested and not opts.era and env.HasHarvested() then Run(HARVESTED) end
 
     if opts.ui then
         for _, file in ipairs(UI_FILES) do Run(file) end

@@ -21,8 +21,8 @@ ns.GuildShare:OnEnable()
 Contribute:OnEnable()
 
 suite.check("off by default", ns.db.shareDrops == false and not Contribute:On())
-suite.check("the shipped list names two whole names",
-    type(Contribute.RECIPIENTS) == "table" and #Contribute:Recipients() == 2)
+suite.check("the Classic Era copy sends to nobody",
+    type(Contribute.RECIPIENTS) == "table" and #Contribute:Recipients() == 0 and not Contribute:Sending())
 
 -- Only North America sends.
 _G.GetCurrentRegion, _G.GetCurrentRegionName = nil, nil
@@ -34,7 +34,7 @@ _G.GetCurrentRegionName = function() return "US" end
 suite.check("the region's name is read when its number is not", Contribute:InRegion())
 _G.GetCurrentRegionName = nil
 _G.GetCurrentRegion = function() return 110 end
-suite.check("the Forever test client's 110 counts as North America", Contribute:InRegion())
+suite.check("the Forever test client's 110 is not this copy's", not Contribute:InRegion())
 _G.GetCurrentRegion = function() return 1 end
 suite.check("North America sends", Contribute:InRegion())
 

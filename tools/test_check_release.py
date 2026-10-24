@@ -33,6 +33,10 @@ expect("a matching released version releases", check("v0.2.0", LOG, TOC, INIT) =
 expect("a released version left behind is refused",
        check("v0.2.0", LOG, TOC, INIT.replace("0.2.0", "0.1.0")) != [])
 expect("a missing released version is refused", check("v0.2.0", LOG, TOC, "") != [])
+expect("the Forever CurseForge project is refused",
+       check("v0.2.0", LOG, TOC + "## X-Curse-Project-ID: 1710618\n") != [])
+expect("another project is fine",
+       check("v0.2.0", LOG, TOC + "## X-Curse-Project-ID: 999\n") == [])
 expect("a hand-typed TOC version is refused",
        check("v0.2.0", LOG, TOC.replace("@project-version@", "0.2.0")) != [])
 

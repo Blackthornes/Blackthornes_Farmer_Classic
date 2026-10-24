@@ -1,4 +1,4 @@
-## Interface: 16001
+## Interface: 11507, 11508
 ## Title: Blackthornes Farmer
 ## Notes: Search for a material or item and get the mobs, zones and levels to farm it.
 ## Author: Blackthornes
@@ -9,7 +9,9 @@
 
 # Filled in once the project exists on each site. The packager reads these
 # to know where to upload; a line that stays commented is simply skipped.
-## X-Curse-Project-ID: 1710618
+# This is the Classic Era copy. It gets its own CurseForge project; never put
+# the Forever project's ID (1710618) here, or a tag would upload Era to it.
+# X-Curse-Project-ID: 
 # X-Wago-ID: 
 # X-WoWI-ID: 
 
@@ -29,7 +31,6 @@ Core\Comm.lua
 
 Data\Database.lua
 Data\NpcNames.lua
-Data\ForeverNpcNames.lua
 Data\Zones.lua
 Data\Travel.lua
 Data\TravelZones.lua
@@ -40,13 +41,9 @@ Data\Data_Leather.lua
 Data\Data_Misc.lua
 Data\Data_MobDrops.lua
 Data\Data_ClassicDrops.lua
-#@do-not-package@
-Data\Harvest_Carryover.lua
-#@end-do-not-package@
 
 Logic\Search.lua
 Logic\Looted.lua
-Logic\Legacy.lua
 Logic\Harvest.lua
 Logic\Tracker.lua
 Logic\Heat.lua
@@ -127,4 +124,3 @@ UI\OpenButton.lua
 UI\Veil.lua
 UI\XPBar.lua
 UI\Settings.lua
-Data\Data_Harvested.lua
