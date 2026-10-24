@@ -74,6 +74,13 @@ used only once the character knows it, so they need no change.
 - `CLAUDE.md` opens with "This repo is the Classic Era copy".
 - `README.md` names the Classic CurseForge project.
 
+### Discord release posts
+- `tools/announce_discord.py` and `tools/post_general.py` start both
+  posts with "Classic Era: " (their `GAME`), where Forever's start with
+  "Forever: ", so the two games' releases read apart. A catch-up that
+  touches these tools keeps Classic's word. Tested in
+  `tools/test_announce_discord.py` and `tools/test_post_general.py`.
+
 ## Not yet done
 - Not yet seen in an Era client. Client calls are read in a pcall, and the
   code already falls back to the classic calls (skill lines, spell info, the
