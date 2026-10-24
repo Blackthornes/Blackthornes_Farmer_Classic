@@ -694,23 +694,119 @@ end
 
 Gathering.SameSpot = SameSpot
 
+-- Era grows a different herb or vein on one spawn point from time to time,
+-- so any herb or vein this close to a spot of its own kind is that spot,
+-- whatever its name (the owner, 2026-10-24: "within about 3 meters"). About
+-- 3 meters, in yards; NEAR_SHARE of the map on a client that will not size
+-- its maps. A fishing spot never joins another.
+local NEAR_YARDS = 3.3
+local NEAR_SHARE = 0.001
+
+Gathering.NEAR_YARDS = NEAR_YARDS
+
+--- Are two points on one map within NEAR_YARDS?
+local function NearSpot(mapID, ax, ay, bx, by)
+    ax, ay, bx, by = tonumber(ax), tonumber(ay), tonumber(bx), tonumber(by)
+    if not (ax and ay and bx and by) then return false end
+    local width, height = Gathering.MapSize(mapID)
+    local dx, dy = ax - bx, ay - by
+    if width then
+        dx, dy = dx * width, dy * height
+        return dx * dx + dy * dy <= NEAR_YARDS * NEAR_YARDS
+    end
+    return dx * dx + dy * dy <= NEAR_SHARE * NEAR_SHARE
+end
+
+Gathering.NearSpot = NearSpot
+
+--- Does a gather of `node` (`kind`) at x, y land on `spot`? The same node
+--- within SAME_SPOT_YARDS, or any herb or vein within NEAR_YARDS of one of
+--- its own kind. A fishing spot joins only its own school.
+function Gathering.Joins(spot, mapID, x, y, node, kind)
+    if type(spot) ~= "table" or spot.map ~= mapID then return false end
+    local sx, sy = tonumber(spot.x), tonumber(spot.y)
+    if not (sx and sy) then return false end
+    if spot.node == node and SameSpot(mapID, sx, sy, x, y) then return true end
+    return kind ~= nil and kind ~= "fish" and spot.kind == kind and NearSpot(mapID, sx, sy, x, y)
+end
+
+--- The spots to draw: one for each place, the one gathered last, where
+--- older saves kept two herbs or two veins within NEAR_YARDS. In their saved
+--- order, so a redraw keeps each marker on its spot. Nothing saved changes.
+function Gathering.Joined(spots)
+    local order = {}
+    for index, spot in ipairs(spots) do order[index] = spot end
+    table.sort(order, function(a, b) return (tonumber(a.last) or 0) > (tonumber(b.last) or 0) end)
+
+    local kept = {}
+    for _, spot in ipairs(order) do
+        local taken = false
+        if spot.kind ~= "fish" then
+            for _, other in ipairs(kept) do
+                if other.kind == spot.kind and NearSpot(spot.map, other.x, other.y, spot.x, spot.y) then
+                    taken = true
+                    break
+                end
+            end
+        end
+        if not taken then kept[#kept + 1] = spot end
+    end
+    if #kept == #spots then return spots end
+
+    local keep, found = {}, {}
+    for _, spot in ipairs(kept) do keep[spot] = true end
+    for _, spot in ipairs(spots) do
+        if keep[spot] then found[#found + 1] = spot end
+    end
+    return found
+end
+
+--- What a gather gave, added to its spot's own count (`spot.items[name]`,
+--- never renamed), so the world map shows the item it gave most.
+local function NoteItems(spot, items, quantities)
+    if type(items) ~= "table" or #items == 0 then return end
+    if type(spot.items) ~= "table" then spot.items = {} end
+    for _, name in ipairs(items) do
+        if type(name) == "string" and name ~= "" then
+            local quantity = quantities and tonumber(quantities[name]) or 1
+            spot.items[name] = (tonumber(spot.items[name]) or 0) + quantity
+        end
+    end
+end
+
+Gathering.NoteItems = NoteItems
+
 --- Mark a gather on the map. `x` and `y` are fractions of map `mapID`.
+-- `kind` is "herb", "ore" or "fish" (a cast into a school you moused over,
+-- from Logic/Fishing.lua); `items` and `quantities` are what it gave. A
+-- school never grows back, so it teaches Logic/Respawn.lua nothing.
 -- Returns the spot.
-function Gathering:AddSpot(mapID, x, y, node, kind)
+function Gathering:AddSpot(mapID, x, y, node, kind, items, quantities)
     if not (mapID and x and y) then return nil end
 
     local spots = self:Spots()
     local now = Clock()
 
     for _, spot in ipairs(spots) do
-        if spot.map == mapID and spot.node == node and SameSpot(mapID, spot.x, spot.y, x, y) then
+        if Gathering.Joins(spot, mapID, x, y, node, kind) then
             -- Back at a spot already taken: how long it took is what
-            -- Logic/Respawn.lua learns grow-back times from.
+            -- Logic/Respawn.lua learns grow-back times from, only when it is
+            -- the same node again: another name there says nothing about
+            -- this one's time.
             local last = tonumber(spot.last)
-            if now and last and ns.Respawn then ns.Respawn:Learn(mapID, node, now - last) end
+            if now and last and ns.Respawn and kind ~= "fish" and spot.node == node then
+                ns.Respawn:Learn(mapID, node, now - last)
+            end
 
             spot.gathers = (tonumber(spot.gathers) or 1) + 1
             spot.last = now or spot.last
+            NoteItems(spot, items, quantities)
+            -- Another herb or vein grown on it: kept beside it (`spot.also`,
+            -- never renamed), so that name counts as gathered here too.
+            if type(node) == "string" and node ~= spot.node then
+                if type(spot.also) ~= "table" then spot.also = {} end
+                spot.also[node] = true
+            end
             self:SpotsChanged()
             return spot
         end
@@ -720,6 +816,7 @@ function Gathering:AddSpot(mapID, x, y, node, kind)
         map = mapID, x = x, y = y, node = node, kind = kind,
         gathers = 1, first = now, last = now,
     }
+    NoteItems(spot, items, quantities)
     spots[#spots + 1] = spot
 
     -- Over the cap: the one gathered longest ago goes.
@@ -793,7 +890,9 @@ function Gathering:OnLoot()
     local items, quantities = ns.Tracker:LootedItems(true)
     local mapID, x, y = ns.Harvest:PlayerMapPosition()
 
-    if mapID then self:AddSpot(mapID, x, y, cast.node, cast.kind) end
+    if mapID then
+        self:AddSpot(mapID, x, y, cast.node, cast.kind, items, quantities)
+    end
 
     return self:Record(zone, location, cast.node, cast.kind, items, quantities,
         mapID and { x * 100, y * 100 } or nil)

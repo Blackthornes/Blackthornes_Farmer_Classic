@@ -118,9 +118,19 @@ local function From(estimate)
     return L.Format("%d returns", estimate.returns)
 end
 
+--- When this spot's node should be back (a time() stamp), or nil while its
+--- grow-back time is still being learned, or for a fishing school.
+function Respawn:BackAt(spot)
+    if type(spot) ~= "table" or spot.kind == "fish" then return nil end
+    local last = tonumber(spot.last)
+    if not last then return nil end
+    local estimate = self:Estimate(spot.map, spot.node)
+    return estimate.seconds and last + estimate.seconds or nil
+end
+
 --- The line for a map marker: how long until this spot's node is back.
 function Respawn:SpotLine(spot, now)
-    if type(spot) ~= "table" then return nil end
+    if type(spot) ~= "table" or spot.kind == "fish" then return nil end
 
     local estimate = self:Estimate(spot.map, spot.node)
     if not estimate.seconds then return Learning(estimate), false end
@@ -158,7 +168,9 @@ end
 --- Has a node of this name been marked on this map?
 function Respawn:Gathered(mapID, node)
     for _, spot in ipairs(ns.Gathering:SpotsOn(mapID)) do
-        if spot.node == node then return true end
+        -- A fishing school never grows back: nothing to learn about it.
+        if spot.kind ~= "fish" and (spot.node == node
+            or (type(spot.also) == "table" and spot.also[node])) then return true end
     end
     return false
 end

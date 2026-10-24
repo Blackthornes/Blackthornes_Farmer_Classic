@@ -574,6 +574,16 @@ function Fishing:OnLoot()
 
     local x, y = ns.Harvest:PlayerPosition()
 
+    -- A cast into a school you moused over goes on the maps beside your
+    -- herbs and veins, where you stood to fish it.
+    local school = cast and cast.school
+    if school and ns.Gathering then
+        local mapID, mapX, mapY = ns.Harvest:PlayerMapPosition()
+        if mapID then
+            ns.Gathering:AddSpot(mapID, mapX, mapY, school, "fish", items, quantities)
+        end
+    end
+
     return self:Record(zone, location, cast and cast.school or nil, items, quantities,
         self:Skill(), x and { x, y } or nil)
 end
