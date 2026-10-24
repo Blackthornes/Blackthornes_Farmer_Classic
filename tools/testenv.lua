@@ -382,6 +382,7 @@ local UI_FILES = {
     "UI/Widgets.lua",
     "UI/SeeThrough.lua",
     "UI/Titanforged.lua",
+    "UI/FoldWindow.lua",
     "UI/About.lua",
     "UI/WhatsNew.lua",
     "UI/SettingsPages.lua",
