@@ -10,6 +10,9 @@ Copied over since, one at a time:
 - `16167e1` Add a fold gem beside the close gem (2026-10-24, cherry-picked
   as it is; `UI/FoldWindow.lua`, its art tool and test match the other
   Classic repos).
+- `c493162` Start release posts with the game name (2026-10-24, copied
+  by hand with "Classic Era" in place of "Forever"; see
+  `docs/CLASSIC_DIFFERENCES.md`).
 - `3e278ad` Show the gathered item on map markers, greyed until it grows
   back (2026-10-24, blended with Retail's spot counts and joining; see
   "Gathered spots on the maps" in `docs/CLASSIC_DIFFERENCES.md`).
