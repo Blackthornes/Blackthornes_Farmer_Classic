@@ -12,6 +12,45 @@ Nothing private goes in this file (no local paths, emails or account names).
 It never ships: `.pkgmeta` leaves it out of the zip and
 `tools/check_package.py` refuses it.
 
+## This repo is the Classic Era copy
+
+`Blackthornes/Blackthornes_Farmer_Classic` is Farmer for WoW Classic Era,
+copied from `Blackthornes/Blackthornes_Farmer` (Forever) with its history on
+2026-10-24 (the owner said build it; Butler and Tradeskills follow in their
+own repos). Its releases, tests and CurseForge page are its own. Forever
+comes first, and nothing done here may ever touch the Forever addon. So:
+
+- Never push to, or open PRs on, the Forever repo from work here. Changes
+  come over from Forever on purpose (cherry-pick or copy), never the other
+  way.
+- The addon folder and TOC stay `Blackthornes_Farmer`, the saved data
+  `BlackthornesFarmerDB`, so nothing is renamed.
+- The TOC names Era's interface (`## Interface: 11507, 11508`; check the
+  number the Era client reports and add it). Classic's own data stays: the
+  seed files, `Data/Data_ClassicDrops.lua`, `Data/NpcNames.lua`,
+  `Data/Zones.lua` and the travel files (their Forever-only zones and flight
+  masters are never met on Era, and a flight is used only once the character
+  knows it). What Forever added is left out (`env.FOREVER_DATA` in
+  `tools/testenv.lua`): `Data/ForeverNpcNames.lua`, the owner's Forever
+  harvest (`Data/Data_Harvested.lua`, `Data/Harvest_Carryover.lua`) and the
+  Legacy perks (`Logic/Legacy.lua`; every reader asks `ns.Legacy` first).
+  The files stay in the repo so Forever changes merge cleanly.
+  `tools/test_era.lua` checks it and that the addon loads, logs in and
+  searches without them. `Data/Data_Harvested.lua` comes back once it is
+  made from Era play (`tools/harvest_import.py` adds it to the TOC).
+- Sending drops to Blackthornes is off here: `Contribute.RECIPIENTS` is
+  empty (those characters play on Forever, and Era drops must never reach
+  Forever's shipped data), Forever's region 110 is gone, and the About page
+  shows no tick box while nobody is named.
+- Never put Forever's CurseForge ID (1710618) in the TOC:
+  `tools/check_release.py` refuses a tag that does. The owner makes the Era
+  project himself; its ID goes on the TOC's `X-Curse-Project-ID` line then.
+- Not yet seen in an Era client. Read client calls in a pcall as everywhere
+  else; the code already falls back to the classic calls (skill lines,
+  spell info, the older tooltip scripts) where Era lacks the newer ones.
+- The rest of this file describes the Forever addon; read it as the
+  starting point, not as what Era has.
+
 ## What Tradeskills provides
 
 Tradeskills is the house standard for layout (`Core/ Data/ Logic/ UI/

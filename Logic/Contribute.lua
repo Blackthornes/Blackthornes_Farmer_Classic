@@ -43,17 +43,15 @@ local Comm = ns.Comm
 local Share = ns.Share
 
 -- The characters drops are sent to: full names, first and last. Kept only
--- here, never shown to players. Empty sends nothing.
-Contribute.RECIPIENTS = {
-    "Blackthornes Farmer",
-    "Blackthorne Wither",
-}
+-- here, never shown to players. Empty sends nothing, and the tick box in
+-- Settings is left out. This is the Classic Era copy: the shipped data's
+-- characters play on Forever, so nothing is sent from here.
+Contribute.RECIPIENTS = {}
 
 -- Only players on this region send (the owner, 2026-10-17: North America),
 -- since a whisper never crosses regions. GetCurrentRegion's 1 is the
--- Americas, and the Forever test client says 110 there (the owner's,
--- 2026-10-17, with no region name); a client that will not say sends nothing.
-Contribute.REGIONS = { [1] = true, [110] = true }
+-- Americas; a client that will not say sends nothing.
+Contribute.REGIONS = { [1] = true }
 Contribute.REGION_NAME = "US"
 
 Contribute.HELLO_SECONDS = 1800   -- a hello every half hour

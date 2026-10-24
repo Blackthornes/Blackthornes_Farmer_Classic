@@ -1301,9 +1301,10 @@ function SettingsUI:BuildAboutPage()
     pages:Searchable("about", info, info.words)
 
     -- Logic/Contribute.lua: drops sent to help Farmer's data, off until
-    -- ticked, and offered only where it can send (North America). Its
-    -- words wrap under the box, since they run long.
-    if not ns.Contribute:InRegion() then return end
+    -- ticked, and offered only where it can send (North America) and while
+    -- someone is named to send to. Its words wrap under the box, since they
+    -- run long.
+    if not (ns.Contribute:InRegion() and ns.Contribute:HasRecipients()) then return end
     local text = L["Share your data with Blackthornes to improve the Farmer AddOn."]
     local holder = CreateFrame("Frame", nil, pages.pages.about.content)
     holder:SetSize(COLUMN_WIDTH, 36)
