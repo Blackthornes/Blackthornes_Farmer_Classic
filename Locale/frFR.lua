@@ -280,8 +280,6 @@ L["farming spot"] = "endroit de farm"
 L["farming spots"] = "endroits de farm"
 L["where the data came from"] = "d'où viennent les données"
 L["data sources:"] = "sources des données :"
-L["  Classic spots are only a guide. Forever can be different."] =
-    "  Les endroits de Classic ne sont qu'une indication. Forever peut être différent."
 L["list every item in the database"] = "liste chaque objet de la base de données"
 L["Farmer knows %s:"] = "Farmer connaît %s :"
 

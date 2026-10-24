@@ -959,9 +959,6 @@ ns.RegisterCommand("data", L["where the data came from"], function()
                 Util.Plural(counts[key] or 0, L["spot"], L["spots"])),
             Util.Colored("muted", label)))
     end
-
-    ns.PrintRaw(Util.Colored("muted",
-        L["  Classic spots are only a guide. Forever can be different."]))
 end)
 
 ns.RegisterCommand("list", L["list every item in the database"], function()

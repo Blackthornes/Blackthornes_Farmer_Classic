@@ -279,8 +279,6 @@ L["farming spot"] = "刷怪地点"
 L["farming spots"] = "刷怪地点"
 L["where the data came from"] = "数据来自哪里"
 L["data sources:"] = "数据来源："
-L["  Classic spots are only a guide. Forever can be different."] =
-    "  怀旧服的地点只能当作参考。Forever 可能不一样。"
 L["list every item in the database"] = "列出数据库里的每个物品"
 L["Farmer knows %s:"] = "Farmer 知道 %s："
 
