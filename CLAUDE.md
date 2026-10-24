@@ -1453,6 +1453,32 @@ its level (`Grinding.SkinSkill`); its plate stays on
 page. Not yet seen in game.
 Tested in `tools/test_nodesparkle.lua`.
 
+## Gathered spots on the maps
+
+The world map marker where you gathered shows the item you got there (the
+owner said build it, 2026-10-24, from a mockup; Forever's `3e278ad` with
+Retail's spot counts and joining, see `docs/CLASSIC_DIFFERENCES.md`). Each
+spot counts what it gave, `spot.items[name] = count` (`Gathering.NoteItems`,
+never rename it), and the marker shows the item given most
+(`MapMarkers.SpotItems`, `SpotItem`, `IconFor`); a spot saved before then
+reads its node's own gathering or fishing records, else the data, else the
+plain herb, ore or fish icon. The hover lists up to `TOOLTIP_ITEMS` of them,
+icon and "Silverleaf x9", above the old lines. The icon stays grey until
+`Respawn:BackAt` says the node should be back, then shows in full colour at
+full strength; a once a second look (`MapMarkers:WakeWorld`) recolours pins
+already placed and places nothing again. A cast into a school you moused
+over is marked too (`kind = "fish"`, from `Fishing:OnLoot`; open water
+marks nothing), in full colour in a `pool` blue ring, "Fished" or "Fished
+%d times" on the hover, never a grow-back time. Era grows a different herb
+or vein on one spawn point, so a herb or vein within `Gathering.NEAR_YARDS`
+(3.3) of a spot of its own kind joins it (`Gathering.Joins`; its name kept
+in `spot.also`, never rename it, which `Respawn:Gathered` reads; only the
+same node teaches a grow-back time); fishing never joins. Older spots that
+close draw as one on the world map (`Gathering.Joined`), the save
+unchanged. The minimap keeps its hollow corners. Tested in
+`tools/test_markers.lua` and `tools/test_mapicons.lua`. Not yet seen in
+game.
+
 ## Quest count over quest mobs
 
 The owner picked it (2026-10-13, from a mockup of three light touches):

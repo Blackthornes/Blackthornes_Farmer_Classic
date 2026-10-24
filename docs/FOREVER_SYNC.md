@@ -13,6 +13,9 @@ Copied over since, one at a time:
 - `c493162` Start release posts with the game name (2026-10-24, copied
   by hand with "Classic Era" in place of "Forever"; see
   `docs/CLASSIC_DIFFERENCES.md`).
+- `3e278ad` Show the gathered item on map markers, greyed until it grows
+  back (2026-10-24, blended with Retail's spot counts and joining; see
+  "Gathered spots on the maps" in `docs/CLASSIC_DIFFERENCES.md`).
 
 Every catch-up reads `docs/CLASSIC_DIFFERENCES.md` first, and the PR that
 brings Forever commits over updates the line above to the newest one it took.

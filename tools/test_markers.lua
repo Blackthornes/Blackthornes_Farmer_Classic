@@ -78,6 +78,7 @@ suite.check("as fractions of that map", spots[1].x == 0.45 and spots[1].y == 0.6
 suite.check("named for the node", spots[1].node == "Peacebloom")
 suite.check("a herb", spots[1].kind == "herb")
 suite.check("with when", spots[1].last == wall and spots[1].first == wall)
+suite.check("and what it gave", spots[1].items and spots[1].items.Peacebloom == 1)
 suite.check("the node record still has its percent coordinates",
     Gathering:Summary(Gathering.NodeKey("Elwynn Forest", "Goldshire", "Peacebloom"))
         .node.coords[1] == 45)
@@ -308,13 +309,84 @@ suite.check("fading on the way", MapMarkers.AlphaFor(0, MapMarkers.FRESH + 60) <
     and MapMarkers.AlphaFor(0, MapMarkers.FRESH + 60) > MapMarkers.AlphaFor(0, MapMarkers.OLD))
 
 --------------------------------------------------------------------------------
+-- What the marker shows
+--------------------------------------------------------------------------------
+
+local function SpotOf(node)
+    for _, spot in ipairs(Gathering:Spots()) do
+        if spot.node == node then return spot end
+    end
+end
+
+
+_G.GetItemIcon = function(id) return 100000 + id end
+suite.check("the marker shows the item you got there",
+    MapMarkers:IconFor({ node = "Peacebloom", kind = "herb", items = { Peacebloom = 2 } }) == 102447)
+suite.check("a spot saved before keeping it finds the item by its node's name",
+    MapMarkers:IconFor({ node = "Peacebloom", kind = "herb" }) == 102447)
+suite.check("a node nothing is known about keeps the plain herb",
+    MapMarkers:IconFor({ node = "Nothing Known", kind = "herb" }) == MapMarkers.ICONS.herb)
+suite.check("and a school the plain fish",
+    MapMarkers:IconFor({ node = "Nothing Known", kind = "fish" }) == MapMarkers.ICONS.fish)
+_G.GetItemIcon = nil
+
+MapMarkers:Refresh()
+silver = PinFor(world, "Silverleaf")
+suite.check("while its grow-back time is learned, the marker stays grey",
+    silver.back == false and type(silver.backAt) ~= "number")
+
+for _ = 1, ns.Respawn.MIN_RETURNS do ns.Respawn:Learn(37, "Silverleaf", 300) end
+Gathering:AddSpot(37, 0.45, 0.68 - 50 / 2000, "Silverleaf", "herb", { "Silverleaf" })
+MapMarkers:Step(1)
+silver = PinFor(world, "Silverleaf")
+suite.check("just taken, it is grey until it should be back",
+    silver.back == false and silver.backAt == wall + 300, silver.backAt)
+
+local placed, alpha = 0, nil
+local realPoint, realAlpha = silver.SetPoint, silver.SetAlpha
+silver.SetPoint = function(self, ...) placed = placed + 1; return realPoint(self, ...) end
+silver.SetAlpha = function(self, value) alpha = value; return realAlpha(self, value) end
+wall = wall + 301
+MapMarkers:Step(1)
+suite.check("once the timer says it's back, it colors in", silver.back == true)
+suite.check("at full strength", alpha and Near(alpha, MapMarkers.FRESH_ALPHA), alpha)
+suite.check("without placing the markers again", placed == 0, placed)
+silver.SetPoint, silver.SetAlpha = realPoint, realAlpha
+
+-- A cast into a school you moused over.
+local OILY = { { name = "Oily Blackmouth", id = 6358 } }
+ns.Fishing.cast = { school = "Oily Blackmouth School" }
+env.world.fishing = true
+env.world.loot = OILY
+fire(ns.eventFrame, "LOOT_OPENED")
+fire(ns.eventFrame, "LOOT_CLOSED")
+env.world.fishing = false
+
+local school = SpotOf("Oily Blackmouth School")
+suite.check("a catch from a school marks the spot", school ~= nil and school.kind == "fish")
+suite.check("with the fish it gave", school and school.items["Oily Blackmouth"] == 1)
+suite.check("a school never teaches a grow-back time",
+    ns.Respawn:Estimate(37, "Oily Blackmouth School").returns == 0)
+
+MapMarkers:Refresh()
+local pool = PinFor(world, "Oily Blackmouth School")
+suite.check("a school shows on the world map, in full color", pool ~= nil and pool.back == true)
+GameTooltip._lines = {}
+Hover(pool)
+suite.check("its hover lists the fish", GameTooltip._lines[2] == "Oily Blackmouth x1", GameTooltip._lines[2])
+suite.check("and says it was fished", GameTooltip._lines[3] == "Fished, last just now",
+    GameTooltip._lines[3])
+suite.check("and nothing about growing back", GameTooltip._lines[4] == nil, GameTooltip._lines[4])
+MapMarkers:Step(1)
+
+--------------------------------------------------------------------------------
 -- Switches
 --------------------------------------------------------------------------------
 
 ns.HandleSlash("markers minimap off")
 suite.check("/farm markers minimap off", ns.db.markersMinimap == false and ns.db.markersWorld)
 suite.check("takes them off the minimap at once", #Shown(MapMarkers.minimapPool) == 0)
-suite.check("and leaves the world map", #Shown(world) == 3)
+suite.check("and leaves the world map", #Shown(world) == 4)
 
 ns.HandleSlash("markers map off")
 suite.check("/farm markers map off", ns.db.markersWorld == false)
@@ -322,7 +394,8 @@ suite.check("takes them off the world map", #Shown(world) == 0)
 
 ns.HandleSlash("markers on")
 suite.check("/farm markers on turns both on", ns.db.markersWorld and ns.db.markersMinimap)
-suite.check("and they come back", #Shown(world) == 3 and #Shown(MapMarkers.minimapPool) == 2)
+suite.check("and they come back", #Shown(world) == 4 and #Shown(MapMarkers.minimapPool) == 3,
+    #Shown(MapMarkers.minimapPool))
 
 ns.HandleSlash("markers off")
 suite.check("/farm markers off turns both off", not ns.db.markersWorld and not ns.db.markersMinimap)

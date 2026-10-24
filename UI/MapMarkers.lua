@@ -1,15 +1,19 @@
 -- Blackthornes Farmer -- UI/MapMarkers.lua
--- Markers on the world map and the minimap where you gathered herbs and ore.
+-- Markers on the world map and the minimap where you gathered herbs and ore,
+-- and where you fished a school you moused over first.
 --
 -- The rules for these: they must never read as a node you can gather, and
 -- a live node must always show over them. On the world map a marker is the
--- node's icon greyed out and faded, in a gold ring, with a green check in the
--- corner, at the bottom of the map's pins. On the minimap, where the game's
--- node blips are part of the map and every addon frame draws over them, a
--- marker is an empty gold frame with the check outside a corner, so a node
--- that has grown back shows through its middle. The longer ago the gather,
--- the fainter the marker. Hover one and it says what it was, how many times
--- you took it, when last, and when it should be back (Logic/Respawn.lua).
+-- icon of what that spot gave you, in a gold ring, with a green check in the
+-- corner, at the bottom of the map's pins. It stays greyed and faded until
+-- Logic/Respawn.lua says the node should be back, then shows in full color.
+-- A school never grows back, so its marker is always in full color, in a
+-- blue ring. On the minimap, where the game's node blips are part of the
+-- map and every addon frame draws over them, a marker is an empty gold
+-- frame with the check outside a corner, so a node that has grown back shows
+-- through its middle. The longer ago the gather, the fainter the marker.
+-- Hover one and it says what it was, what it gave you, how many times you
+-- took it, when last, and when it should be back (Logic/Respawn.lua).
 --
 -- The spots themselves are Logic/Gathering.lua's. This file only draws them,
 -- and only the ones on the map you are looking at (world map) or standing on
@@ -46,10 +50,19 @@ local OLD = 60 * 60
 local FRESH_ALPHA = 0.95
 local FADED_ALPHA = 0.5
 
+-- Stand-ins for a spot whose item is not known.
 local ICONS = {
     herb = [[Interface\Icons\INV_Misc_Flower_02]],
     ore = [[Interface\Icons\INV_Ore_Copper_01]],
+    fish = [[Interface\Icons\INV_Misc_Fish_02]],
 }
+
+-- At most this many items in a marker's hover.
+local TOOLTIP_ITEMS = 4
+
+-- How a greyed icon is tinted, and a node that should be back.
+local GREY_TINT = 0.8
+local BACK_ALPHA = FRESH_ALPHA
 
 -- A soft round alpha mask the game ships: it rounds the icon and, tinted,
 -- makes the ring behind it.
@@ -58,6 +71,8 @@ local CHECK = [[Interface\RaidFrame\ReadyCheck-Ready]]
 
 MapMarkers.FRESH = FRESH
 MapMarkers.OLD = OLD
+MapMarkers.FRESH_ALPHA = FRESH_ALPHA
+MapMarkers.ICONS = ICONS
 
 --------------------------------------------------------------------------------
 -- Switches
@@ -125,9 +140,20 @@ local function ShowTooltip(pin)
 
     GameTooltip:AddLine(spot.node or L["Node"], Theme.Unpack("accent"))
 
+    -- What it gave you, most first, each with its icon and how many.
+    for index, item in ipairs(MapMarkers.SpotItems(spot)) do
+        if index > TOOLTIP_ITEMS then break end
+        GameTooltip:AddLine(MapMarkers.ItemLine(item), Theme.Unpack("text"))
+    end
+
     local gathers = tonumber(spot.gathers) or 1
     local ago = MapMarkers.Ago(spot.last, ns.Gathering.Clock())
-    local line = gathers == 1 and L["Gathered"] or L.Format("Gathered %d times", gathers)
+    local line
+    if spot.kind == "fish" then
+        line = gathers == 1 and L["Fished"] or L.Format("Fished %d times", gathers)
+    else
+        line = gathers == 1 and L["Gathered"] or L.Format("Gathered %d times", gathers)
+    end
     if ago then line = L.Format("%s, last %s", line, ago) end
 
     GameTooltip:AddLine(line, Theme.Unpack("text"))
@@ -153,7 +179,7 @@ local function Complete(pin, size, corner)
     badge:SetTexture(CHECK)
     pin.badge = badge
 
-    if pin.hollow then
+    if pin.hollow == true then
         -- A minimap marker takes the mouse only on its check, never over
         -- its clear middle: a node grown back in there keeps the game's own
         -- tooltip, and a click there still pings the minimap.
@@ -232,19 +258,158 @@ function MapMarkers.CreatePin(parent, size)
     icon:SetPoint("BOTTOMRIGHT", -inset, inset)
     icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
     pcall(icon.SetMask, icon, ROUND)
-    pcall(icon.SetDesaturated, icon, true)
-    icon:SetVertexColor(0.8, 0.8, 0.8)
-
     pin.ring, pin.icon = ring, icon
+    MapMarkers.Shade(pin, false)
 
     return Complete(pin, size, "BOTTOMRIGHT")
+end
+
+--------------------------------------------------------------------------------
+-- What a spot shows
+--------------------------------------------------------------------------------
+
+-- Each node or school's name to what it gave you anywhere, from your own
+-- gathering and fishing records ({ [item name] = { count, id } }), for a
+-- spot saved before spots kept their own items. Laid out once, again only
+-- after the spots move.
+local function BuildNodeItems()
+    local byNode = {}
+    local function Take(name, items)
+        if type(name) ~= "string" or type(items) ~= "table" then return end
+        local into = byNode[name] or {}
+        byNode[name] = into
+        for itemName, entry in pairs(items) do
+            local count = type(entry) == "table" and tonumber(entry.count) or nil
+            if type(itemName) == "string" and count and count > 0 then
+                local held = into[itemName] or { count = 0 }
+                held.count = held.count + count
+                held.id = held.id or tonumber(entry.id)
+                into[itemName] = held
+            end
+        end
+    end
+
+    local db = ns.db or {}
+    local nodes = type(db.gathering) == "table" and db.gathering.nodes
+    for _, entry in pairs(type(nodes) == "table" and nodes or {}) do
+        if type(entry) == "table" then Take(entry.node, entry.items) end
+    end
+    local schools = type(db.fishing) == "table" and db.fishing.spots
+    for _, entry in pairs(type(schools) == "table" and schools or {}) do
+        if type(entry) == "table" then Take(entry.school, entry.items) end
+    end
+    return byNode
+end
+
+function MapMarkers:NodeItems(node)
+    local version = ns.Gathering.spotsVersion or 0
+    if not self.nodeItems or self.nodeItemsAt ~= version then
+        self.nodeItems, self.nodeItemsAt = BuildNodeItems(), version
+    end
+    return self.nodeItems[node]
+end
+
+--- What a spot gave, most first: { { name, count, id } }. Its own count,
+--- else what its node gave you anywhere. Hidden items are left out.
+function MapMarkers.SpotItems(spot)
+    local list = {}
+    local own = type(spot.items) == "table" and next(spot.items) ~= nil
+    local counts = own and spot.items
+        or (type(spot.node) == "string" and MapMarkers:NodeItems(spot.node)) or {}
+
+    for name, entry in pairs(counts) do
+        local count = tonumber(type(entry) == "table" and entry.count or entry)
+        if type(name) == "string" and count and count > 0
+            and not (ns.DB and ns.DB.IsHiddenItem and ns.DB:IsHiddenItem(name)) then
+            local id = type(entry) == "table" and tonumber(entry.id) or nil
+            if not id and ns.Value then id = tonumber(ns.Value:ItemID(name)) end
+            list[#list + 1] = { name = name, count = count, id = id }
+        end
+    end
+    table.sort(list, function(a, b)
+        if a.count ~= b.count then return a.count > b.count end
+        return a.name < b.name
+    end)
+    return list
+end
+
+--- One hover line: "|T icon|t Silverleaf x9".
+function MapMarkers.ItemLine(item)
+    local icon = item.id and Theme.ItemIcon(item.id)
+    local text = ("%s x%d"):format(item.name, item.count)
+    if icon then text = ("|T%s:14:14|t %s"):format(tostring(icon), text) end
+    return text
+end
+
+--- The id of the item a spot's marker shows: the one it gave most, else what
+--- the data says its node gives.
+function MapMarkers:SpotItem(spot)
+    for _, item in ipairs(MapMarkers.SpotItems(spot)) do
+        if item.id then return item.id end
+    end
+    if type(spot.node) ~= "string" then return nil end
+
+    if ns.DB and type(ns.DB.ByName) == "function" then
+        local ok, byName = pcall(ns.DB.ByName, ns.DB)
+        local list = ok and type(byName) == "table" and byName[spot.node]
+        for _, entry in ipairs(type(list) == "table" and list or {}) do
+            local item = type(entry) == "table" and entry.item
+            if type(item) == "table" and tonumber(item.id) then return tonumber(item.id) end
+        end
+    end
+    return nil
+end
+
+--- The texture a spot's marker shows.
+function MapMarkers:IconFor(spot)
+    local id = self:SpotItem(spot)
+    return (id and Theme.ItemIcon(id)) or ICONS[spot.kind] or ICONS.herb
+end
+
+--- Greyed while the node is still growing back, full color once it should
+--- be there. A fishing spot is always in full color, in a blue ring.
+function MapMarkers.Shade(pin, back)
+    if not pin.icon then return end
+    pin.back = back and true or false
+    pcall(pin.icon.SetDesaturated, pin.icon, not back)
+    if back then
+        pin.icon:SetVertexColor(1, 1, 1)
+    else
+        pin.icon:SetVertexColor(GREY_TINT, GREY_TINT, GREY_TINT)
+    end
+end
+
+--- The ring's color: blue round a fishing spot, gold round the rest.
+function MapMarkers.Ring(pin, spot)
+    if not pin.ring then return end
+    pin.ring:SetVertexColor(Theme.Unpack(spot and spot.kind == "fish" and "pool" or "accent"))
+end
+
+--- Should the node at this marker be back by `now`?
+function MapMarkers.IsBack(pin, now)
+    if pin.spot and pin.spot.kind == "fish" then return true end
+    now = tonumber(now)
+    local at = pin.backAt
+    return type(at) == "number" and now ~= nil and now >= at
+end
+
+--- How strongly to draw a marker: a node that should be back, or a fishing
+--- spot, at full strength, the rest faded with age.
+function MapMarkers.PinAlpha(pin, now)
+    if pin.back == true then return BACK_ALPHA end
+    return MapMarkers.AlphaFor(pin.spot and pin.spot.last, now)
 end
 
 --- Point a marker at a spot.
 function MapMarkers.Dress(pin, spot, now)
     pin.spot = spot
-    if not pin.hollow then pin.icon:SetTexture(ICONS[spot.kind] or ICONS.herb) end
-    pin:SetAlpha(MapMarkers.AlphaFor(spot.last, now))
+    if pin.hollow ~= true then
+        pin.icon:SetTexture(MapMarkers:IconFor(spot))
+        pin.backAt = ns.Respawn and ns.Respawn:BackAt(spot) or nil
+        MapMarkers.Ring(pin, spot)
+        MapMarkers.Shade(pin, MapMarkers.IsBack(pin, now))
+    end
+    pin:SetAlpha(MapMarkers.PinAlpha(pin, now))
 end
 
 --- A pool of markers under one parent, reused from one redraw to the next.
@@ -389,7 +554,10 @@ function MapMarkers:DrawWorld()
         view.height, ns.Gathering.spotsVersion or 0)
     local on = MapMarkers.WorldOn()
 
-    if key == self.worldKey and self.worldOn == on then return end
+    if key == self.worldKey and self.worldOn == on then
+        self:WakeWorld()
+        return
+    end
 
     if not self.worldPool or self.worldPool.parent ~= view.canvas then
         if self.worldPool then Release(self.worldPool) end
@@ -419,7 +587,7 @@ function MapMarkers:PlaceWorld(pool, view)
     -- and place it in its own, smaller, units.
     local scale = 1 / view.scale
 
-    for _, spot in ipairs(ns.Gathering:SpotsOn(view.mapID)) do
+    for _, spot in ipairs(self:JoinedOn(view.mapID)) do
         local pin = Acquire(pool)
         MapMarkers.Dress(pin, spot, now)
         pin:SetScale(scale)
@@ -428,6 +596,26 @@ function MapMarkers:PlaceWorld(pool, view)
         pin:SetPoint("CENTER", view.canvas, "TOPLEFT",
             spot.x * view.width / scale, -spot.y * view.height / scale)
         pin:Show()
+    end
+end
+
+--- Once a second, on the world map markers already placed: color in the
+--- ones whose node should now be back, and move the age fade. Nothing is
+--- placed again.
+function MapMarkers:WakeWorld()
+    local pool = self.worldPool
+    if not pool or pool.used == 0 then return end
+
+    local now = ns.Gathering.Clock()
+    if now == self.wokeAt then return end
+    self.wokeAt = now
+
+    for index = 1, pool.used do
+        local pin = pool.pins[index]
+        if pin.spot then
+            if pin.back ~= true and MapMarkers.IsBack(pin, now) then MapMarkers.Shade(pin, true) end
+            pin:SetAlpha(MapMarkers.PinAlpha(pin, now))
+        end
     end
 end
 
@@ -545,6 +733,17 @@ function MapMarkers:SpotsOn(mapID)
     return spots
 end
 
+--- The spots the world map draws on `mapID`: older herbs or veins saved a
+--- step apart as one marker. Kept until the spots change.
+function MapMarkers:JoinedOn(mapID)
+    local version = ns.Gathering.spotsVersion or 0
+    local kept = self.joinedKept
+    if kept and kept.map == mapID and kept.version == version then return kept.spots end
+    local spots = ns.Gathering.Joined(ns.Gathering:SpotsOn(mapID))
+    self.joinedKept = { map = mapID, version = version, spots = spots }
+    return spots
+end
+
 function MapMarkers:DrawMinimap()
     if not Minimap then return end
 
@@ -577,7 +776,7 @@ function MapMarkers:FadeMinimap()
 
     for index = 1, pool.used do
         local pin = pool.pins[index]
-        if pin.spot then pin:SetAlpha(MapMarkers.AlphaFor(pin.spot.last, now)) end
+        if pin.spot then pin:SetAlpha(MapMarkers.PinAlpha(pin, now)) end
     end
 end
 

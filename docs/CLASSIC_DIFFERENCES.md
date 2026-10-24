@@ -70,6 +70,19 @@ used only once the character knows it, so they need no change.
   and better" leaves out a folded green too.
 - Tested in `tools/test_suffixdrops.lua`.
 
+### Gathered spots on the maps
+- Forever's `3e278ad` came over blended with Retail Farmer's idea: a spot
+  counts everything it gave (`spot.items`, from `Gathering.NoteItems`)
+  rather than Forever's one `spot.item`, and the hover lists those items with
+  counts.
+- A herb or vein within `Gathering.NEAR_YARDS` of a spot of its own kind
+  joins it (`Gathering.Joins`, `spot.also`), since Era grows a different node
+  on one spawn point; older close spots draw as one (`Gathering.Joined`).
+  Forever has neither.
+- A fishing spot's marker is in full colour in a blue ring; Forever's stays
+  grey. Fishing still marks only schools you moused over, as Forever does.
+- Tested in `tools/test_mapicons.lua`. Keep all of it on a catch-up.
+
 ### Notes and docs
 - `CLAUDE.md` opens with "This repo is the Classic Era copy".
 - `README.md` names the Classic CurseForge project.
