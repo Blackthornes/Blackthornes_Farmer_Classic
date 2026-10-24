@@ -11,7 +11,7 @@
 # to know where to upload; a line that stays commented is simply skipped.
 # This is the Classic Era copy. It gets its own CurseForge project; never put
 # the Forever project's ID (1710618) here, or a tag would upload Era to it.
-# X-Curse-Project-ID: 
+## X-Curse-Project-ID: 1763311
 # X-Wago-ID: 
 # X-WoWI-ID: 
 

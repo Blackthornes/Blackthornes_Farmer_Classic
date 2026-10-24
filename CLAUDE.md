@@ -44,7 +44,8 @@ comes first, and nothing done here may ever touch the Forever addon. So:
   shows no tick box while nobody is named.
 - Never put Forever's CurseForge ID (1710618) in the TOC:
   `tools/check_release.py` refuses a tag that does. The owner makes the Era
-  project himself; its ID goes on the TOC's `X-Curse-Project-ID` line then.
+  project himself: Farmer Classic is **1763311** (2026-10-24), on the TOC's
+  `X-Curse-Project-ID` line, and `tools/test_era.lua` checks it is there.
 - Not yet seen in an Era client. Read client calls in a pcall as everywhere
   else; the code already falls back to the classic calls (skill lines,
   spell info, the older tooltip scripts) where Era lacks the newer ones.
