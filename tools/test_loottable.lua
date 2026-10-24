@@ -311,4 +311,17 @@ GameTooltip.SetItemByID = nil
 LTU:Hide()
 _G.C_Item = savedItem
 
+--------------------------------------------------------------------------------
+-- A second mob picked while the window is open comes to the front
+--------------------------------------------------------------------------------
+
+LTU:Show(WOLF)
+local raised = 0
+LTU.frame.Raise = function() raised = raised + 1 end
+LTU:Show(BOAR)
+suite.check("picking another mob while open lifts the window over the main one",
+    raised == 1 and LTU.mob == BOAR, raised)
+LTU.frame.Raise = nil
+LTU:Hide()
+
 suite.done()
