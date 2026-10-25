@@ -349,4 +349,23 @@ do
     Check("and its numbers are kept", old.windowScale == 120 and old.tracker.mobs.Wolf.kills == 3)
 end
 
+-- A whisper goes to "Name-Realm" (Classic Era, 2026-10-25: a bare name
+-- never arrived for one player).
+do
+    local oldNormal, oldRealm = _G.GetNormalizedRealmName, _G.GetRealmName
+    local oldChat = _G.C_ChatInfo
+    local sentTo
+    _G.C_ChatInfo = { SendAddonMessage = function(_, _, _, target) sentTo = target return 0 end }
+    _G.GetNormalizedRealmName, _G.GetRealmName = function() return "Ashkandi" end, nil
+    Check("a bare name gets this realm", Comm.WithRealm("Ana") == "Ana-Ashkandi", Comm.WithRealm("Ana"))
+    Check("a name with a realm is left alone", Comm.WithRealm("Ana-Other") == "Ana-Other")
+    Comm.RawSend("x", "WHISPER", "Bob")
+    Check("a whisper is sent with the realm", sentTo == "Bob-Ashkandi", sentTo)
+    _G.GetNormalizedRealmName, _G.GetRealmName = nil, function() return "Old Blanchy" end
+    Check("else the realm's name without spaces", Comm.WithRealm("Ana") == "Ana-OldBlanchy", Comm.WithRealm("Ana"))
+    _G.GetRealmName = nil
+    Check("no realm known: the name as it was", Comm.WithRealm("Ana") == "Ana")
+    _G.C_ChatInfo, _G.GetNormalizedRealmName, _G.GetRealmName = oldChat, oldNormal, oldRealm
+end
+
 suite.done()
