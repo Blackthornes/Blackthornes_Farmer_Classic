@@ -131,9 +131,20 @@ suite.check("the marker shows", NodeSparkle.frame:IsShown())
 suite.check("with the node's name", NodeSparkle.nameText:IsShown() and NodeSparkle.nameText:GetText() == "Copper Vein")
 NodeSparkle:SetStyle("sparkles")
 suite.check("a new look keeps the name", NodeSparkle.nameText:IsShown() and NodeSparkle.nameText:GetText() == "Copper Vein")
+suite.check("no spot known: sparkles stand over you", NodeSparkle.sparks[1].holder:IsShown()
+    and not NodeSparkle.beacon.holder:IsShown())
 NodeSparkle:SetStyle("beacon")
-suite.check("no beam on screen", not NodeSparkle.beacon.holder:IsShown() and not NodeSparkle.sparks[1].holder:IsShown())
+suite.check("no spot known: the beam stands over you", NodeSparkle.beacon.holder:IsShown()
+    and not NodeSparkle.sparks[1].holder:IsShown())
 suite.check("no spot known, no arrow", not (NodeSparkle.pointer and NodeSparkle.pointer.frame:IsShown()))
+NodeSparkle:SetPointerLook("beam")
+suite.check("Beam Only keeps it", Face("Copper Vein", VEIN) == "screen" and NodeSparkle.beacon.holder:IsShown())
+NodeSparkle:SetPointerLook("arrow")
+suite.check("Arrow Only leaves only the name", Face("Copper Vein", VEIN) == "screen"
+    and not NodeSparkle.beacon.holder:IsShown() and not NodeSparkle.sparks[1].holder:IsShown()
+    and NodeSparkle.nameText:IsShown())
+NodeSparkle:SetPointerLook("both")
+Face("Copper Vein", VEIN)
 
 -- A spot you gathered it at before: the arrow by your feet points there.
 local realPosition, realSize, realSpots, realFacing = ns.Harvest.PlayerMapPosition, ns.Gathering.MapSize, ns.Gathering.SpotsOn, ns.Arrow.Facing
@@ -146,6 +157,7 @@ ns.Gathering.SpotsOn = function() return spots end
 ns.Arrow.Facing = function() return turnTo end
 suite.check("a known spot: the marker on screen", Face("Copper Vein", VEIN) == "screen")
 suite.check("the arrow shows", NodeSparkle.pointer and NodeSparkle.pointer.frame:IsShown())
+suite.check("and the beam over you goes", not NodeSparkle.beacon.holder:IsShown() and not NodeSparkle.sparks[1].holder:IsShown())
 suite.check("facing north, it turns left toward the west", math.abs(NodeSparkle:PointerTurn("Copper Vein") - math.pi / 2) < 1e-6)
 turnTo = math.pi / 2
 suite.check("facing west, it points straight ahead", math.abs(NodeSparkle:PointerTurn("Copper Vein")) < 1e-6)

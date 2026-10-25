@@ -1168,21 +1168,44 @@ function NodeSparkle:ShowSparkle(plate, guid, color, name)
         end
     end
     if onScreen then
-        -- No beam on screen: the arrow by your feet points the way.
-        if light then
-            light.holder:Hide()
-            if light.pulse then pcall(light.pulse.Stop, light.pulse) end
+        if self:ShowPointer(name, self.shownColor) then
+            -- No beam over you: the arrow by your feet points the way.
+            self:HideFixedLight()
+            self:SayFound(guid)
+        elseif self:Fallback(name) then
+            -- No spot known: the beam or sparkles stand over you as they
+            -- did at first, so you still see the game found one.
+            self:SayFound(guid)
+        else
+            self:HideFixedLight()
         end
-        for _, spark in ipairs(self.sparks) do
-            spark.holder:Hide()
-            if spark.twinkle then pcall(spark.twinkle.Stop, spark.twinkle) end
-        end
-        if self:ShowPointer(name, self.shownColor) then self:SayFound(guid) end
     else
         self:HidePointer()
         self:SayFound(guid)
     end
     frame:Show()
+end
+
+--- Put away the beam and sparkles that stand over you on screen.
+function NodeSparkle:HideFixedLight()
+    local light = self.beacon
+    if light then
+        light.holder:Hide()
+        if light.pulse then pcall(light.pulse.Stop, light.pulse) end
+    end
+    for _, spark in ipairs(self.sparks or {}) do
+        spark.holder:Hide()
+        if spark.twinkle then pcall(spark.twinkle.Stop, spark.twinkle) end
+    end
+end
+
+--- Whether the beam or sparkles stand over you for the node called `name`:
+--- only when no spot of it is known (none of yours, none Classic grows it
+--- at in front of you), so the arrow has nothing to point at, and not with
+--- "Arrow Only" picked under Node Pointer (the owner, 2026-10-25).
+function NodeSparkle:Fallback(name)
+    if self:PointerLook() == "arrow" then return false end
+    return self:PointerTarget(name) == nil
 end
 
 --------------------------------------------------------------------------------

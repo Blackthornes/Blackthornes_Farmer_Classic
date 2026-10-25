@@ -156,7 +156,11 @@ used only once the character knows it, so they need no change.
   2026-10-25; `NodeSparkle:ShippedSpots`, `Data/NodeSpots.lua` with
   `ns.NODE_SPOTS[mapID][English name]` and `ns.NODE_NAMES[locale]`,
   written by `tools/make_node_spots.py <Classic data>`, never by hand;
-  never name where the data came from). No spot known, no arrow. The
+  never name where the data came from). No spot known, no arrow: then
+  the beam (or the sparkles, by Sparkle Look) stands over the character
+  in the node's colour with its name, as it first did (the owner,
+  2026-10-25; `NodeSparkle:Fallback`, `HideFixedLight`), and Node Sound
+  plays. Not with "Arrow Only" picked, which leaves the name alone. The
   bobber gets nothing on screen.
 - "Node Pointer:" under the sparkle rows on the Map & goals page (the
   owner, 2026-10-25) picks Arrow and Beam, Arrow Only or Beam Only
