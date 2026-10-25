@@ -71,8 +71,11 @@ do
     suite.check("and knows its skill", skill == "Mining" and need == 175)
     suite.check("a German chest name is no vein", not NodeSparkle:IsNode("Ramponierte Truhe"))
     _G.GetLocale = realLocale
-    suite.check("back in English the German name is nothing", Face("Kupferader", VEIN) == "notnode")
+    suite.check("an English client knows the German name too", Face("Kupferader", VEIN) == "screen" or Face("Kupferader", VEIN) == "shown")
+    suite.check("and a French chest", NodeSparkle:Kind("Coffre endommagé") == "chest")
 end
+suite.check("a weapon crate counts as a chest", NodeSparkle:Kind("Weapon Crate") == "chest")
+suite.check("so does a giant clam", NodeSparkle:Kind("Giant Clam") == "chest")
 suite.check("a fishing school sparkles", Face("Oily Blackmouth School", VEIN) == "shown")
 suite.check("your fishing bobber does", Face("Fishing Bobber", VEIN) == "shown")
 suite.check("a mailbox does not", Face("Mailbox", VEIN) == "notnode")
@@ -632,5 +635,23 @@ ns.HandleSlash("sparkle check")
 suite.check("the check is kept for a report", ns.db.lastProbe and ns.db.lastProbe.check == "sparkle check")
 
 ns.SettingsUI:Hide()
+
+-- Every node Classic grows is known by its name in every language, on any
+-- client. Quest objects only count while a quest names them.
+do
+    local QUEST = { ["Cat Figurine"] = true, ["Defias Gunpowder"] = true, ["Full Jug"] = true,
+        ["Gordunni Scroll"] = true, ["Jinxed Hoodoo Pile"] = true, ["Ritual Candle"] = true, ["Warpwood Pod"] = true }
+    local missed = {}
+    local function Try(name, english)
+        if not QUEST[english] and not NodeSparkle:Kind(name) then missed[#missed + 1] = name end
+    end
+    for _, zone in pairs(ns.NODE_SPOTS) do
+        for name in pairs(zone) do Try(name, name) end
+    end
+    for _, list in pairs(ns.NODE_NAMES) do
+        for name, english in pairs(list) do Try(name, english); Try(english, english) end
+    end
+    suite.check("every node in every language is known (" .. table.concat(missed, ", ") .. ")", #missed == 0)
+end
 
 suite.done()

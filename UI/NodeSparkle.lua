@@ -503,13 +503,33 @@ NodeSparkle.MORE_VEINS = {
     ["Large Obsidian Chunk"] = false,
 }
 
---- Classic's node names in the client's language, by the English name
---- (`ns.NODE_NAMES`, Data/NodeSpots.lua). Empty on an English client.
-function NodeSparkle.ClientNodeNames()
-    if type(ns.NODE_NAMES) ~= "table" or type(GetLocale) ~= "function" then return {} end
-    local ok, locale = pcall(GetLocale)
-    local list = ok and ns.NODE_NAMES[locale]
-    return type(list) == "table" and list or {}
+-- Classic's node names in every language it has, each with its English
+-- name (`ns.NODE_NAMES`, Data/NodeSpots.lua), laid out once. Every client
+-- knows them all, so a name in any language is never left out (the owner,
+-- 2026-10-25).
+local otherNames, otherNamesOf = nil, nil
+
+--- Every node name in another language, with its English name.
+function NodeSparkle.OtherNodeNames()
+    if otherNames and otherNamesOf == ns.NODE_NAMES then return otherNames end
+    local list = {}
+    if type(ns.NODE_NAMES) == "table" then
+        for _, names in pairs(ns.NODE_NAMES) do
+            if type(names) == "table" then
+                for name, english in pairs(names) do
+                    if type(name) == "string" and type(english) == "string" then list[name] = english end
+                end
+            end
+        end
+    end
+    otherNames, otherNamesOf = list, ns.NODE_NAMES
+    return list
+end
+
+--- The English name of a node called `name` in any language, or `name`.
+function NodeSparkle.EnglishNodeName(name)
+    if type(name) ~= "string" then return name end
+    return NodeSparkle.OtherNodeNames()[name] or name
 end
 
 local function Add(set, name)
@@ -521,7 +541,7 @@ end
 function NodeSparkle:Names()
     local DB = ns.DB
     local key = ("%s:%s:%d:%s"):format(tostring(DB and DB.changes), tostring(DB and DB.namesVersion), GatherCount(),
-        tostring(NodeSparkle.ClientNodeNames()))
+        tostring(NodeSparkle.OtherNodeNames()))
     if names and namesKey == key then return names end
 
     local set, need = {}, {}
@@ -561,8 +581,8 @@ function NodeSparkle:Names()
     -- On another language a vein's name is the client's own. Herbs come in
     -- by their item's name above, but a vein has no item of its name, so
     -- it was never a node there (a player's report, 2026-10-25). Classic's
-    -- names for each node in the client's language stand in for it.
-    for client, english in pairs(NodeSparkle.ClientNodeNames()) do
+    -- names for each node in every language stand in for it.
+    for client, english in pairs(NodeSparkle.OtherNodeNames()) do
         local lower = english:lower()
         if set[lower] then
             Add(set, client)
@@ -611,10 +631,21 @@ NodeSparkle.FISHING_SPELLS = { [7620] = true, [7731] = true, [7732] = true, [182
 -- The bobber appears a moment after the cast starts: look again then.
 NodeSparkle.FISHING_LOOKS = { 0.3, 1.0, 2.5 }
 
+-- Crates, boxes, clams and dungeon caches that open like chests, by English name.
+NodeSparkle.CRATES = {
+    ["Weapon Crate"] = true, ["Armor Crate"] = true, ["Horde Supply Crate"] = true,
+    ["Box of Assorted Parts"] = true, ["Giant Clam"] = true, ["Supply Crate"] = true,
+    ["Chest of The Seven"] = true, ["Cache of the Firelord"] = true, ["Gordok Tribute"] = true,
+    ["Sothos and Jarien's Heirlooms"] = true, ["Arena Spoils"] = true,
+}
+
+--- A chest, by its name in any language.
 function NodeSparkle.IsChest(name)
     if type(name) ~= "string" or name == "" then return false end
+    local english = NodeSparkle.EnglishNodeName(name)
+    if NodeSparkle.CRATES[english] then return true end
     for _, pattern in ipairs(NodeSparkle.CHEST_PATTERNS) do
-        if name:find(pattern) then return true end
+        if name:find(pattern) or english:find(pattern) then return true end
     end
     return false
 end
@@ -1323,13 +1354,7 @@ end
 function NodeSparkle:ShippedSpots(mapID, name)
     local zone = type(ns.NODE_SPOTS) == "table" and ns.NODE_SPOTS[mapID]
     if type(zone) ~= "table" then return nil end
-    local packed = zone[name]
-    if not packed and type(ns.NODE_NAMES) == "table" and type(GetLocale) == "function" then
-        local ok, locale = pcall(GetLocale)
-        local names = ok and ns.NODE_NAMES[locale]
-        local english = type(names) == "table" and names[name]
-        packed = english and zone[english]
-    end
+    local packed = zone[name] or zone[self.EnglishNodeName(name)]
     if type(packed) ~= "string" then return nil end
     self.shippedCache = self.shippedCache or {}
     local found = self.shippedCache[packed]
