@@ -164,6 +164,9 @@ NodeSparkle.POINTER_Y = 0.08
 NodeSparkle.POINTER_REACH = 64
 NodeSparkle.ARROW_SIZE = 46
 NodeSparkle.TRAIL = { { at = 100, size = 12 }, { at = 128, size = 10 }, { at = 154, size = 8 } }
+-- A short glowing beam stands at the trail's end, a soft flare at its foot
+-- (the owner asked, 2026-10-25), the same art as the beacon.
+NodeSparkle.TRAIL_BEAM = { at = 182, width = 14, height = 90, flare = 34 }
 NodeSparkle.POINTER_LOOK = 0.03     -- seconds between turns of the arrow
 NodeSparkle.POINTER_PULSE = 0.6     -- seconds to dim, and again to brighten
 
@@ -1114,6 +1117,19 @@ function NodeSparkle:BuildPointer()
         pieces[#pieces + 1] = { texture = texture, at = dot.at,
             pulse = Pulse(texture, 0.15, index * NodeSparkle.POINTER_PULSE / 3) }
     end
+    local spec = self.TRAIL_BEAM
+    local flare = frame:CreateTexture(nil, "ARTWORK")
+    flare:SetTexture(self.GLOW)
+    flare:SetSize(spec.flare, spec.flare * 0.5)
+    pcall(flare.SetBlendMode, flare, "ADD")
+    pieces[#pieces + 1] = { texture = flare, at = spec.at,
+        pulse = Pulse(flare, 0.4, NodeSparkle.POINTER_PULSE) }
+    local beam = frame:CreateTexture(nil, "OVERLAY")
+    beam:SetTexture(self.BEAM)
+    beam:SetSize(spec.width, spec.height)
+    pcall(beam.SetBlendMode, beam, "ADD")
+    pieces[#pieces + 1] = { texture = beam, at = spec.at, anchor = "BOTTOM", lift = -4,
+        pulse = Pulse(beam, 0.5, NodeSparkle.POINTER_PULSE) }
 
     local wait = 0
     frame:SetScript("OnUpdate", function(_, elapsed)
@@ -1216,7 +1232,8 @@ function NodeSparkle:AimPointer()
     for _, piece in ipairs(pointer.pieces) do
         local texture = piece.texture
         texture:ClearAllPoints()
-        texture:SetPoint("CENTER", UIParent, "CENTER", across * piece.at, feet + up * piece.at)
+        texture:SetPoint(piece.anchor or "CENTER", UIParent, "CENTER",
+            across * piece.at, feet + up * piece.at + (piece.lift or 0))
         if piece.turn then pcall(texture.SetRotation, texture, turn) end
     end
     return true

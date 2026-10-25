@@ -149,7 +149,11 @@ suite.check("the arrow shows", NodeSparkle.pointer and NodeSparkle.pointer.frame
 suite.check("facing north, it turns left toward the west", math.abs(NodeSparkle:PointerTurn("Copper Vein") - math.pi / 2) < 1e-6)
 turnTo = math.pi / 2
 suite.check("facing west, it points straight ahead", math.abs(NodeSparkle:PointerTurn("Copper Vein")) < 1e-6)
-suite.check("a dotted trail with it", #NodeSparkle.pointer.pieces == 1 + #NodeSparkle.TRAIL)
+suite.check("a dotted trail with it, and a flare and beam at its end",
+    #NodeSparkle.pointer.pieces == 3 + #NodeSparkle.TRAIL)
+local lastPiece = NodeSparkle.pointer.pieces[#NodeSparkle.pointer.pieces]
+suite.check("the beam stands at the trail's end",
+    lastPiece.anchor == "BOTTOM" and lastPiece.at > NodeSparkle.TRAIL[#NodeSparkle.TRAIL].at)
 suite.check("in the node's colour", NodeSparkle.pointer.pieces[1].texture)
 spots[1].x = 0.4   -- 100 yards off: too far to be the one you face
 suite.check("too far, no arrow", not NodeSparkle:AimPointer())

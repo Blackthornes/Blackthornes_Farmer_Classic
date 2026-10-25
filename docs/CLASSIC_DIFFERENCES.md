@@ -147,7 +147,7 @@ used only once the character knows it, so they need no change.
   bobber). The name stays, and a pulsing glowing arrow by the character's
   feet with a dotted trail past it (`NodeSparkle:ShowPointer`, `AimPointer`,
   `Media/Frame/GlowArrow.tga` from `tools/make_sparkle_art.py`, the trail
-  `TravelDot.tga`) points at the nearest spot you gathered that node at
+  `TravelDot.tga`, a short glowing beam at its end, `TRAIL_BEAM`) points at the nearest spot you gathered that node at
   (`gathering.spots`, a vein grown on it counted through `spot.also`)
   within `POINT_YARDS` on your map, turning as you turn. With none of
   yours, the nearest spot Classic grows it at, within `SHIPPED_YARDS` and
