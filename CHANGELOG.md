@@ -8,7 +8,7 @@ the top; a release is refused if its version has no section here.
 
 - **Fixes:** ore veins, herbs and chests are found on every language client, and ooze-covered veins, obsidian and more crates are known too.
 - **Fixes:** the beam shows over you when no spot of a nearby node is known.
-- **Fixes:** the account sharing setting no longer asks for a last name, since Era names are one word.
+- **Fixes:** account sharing takes one-word names.
 
 ## 0.2.0
 

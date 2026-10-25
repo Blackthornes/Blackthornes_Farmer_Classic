@@ -29,7 +29,7 @@ Fixes and changes:
 - Ore veins, herbs and chests show on every language client.
 - Ooze-covered veins, obsidian and more crates are found too.
 - The beam shows over you when a node's spot isn't known.
-- Sharing no longer asks for a last name.
+- Account sharing takes one-word names.
 
 ## 0.2.0
 
