@@ -142,6 +142,15 @@ used only once the character knows it, so they need no change.
   comes, works as on Forever. A catch-up that touches `UI/NodeSparkle.lua`
   blends Forever's change on top of this. Tested in
   `tools/test_nodesparkle.lua`.
+- On screen the beam and sparkles are dropped again (the owner,
+  2026-10-25: "drop the beam"; they never followed the node, nor the
+  bobber). The name stays, and a pulsing glowing arrow by the character's
+  feet with a dotted trail past it (`NodeSparkle:ShowPointer`, `AimPointer`,
+  `Media/Frame/GlowArrow.tga` from `tools/make_sparkle_art.py`, the trail
+  `TravelDot.tga`) points at the nearest spot you gathered that node at
+  (`gathering.spots`, a vein grown on it counted through `spot.also`)
+  within `POINT_YARDS` on your map, turning as you turn. No spot known, no
+  arrow. The bobber gets nothing on screen. Nothing new is saved.
 
 ## Not yet done
 - Not yet seen in an Era client. Client calls are read in a pcall, and the
