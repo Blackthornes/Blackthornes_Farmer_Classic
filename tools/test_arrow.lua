@@ -588,12 +588,33 @@ do
     scripts.OnHide(bar)
     point = frame._point
     suite.check("the bar hiding puts the arrow back on its saved spot",
-        point[1] == "CENTER" and point[4] == 775 and point[5] == 925, point[1])
+        point[1] == "CENTER" and math.abs(point[4] - 775 / ArrowUI.SCALE) < 0.01
+            and math.abs(point[5] - 925 / ArrowUI.SCALE) < 0.01, point[1])
     ns.db.arrowX, ns.db.arrowY = savedX, savedY
 
     _G.BlackthornesFarmer.XPBarUI = saved
     _G.hooksecurefunc = hooksBefore
     ArrowUI.watchingBar, ArrowUI.watchedBar = nil, nil
+end
+
+-- Drawn smaller, and a spot saved before stays where it was: kept in
+-- UIParent's units, the arrow's own (smaller) units are turned back.
+do
+    local frame = ArrowUI.frame or ArrowUI:Build()
+    local scale = ArrowUI.SCALE
+    suite.check("the arrow is drawn smaller", scale < 1)
+    local keptX, keptY = ns.db.arrowX, ns.db.arrowY
+    ns.db.arrowX, ns.db.arrowY = 650, 400
+    ArrowUI:RestorePosition()
+    local p = frame._point
+    suite.check("a saved spot is placed in the arrow's own units",
+        p and math.abs(p[4] - 650 / scale) < 0.01 and math.abs(p[5] - 400 / scale) < 0.01)
+    frame._cx, frame._cy = 650 / scale, 400 / scale
+    ArrowUI:SavePosition()
+    suite.check("and saved back in UIParent's units, unmoved",
+        math.abs(ns.db.arrowX - 650) < 0.01 and math.abs(ns.db.arrowY - 400) < 0.01)
+    ns.db.arrowX, ns.db.arrowY = keptX, keptY
+    ArrowUI:RestorePosition()
 end
 
 suite.done()
