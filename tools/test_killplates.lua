@@ -132,6 +132,7 @@ do
             return anim
         end
         function group:Stop() end
+        function group:SetScript(_, fn) group.onFinished = fn end
         function group:Play() played[#played + 1] = tag end
         return group
     end
@@ -150,6 +151,7 @@ do
     suite.check("full effects play the pop, glow and +1",
         KillPlates:Cheer(entry) == "full" and table.concat(played, ",") == "pop,glow,plus", table.concat(played, ","))
     local made = entry.cheers
+    suite.check("the +1 holds a while before it fades", ns.KillPlates.HOLD >= 0.75 and ns.KillPlates.HOLD + ns.KillPlates.FADE >= 1.5)
     played = {}
     ns.Motion.Level = function() return "subtle" end
     KillPlates:Cheer(entry)

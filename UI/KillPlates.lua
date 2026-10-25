@@ -159,7 +159,9 @@ end
 
 KillPlates.SIZE_UP = 2         -- points over the usual label size
 KillPlates.POP = 1.35          -- how big the count grows on a kill
-KillPlates.RISE = 22           -- how far the "+1" floats up
+KillPlates.RISE = 30           -- how far the "+1" floats up
+KillPlates.HOLD = 0.9          -- seconds the "+1" stays whole
+KillPlates.FADE = 0.9          -- seconds it takes to fade after
 
 --- Sets a scale step, by the older call where the client has it.
 local function Grow(piece, by)
@@ -202,19 +204,21 @@ local function Cheers(entry)
     cheers.origin = origin
     pcall(function()
         local plus = frame:CreateFontString(nil, "OVERLAY")
-        plus:SetFont(ns.Theme.FONT, (ns.Theme.sizes.normal or 12), "OUTLINE")
+        plus:SetFont(ns.Theme.FONT, (ns.Theme.sizes.normal or 12) + KillPlates.SIZE_UP + 2, "OUTLINE")
         plus:SetTextColor(0.55, 1, 0.55)
         plus:SetText("+1")
-        plus:SetPoint("BOTTOM", entry.text, "TOP", 0, 0)
-        plus:SetAlpha(0)
+        plus:SetPoint("BOTTOM", entry.text, "TOP", 0, 2)
+        plus:Hide()
+        -- Shown whole while it holds, rising all along, then fading out.
         local group = plus:CreateAnimationGroup()
-        local show = group:CreateAnimation("Alpha")
-        show:SetFromAlpha(1); show:SetToAlpha(1); show:SetDuration(0.25); show:SetOrder(1)
         local rise = group:CreateAnimation("Translation")
-        rise:SetOffset(0, KillPlates.RISE); rise:SetDuration(1); rise:SetSmoothing("OUT"); rise:SetOrder(1)
+        rise:SetOffset(0, KillPlates.RISE); rise:SetDuration(KillPlates.HOLD + KillPlates.FADE)
+        rise:SetSmoothing("OUT"); rise:SetOrder(1)
         local fade = group:CreateAnimation("Alpha")
-        fade:SetFromAlpha(1); fade:SetToAlpha(0); fade:SetDuration(0.75); fade:SetStartDelay(0.25); fade:SetOrder(1)
-        if group.Play then cheers.plus = group end
+        fade:SetFromAlpha(1); fade:SetToAlpha(0); fade:SetDuration(KillPlates.FADE)
+        fade:SetStartDelay(KillPlates.HOLD); fade:SetOrder(1)
+        pcall(group.SetScript, group, "OnFinished", function() plus:Hide() end)
+        if group.Play then cheers.plus, cheers.plusText = group, plus end
     end)
     entry.cheers = cheers
     return cheers
@@ -240,6 +244,10 @@ function KillPlates:Cheer(entry)
         end
         Replay(cheers.pop)
         Replay(cheers.glow)
+    end
+    if cheers.plusText then
+        pcall(cheers.plusText.SetAlpha, cheers.plusText, 1)
+        pcall(cheers.plusText.Show, cheers.plusText)
     end
     Replay(cheers.plus)
     return level
