@@ -164,6 +164,9 @@ used only once the character knows it, so they need no change.
   `/farm sparkle pointer [both|arrow|beam]`). Alone, the beam stands toward
   the node, nearer your feet the nearer it is (`NodeSparkle.BeamReach`,
   `BEAM_NEAR` to `BEAM_FAR`).
+- "Sparkle Look:" picks what stands at the trail's end on screen: Beacon
+  is the beam, Sparkles twinkle there instead (`TRAIL_SPARKS`, pieces with
+  `style`; the owner, 2026-10-25: Sparkles did nothing on Era).
 
 ## Not yet done
 - Not yet seen in an Era client. Client calls are read in a pcall, and the
