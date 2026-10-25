@@ -1276,7 +1276,7 @@ function SettingsUI:BuildSharingPage()
     controls.share:SetPoint("TOPLEFT", CONTROL_X, -2)
 
     local namesRow = pages:Row("sharing", 1, L["Other Accounts Characters:"],
-        L["Type your other account's characters, first and last name, with commas. Name one of yours in Farmer there too."])
+        L["Type your other account's character names, with commas. Name one of yours in Farmer there too."])
     GrowRow(namesRow, 26)
     local names = Widgets.CreateSearchBox(namesRow, L["Ana Smith, Bob Jones"], nil, function(text)
         ns.Share:SetNames(text)
