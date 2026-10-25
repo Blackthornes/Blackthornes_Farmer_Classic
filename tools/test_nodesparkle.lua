@@ -155,6 +155,31 @@ local lastPiece = NodeSparkle.pointer.pieces[#NodeSparkle.pointer.pieces]
 suite.check("the beam stands at the trail's end",
     lastPiece.anchor == "BOTTOM" and lastPiece.at > NodeSparkle.TRAIL[#NodeSparkle.TRAIL].at)
 suite.check("in the node's colour", NodeSparkle.pointer.pieces[1].texture)
+local function PartsShown()
+    local shown = { arrow = false, beam = false }
+    for _, piece in ipairs(NodeSparkle.pointer.pieces) do
+        if piece.texture:IsShown() then shown[piece.part] = true end
+    end
+    return shown.arrow, shown.beam
+end
+NodeSparkle.pointer.turn = nil
+NodeSparkle:AimPointer()
+local arrowOn, beamOn = PartsShown()
+suite.check("arrow and beam unless picked", NodeSparkle:PointerLook() == "both" and arrowOn and beamOn)
+NodeSparkle:SetPointerLook("arrow")
+NodeSparkle:AimPointer()
+arrowOn, beamOn = PartsShown()
+suite.check("Arrow Only leaves the beam out", ns.db.nodePointer == "arrow" and arrowOn and not beamOn)
+NodeSparkle:SetPointerLook("beam")
+NodeSparkle:AimPointer()
+arrowOn, beamOn = PartsShown()
+suite.check("Beam Only leaves the arrow and dots out", arrowOn == false and beamOn)
+suite.check("alone, the beam stands nearer the nearer the node is",
+    math.abs(NodeSparkle.pointer.reach - NodeSparkle.BeamReach(10)) < 0.01 and NodeSparkle.BeamReach(10) < NodeSparkle.BeamReach(30)
+    and NodeSparkle.BeamReach(0) == NodeSparkle.BEAM_NEAR and NodeSparkle.BeamReach(99) == NodeSparkle.BEAM_FAR)
+NodeSparkle:SetPointerLook("nonsense")
+suite.check("anything else reads as both", ns.db.nodePointer == "both" and NodeSparkle:PointerLook() == "both")
+ns.db.nodePointer = nil
 spots[1].x = 0.4   -- 100 yards off: too far to be the one you face
 suite.check("too far, no arrow", not NodeSparkle:AimPointer())
 spots[1].x, spots[1].node, spots[1].also = 0.49, "Tin Vein", { ["Copper Vein"] = true }

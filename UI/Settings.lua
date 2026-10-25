@@ -1029,6 +1029,19 @@ function SettingsUI:BuildMapPage()
     ns.SettingsPages.FitStepper(controls.sparkleStyle, styleNames)
     controls.sparkleStyle:SetPoint("TOPLEFT", CONTROL_X, -2)
 
+    -- What shows the way to the node on Era: the arrow and dots, the beam,
+    -- or both (the owner, 2026-10-25).
+    local pointerNames = { both = L["Arrow and Beam"], arrow = L["Arrow Only"], beam = L["Beam Only"] }
+    local pointerRow = pages:Row("map", 1, L["Node Pointer:"],
+        L["Shows the way to the node you face. The beam alone stands where the node is."])
+    controls.nodePointer = Widgets.CreateChoice(pointerRow, {
+        min = 1, max = #ns.NodeSparkle.POINTER_LOOKS, step = 1, value = 1,
+        format = function(index) return pointerNames[ns.NodeSparkle.POINTER_LOOKS[index]] end,
+        onChange = function(index) ns.NodeSparkle:SetPointerLook(ns.NodeSparkle.POINTER_LOOKS[index]) end,
+    })
+    ns.SettingsPages.FitStepper(controls.nodePointer, pointerNames)
+    controls.nodePointer:SetPoint("TOPLEFT", CONTROL_X, -2)
+
     -- Each thing in its own colour, herbs and ore by your skill, and a
     -- corpse to skin (the owner, 2026-10-24).
     local sparkleColorsRow = pages:Row("map", 1, L["Sparkle Colors:"],
@@ -1431,6 +1444,9 @@ function SettingsUI:Refresh()
     controls.heatLevel:SetValue(ns.Heat:Level(), true)
     controls.nodeSparkle:SetChecked(db.nodeSparkle ~= false)
     controls.sparkleStyle:SetValue(ns.NodeSparkle:Style() == "sparkles" and 1 or 2, true)
+    for index, look in ipairs(ns.NodeSparkle.POINTER_LOOKS) do
+        if look == ns.NodeSparkle:PointerLook() then controls.nodePointer:SetValue(index, true) end
+    end
     controls.nodeSparkleHideIcon:SetChecked(db.nodeSparkleHideIcon ~= false)
     controls.nodeSparkleColors:SetChecked(db.nodeSparkleColors ~= false)
     controls.nodeSparkleCorpses:SetChecked(db.nodeSparkleCorpses == true)

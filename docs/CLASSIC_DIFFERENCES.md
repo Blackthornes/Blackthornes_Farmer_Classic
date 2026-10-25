@@ -157,7 +157,13 @@ used only once the character knows it, so they need no change.
   `ns.NODE_SPOTS[mapID][English name]` and `ns.NODE_NAMES[locale]`,
   written by `tools/make_node_spots.py <Classic data>`, never by hand;
   never name where the data came from). No spot known, no arrow. The
-  bobber gets nothing on screen. Nothing new is saved.
+  bobber gets nothing on screen.
+- "Node Pointer:" under the sparkle rows on the Map & goals page (the
+  owner, 2026-10-25) picks Arrow and Beam, Arrow Only or Beam Only
+  (`nodePointer`, account wide, "both" unless picked, never rename it;
+  `/farm sparkle pointer [both|arrow|beam]`). Alone, the beam stands toward
+  the node, nearer your feet the nearer it is (`NodeSparkle.BeamReach`,
+  `BEAM_NEAR` to `BEAM_FAR`).
 
 ## Not yet done
 - Not yet seen in an Era client. Client calls are read in a pcall, and the

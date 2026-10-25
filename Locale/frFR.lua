@@ -925,8 +925,8 @@ L["HOW THESE ADDONS ARE MADE"] = "COMMENT CES ADDONS SONT FAITS"
 L["How these addons are made, the version, the Discord and the other Blackthornes addons"] = "Comment ces addons sont faits, la version, le Discord et les autres addons Blackthornes"
 
 -- Sparkles on the node you face (UI/NodeSparkle.lua).
-L["turn sparkles on or off for the node, school, chest or quest object you face (beacon, sparkles, colors, corpses, icon, check)"] =
-    "active ou coupe les étincelles sur le gisement, le banc de poissons, le coffre ou l'objet de quête devant toi (beacon, sparkles, colors, corpses, icon, check)"
+L["turn sparkles on or off for the node, school, chest or quest object you face (beacon, sparkles, pointer, colors, corpses, icon, check)"] =
+    "active ou coupe les étincelles sur le gisement, le banc de poissons, le coffre ou l'objet de quête devant toi (beacon, sparkles, pointer, colors, corpses, icon, check)"
 L["the game's interact icon is hidden unless you play with a controller."] = "l'icône d'interaction du jeu est cachée, sauf si tu joues à la manette."
 L["the game's interact icon shows."] = "l'icône d'interaction du jeu s'affiche."
 L["a beacon shows the spot."] = "un phare montre l'endroit."
@@ -941,6 +941,14 @@ L["Herbs and ore show your skill color. Quest things are blue. Chests, fish and 
 L["A dead beast you can skin sparkles until you skin it."] = "Une bête morte que tu peux dépecer brille jusqu'à ce que tu la dépèces."
 L["sparkles show your skill color."] = "les étincelles prennent la couleur de ton métier."
 L["sparkles are all gold."] = "les étincelles sont toutes dorées."
+L["Arrow and Beam"] = "Flèche et rayon"
+L["Arrow Only"] = "Flèche seule"
+L["Beam Only"] = "Rayon seul"
+L["Node Pointer:"] = "Chemin vers le gisement :"
+L["Shows the way to the node you face. The beam alone stands where the node is."] = "Montre le chemin vers le gisement devant toi. Le rayon seul se dresse là où il se trouve."
+L["the arrow and dots show the way to a node."] = "la flèche et les points montrent le chemin vers le gisement."
+L["a beam stands toward the node."] = "un rayon se dresse vers le gisement."
+L["the arrow, dots and beam show the way to a node."] = "la flèche, les points et le rayon montrent le chemin vers le gisement."
 L["corpses you can skin sparkle."] = "les cadavres que tu peux dépecer brillent."
 L["corpses don't sparkle."] = "les cadavres ne brillent pas."
 L["open the kills panel first, then try again."] = "ouvre d'abord le panneau des victimes, puis réessaie."
