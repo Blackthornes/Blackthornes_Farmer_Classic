@@ -131,6 +131,18 @@ used only once the character knows it, so they need no change.
   such file, so a catch-up leaves it alone. Tested in
   `tools/test_fishingbar.lua`.
 
+### Beams and sparkles stand on screen
+- Era makes no nameplate for objects (the owner's sparkle check,
+  2026-10-25: "nameplates showing: 0" facing a herb), so the beam had
+  nothing to hang on and never showed. With no plate, `NodeSparkle:Refresh`
+  now shows it in one spot above the middle of the screen
+  (`NodeSparkle.SCREEN_Y`), with the node's name under it in the same
+  colour (the owner picked it from a mockup, 2026-10-25); it answers
+  "screen". The game's own icon still marks the node. A plate, when one
+  comes, works as on Forever. A catch-up that touches `UI/NodeSparkle.lua`
+  blends Forever's change on top of this. Tested in
+  `tools/test_nodesparkle.lua`.
+
 ## Not yet done
 - Not yet seen in an Era client. Client calls are read in a pcall, and the
   code already falls back to the classic calls (skill lines, spell info, the

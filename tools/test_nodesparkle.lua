@@ -124,7 +124,18 @@ plate.UnitFrame = nil
 suite.check("no icon to read, still a sparkle", NodeSparkle.Icon(plate) == nil)
 
 plateShown = false
-suite.check("no nameplate, no sparkle", Face("Copper Vein", VEIN) == "noplate")
+-- Era makes no nameplate for objects: the marker stands on screen instead,
+-- with the node's name under it.
+suite.check("no nameplate, a marker on screen", Face("Copper Vein", VEIN) == "screen")
+suite.check("the marker shows", NodeSparkle.frame:IsShown())
+suite.check("with the node's name", NodeSparkle.nameText:IsShown() and NodeSparkle.nameText:GetText() == "Copper Vein")
+NodeSparkle:SetStyle("sparkles")
+suite.check("a new look keeps the name", NodeSparkle.nameText:IsShown() and NodeSparkle.nameText:GetText() == "Copper Vein")
+NodeSparkle:SetStyle("beacon")
+suite.check("a mob on screen gets nothing", Face("Kobold Vermin", "Creature-0-1-2-3-6-0000000001") == "nothing"
+    and not NodeSparkle.frame:IsShown())
+plateShown = true
+suite.check("a nameplate again: no name under it", Face("Copper Vein", VEIN) == "shown" and not NodeSparkle.nameText:IsShown())
 plateShown = true
 
 ns.DB:Hide("source", "Copper Vein")
