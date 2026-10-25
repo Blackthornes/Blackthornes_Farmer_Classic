@@ -269,14 +269,14 @@ function FishingBar:Build()
     local half = (self.WIDTH - PAD * 3) / 2
 
     local cast = SecureLook(frame, "BlackthornesFarmerFishingCast", L["Cast"],
-        { primary = true, width = half, height = self.BUTTON_HEIGHT })
+        { width = half, height = self.BUTTON_HEIGHT })
     cast:SetSize(half, self.BUTTON_HEIGHT)
     cast:SetPoint("TOPLEFT", PAD, -26)
     WithIcon(cast, 30):SetTexture(self.FISHING_ICON)
     self.cast = cast
 
     local lure = Widgets.CreateButton(frame, L["Add Lure"], function() FishingBar:TogglePicker() end,
-        { primary = true, width = half, height = self.BUTTON_HEIGHT })
+        { width = half, height = self.BUTTON_HEIGHT })
     lure:SetSize(half, self.BUTTON_HEIGHT)
     lure:SetPoint("TOPLEFT", cast, "TOPRIGHT", PAD, 0)
     WithIcon(lure, 30):SetTexture(134400)

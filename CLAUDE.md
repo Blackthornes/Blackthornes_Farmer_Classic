@@ -471,7 +471,7 @@ A player asked, the owner approved the mockup and said build it
 (2026-10-25). `UI/FishingBar.lua`: a small house-framed window ("Fishing",
 fold gem, size grip) that shows only while a fishing pole is in the main
 hand (item class 2, subclass 20). **Cast** is a secure button casting
-Fishing by the client's name for spell 7620. **Add Lure** (gold like Cast, the owner 2026-10-25) opens a list of
+Fishing by the client's name for spell 7620. **Add Lure** (both plain metal, the owner 2026-10-25) opens a list of
 the Era lures in the bags (`FishingBar.LURES`), best first, each row a
 secure button running "/use item:ID" then "/use 16"; the game's own box
 asks before it replaces a lure. Under them, the lure's time left
