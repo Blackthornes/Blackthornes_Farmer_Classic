@@ -196,7 +196,9 @@ beamShown, sparksShown = StylesShown()
 suite.check("and back to the beam", beamShown and not sparksShown)
 -- A voice when the arrow finds a node.
 local played = {}
-local kept = { _G.PlaySoundFile, _G.UnitRace, _G.UnitSex, _G.GetTime }
+local kept = { _G.PlaySoundFile, _G.UnitRace, _G.UnitSex, _G.GetTime, _G.PlaySound }
+local pinged = {}
+_G.PlaySound = function(kit, channel) pinged[#pinged + 1] = { kit, channel }; return true end
 _G.PlaySoundFile = function(id) played[#played + 1] = id; return true end
 _G.UnitRace = function() return "Orc", "Orc" end
 _G.UnitSex = function() return 3 end
@@ -213,12 +215,17 @@ clock = clock + NodeSparkle.VOICE_GAP
 suite.check("a new node later speaks again", NodeSparkle:SayFound("g3"))
 NodeSparkle:SetVoice("peon")
 suite.check("Try it plays the peon now", NodeSparkle:SayFound(nil, true) and played[#played] == NodeSparkle.PEON_READY)
+NodeSparkle:SetVoice("ping")
+local fileCount = #played
+suite.check("the ping plays the map's ping, not a voice file",
+    NodeSparkle:SayFound(nil, true) and pinged[#pinged][1] == NodeSparkle.PING_KIT
+    and pinged[#pinged][2] == "SFX" and #played == fileCount)
 _G.UnitRace = function() return "Pandaren", "Pandaren" end
 NodeSparkle:SetVoice("character")
 suite.check("a race with no line falls back to a human's", NodeSparkle:VoiceFile() == NodeSparkle.FOLLOW_ME.Human[1])
 NodeSparkle:SetVoice("loud")
 suite.check("anything else is off", ns.db.nodeVoice == "off")
-_G.PlaySoundFile, _G.UnitRace, _G.UnitSex, _G.GetTime = kept[1], kept[2], kept[3], kept[4]
+_G.PlaySoundFile, _G.UnitRace, _G.UnitSex, _G.GetTime, _G.PlaySound = kept[1], kept[2], kept[3], kept[4], kept[5]
 NodeSparkle.saidGuid, NodeSparkle.saidAt = nil, nil
 NodeSparkle:SetPointerLook("nonsense")
 suite.check("anything else reads as both", ns.db.nodePointer == "both" and NodeSparkle:PointerLook() == "both")

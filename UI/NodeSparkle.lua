@@ -206,10 +206,11 @@ end
 
 -- A spoken line when the arrow finds a node (the owner asked, 2026-10-25):
 -- your own character's "Follow me!" in its race and voice, or the orc
--- peon's "Ready to work!". The game's own files by ID, nothing shipped.
--- `nodeVoice` is "off", "character" or "peon", account wide, off unless
--- picked; never rename it. Once a node, and not again for VOICE_GAP seconds.
-NodeSparkle.VOICES = { "off", "character", "peon" }
+-- peon's "Ready to work!", or the map's ping (the owner, the same day).
+-- The game's own files and sounds by ID, nothing shipped. `nodeVoice` is
+-- "off", "character", "peon" or "ping", account wide, off unless picked;
+-- never rename it. Once a node, and not again for VOICE_GAP seconds.
+NodeSparkle.VOICES = { "off", "character", "peon", "ping" }
 NodeSparkle.VOICE_GAP = 20
 NodeSparkle.FOLLOW_ME = {   -- [race] = { male, female }
     Human = { 540711, 540631 }, Dwarf = { 540057, 540004 },
@@ -218,15 +219,16 @@ NodeSparkle.FOLLOW_ME = {   -- [race] = { male, female }
     Tauren = { 543048, 542972 }, Troll = { 543288, 543258 },
 }
 NodeSparkle.PEON_READY = 558137
+NodeSparkle.PING_KIT = 3175   -- SOUNDKIT.MAP_PING
 
 function NodeSparkle:Voice()
     local voice = ns.db and ns.db.nodeVoice
-    if voice == "character" or voice == "peon" then return voice end
+    if voice == "character" or voice == "peon" or voice == "ping" then return voice end
     return "off"
 end
 
 function NodeSparkle:SetVoice(voice)
-    ns.db.nodeVoice = (voice == "character" or voice == "peon") and voice or "off"
+    ns.db.nodeVoice = (voice == "character" or voice == "peon" or voice == "ping") and voice or "off"
 end
 
 --- The file the picked voice plays, or nil.
@@ -251,8 +253,13 @@ end
 --- Say the line for the node `guid`, once, unless one was said lately.
 --- `force` plays it now (Try it). True when the client will play it.
 function NodeSparkle:SayFound(guid, force)
-    local id = self:VoiceFile(force and force ~= true and force or nil)
-    if not id or type(PlaySoundFile) ~= "function" then return false end
+    local voice = force and force ~= true and force or self:Voice()
+    local id = voice ~= "ping" and self:VoiceFile(voice) or nil
+    if voice == "ping" then
+        if type(PlaySound) ~= "function" then return false end
+    elseif not id or type(PlaySoundFile) ~= "function" then
+        return false
+    end
     local now = type(GetTime) == "function" and GetTime() or 0
     if not force then
         if guid and guid == self.saidGuid then return false end
@@ -261,7 +268,13 @@ function NodeSparkle:SayFound(guid, force)
             return false
         end
     end
-    local ok, willPlay = pcall(PlaySoundFile, id, "Dialog")
+    local ok, willPlay
+    if voice == "ping" then
+        local kit = type(SOUNDKIT) == "table" and SOUNDKIT.MAP_PING or self.PING_KIT
+        ok, willPlay = pcall(PlaySound, kit, "SFX")
+    else
+        ok, willPlay = pcall(PlaySoundFile, id, "Dialog")
+    end
     if not (ok and willPlay) then return false end
     self.saidGuid, self.saidAt = guid, now
     return true
@@ -1686,7 +1699,7 @@ ns.RegisterCommand("sparkle", L["turn sparkles on or off for the node, school, c
         return
     end
     if word == "voice" then
-        local voice = (value == "off" or value == "character" or value == "peon") and value or nil
+        local voice = (value == "off" or value == "character" or value == "peon" or value == "ping") and value or nil
         if value == "try" then
             if not NodeSparkle:SayFound(nil, true) then ns.Print(L["pick a voice first."]) end
             return
@@ -1700,6 +1713,7 @@ ns.RegisterCommand("sparkle", L["turn sparkles on or off for the node, school, c
         NodeSparkle:SetVoice(voice)
         ns.Print(voice == "character" and L["your character says \"Follow me!\" when the arrow finds a node."]
             or voice == "peon" and L["a peon speaks up when the arrow finds a node."]
+            or voice == "ping" and L["a ping plays when the arrow finds a node."]
             or L["no voice when the arrow finds a node."])
         if ns.SettingsUI then ns.SettingsUI:Refresh() end
         return
