@@ -113,6 +113,15 @@ used only once the character knows it, so they need no change.
   paragraph (the owner, 2026-10-24). `UI/About.lua` is shared with Forever;
   a catch-up that brings the paragraph back keeps Classic's.
 
+### The nameplate kill count stands out
+- The owner asked (2026-10-25: it was lost on red ground): the count by a
+  mob's nameplate is bright gold, a size up, with a dark outline, and a
+  kill pops it (grows, glows gold, settles) while a green "+1" rises and
+  fades (`KillPlates:Cheer`, the game's own animations; Window effects
+  Subtle keeps the "+1" only, Off neither). A catch-up that touches
+  `UI/KillPlates.lua` blends Forever's change on top of this. Tested in
+  `tools/test_killplates.lua`.
+
 ## Not yet done
 - Not yet seen in an Era client. Client calls are read in a pcall, and the
   code already falls back to the classic calls (skill lines, spell info, the

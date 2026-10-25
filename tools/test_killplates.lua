@@ -1,10 +1,11 @@
 -- Your kill count beside mobs' nameplates.
 --
--- What matters: a mob you can attack shows 0/20 in red to the left of its
+-- What matters: a mob you can attack shows 0/20 in gold to the left of its
 -- nameplate and counts up as it is killed; from 20 kills it shows the
 -- whole count, and the worth only with "Worth on nameplates" ticked and
 -- only from your own kills; friendly NPCs, players, pets, critters, objects
--- and hidden mobs get nothing; a kill reads only plates of that mob again;
+-- and hidden mobs get nothing; a kill reads only plates of that mob again
+-- and pops its count with a "+1", never on a plate that only appeared;
 -- a plate going away takes its count; a secret value costs nothing worse;
 -- /farm plates and the Settings boxes turn it off and on.
 
@@ -62,7 +63,7 @@ suite.check("on by default", ns.DEFAULTS.killPlates == true)
 suite.check("the worth is off by default", ns.DEFAULTS.killPlatesWorth == false)
 
 suite.check("a mob never killed shows 0/20", Plain(Mob("nameplate1", "Plainstrider")) == "0/20")
-suite.check("in red", (Mob("nameplate1", "Plainstrider") or ""):find("^|cffe5604f") ~= nil)
+suite.check("in bright gold, easy to see on red ground", (Mob("nameplate1", "Plainstrider") or ""):find("^|cffffe7a0") ~= nil)
 Kills("Plainstrider", 7)
 suite.check("it counts up", Plain(Mob("nameplate1", "Plainstrider")) == "7/20")
 suite.check("it shows over the plate", Plain(KillPlates:Shown(plates.nameplate1)) == "7/20")
@@ -101,6 +102,66 @@ KillPlates:Killed("Plainstrider")
 KillPlates.Update = realUpdate
 suite.check("a kill reads only that mob's plates", #updated == 2, #updated)
 suite.check("and they show the new count", Plain(KillPlates:Shown(plates.nameplate2)) == "65")
+
+-- A kill pops the count; a plate that only appears does not.
+do
+    local cheered = {}
+    local realCheer = KillPlates.Cheer
+    KillPlates.Cheer = function(self, entry) cheered[#cheered + 1] = entry; return realCheer(self, entry) end
+    Kills("Plainstrider", 66)
+    KillPlates:Killed("Plainstrider")
+    suite.check("a kill pops each plate of that mob", #cheered == 2, #cheered)
+    local count = #cheered
+    KillPlates:Killed("Plainstrider")
+    suite.check("no pop when the count did not move", #cheered == count, #cheered)
+    Mob("nameplate1", "Plainstrider")
+    suite.check("no pop for a plate that only appeared", #cheered == count, #cheered)
+    KillPlates.Cheer = realCheer
+end
+
+-- The animations: the game's own, built once, and Window effects decide.
+do
+    local played = {}
+    local function Group(tag)
+        local group = { anims = {} }
+        function group:CreateAnimation(kind)
+            local anim = setmetatable({ kind = kind }, { __index = function(t, k)
+                local f = function(self, ...) rawset(self, "_" .. k, { ... }) end
+                rawset(t, k, f); return f end })
+            group.anims[#group.anims + 1] = anim
+            return anim
+        end
+        function group:Stop() end
+        function group:Play() played[#played + 1] = tag end
+        return group
+    end
+    local entry = KillPlates:LabelOf(plates.nameplate1)
+    entry.cheers = nil
+    local saved = { entry.frame.CreateAnimationGroup, entry.frame.CreateTexture, entry.frame.CreateFontString }
+    entry.frame.CreateAnimationGroup = function() return Group("pop") end
+    entry.frame.CreateTexture = function()
+        local t = env.Stub(); t.CreateAnimationGroup = function() return Group("glow") end; return t
+    end
+    entry.frame.CreateFontString = function()
+        local t = env.Stub(); t.CreateAnimationGroup = function() return Group("plus") end; return t
+    end
+    local realLevel = ns.Motion.Level
+    ns.Motion.Level = function() return "full" end
+    suite.check("full effects play the pop, glow and +1",
+        KillPlates:Cheer(entry) == "full" and table.concat(played, ",") == "pop,glow,plus", table.concat(played, ","))
+    local made = entry.cheers
+    played = {}
+    ns.Motion.Level = function() return "subtle" end
+    KillPlates:Cheer(entry)
+    suite.check("subtle keeps only the +1", table.concat(played, ",") == "plus", table.concat(played, ","))
+    suite.check("the pieces are made once", entry.cheers == made)
+    played = {}
+    ns.Motion.Level = function() return "off" end
+    suite.check("off plays nothing", KillPlates:Cheer(entry) == nil and #played == 0)
+    ns.Motion.Level = realLevel
+    entry.frame.CreateAnimationGroup, entry.frame.CreateTexture, entry.frame.CreateFontString = saved[1], saved[2], saved[3]
+    entry.cheers = nil
+end
 
 -- The crown Farmer gave you on a mob shows beside its name too.
 Kills("Plainstrider", 99)

@@ -1496,7 +1496,7 @@ questcount`. Tested in `tools/test_questmobs.lua`. Not yet seen in game.
 
 A player asked, the owner said build it (2026-10-15): the tooltip's kill
 count to the left of a mob's nameplate. `UI/KillPlates.lua` shows "7/20"
-in red under `Tracker.MIN_KILLS`, then the whole count, and with "Worth
+in bright gold, outlined and a size up (Classic, 2026-10-25), under `Tracker.MIN_KILLS`, then the whole count, and with "Worth
 on nameplates" ticked what a kill is worth after it, only from your own
 kills (`KillTooltip:Read`'s kept answer, never an estimate). The same
 mobs as the tooltip (`KillTooltip:Attackable`, `MobName`, hidden ones
