@@ -321,6 +321,7 @@ local FILES = {
     "Data/NpcNames.lua",
     "Data/ForeverNpcNames.lua",
     "Data/Zones.lua",
+    "Data/NodeSpots.lua",
     "Data/Travel.lua",
     "Data/TravelZones.lua",
     "Data/Data_Mining.lua",

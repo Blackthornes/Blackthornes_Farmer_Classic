@@ -164,6 +164,29 @@ plateShown = false
 Face("Copper Vein", VEIN)
 suite.check("the arrow goes with the marker", NodeSparkle.pointer.frame:IsShown() and Face(nil, nil) == "nothing"
     and not NodeSparkle.pointer.frame:IsShown())
+
+-- Never gathered here: Classic's own spots stand in, yours still win.
+local realShipped, realNames = ns.NODE_SPOTS, ns.NODE_NAMES
+turnTo = 0
+spots = {}
+ns.NODE_SPOTS = { [1429] = { ["Copper Vein"] = "500520" .. "300300" } }   -- 20 yards south, and one far off
+NodeSparkle.shippedCache = nil
+suite.check("the shipped data has Classic's spots", type(realShipped) == "table" and type(realShipped[1411]) == "table"
+    and type(realShipped[1411]["Peacebloom"]) == "string" and #realShipped[1411]["Peacebloom"] % 6 == 0)
+suite.check("a spot Classic grows it at counts", Face("Copper Vein", VEIN) == "screen" and NodeSparkle.pointer.frame:IsShown())
+suite.check("the nearest of them, behind you to the south", math.abs(math.abs(NodeSparkle:PointerTurn("Copper Vein")) - math.pi) < 1e-6)
+spots = { { map = 1429, x = 0.49, y = 0.5, node = "Copper Vein" } }
+suite.check("a spot you gathered at wins", math.abs(NodeSparkle:PointerTurn("Copper Vein") - math.pi / 2) < 1e-6)
+spots = {}
+ns.NODE_NAMES = { deDE = { ["Kupferader"] = "Copper Vein" } }
+local realLocale = _G.GetLocale
+_G.GetLocale = function() return "deDE" end
+suite.check("another language finds it by its own name", NodeSparkle:PointerTarget("Kupferader") ~= nil)
+_G.GetLocale = realLocale
+suite.check("a node Classic never grew here gets none", NodeSparkle:PointerTarget("Tin Vein") == nil)
+ns.NODE_SPOTS, ns.NODE_NAMES = realShipped, realNames
+NodeSparkle.shippedCache = nil
+Face(nil, nil)
 ns.Harvest.PlayerMapPosition, ns.Gathering.MapSize, ns.Gathering.SpotsOn, ns.Arrow.Facing = realPosition, realSize, realSpots, realFacing
 NodeSparkle.fishing = true
 suite.check("the bobber on screen gets nothing", Face("Fishing Bobber", VEIN) == "nothing" and not NodeSparkle.frame:IsShown())
