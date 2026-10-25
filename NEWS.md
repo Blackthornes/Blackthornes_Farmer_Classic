@@ -23,6 +23,14 @@ tell a friend: no hype, no questions to the reader, no exclamation marks
 outside the thanks line, no dashes as punctuation, no "now you can". The
 tool prints a note for a shipped line that reads like an advert.
 
+## 0.2.1
+
+Fixes and changes:
+- Ore veins, herbs and chests show on every language client.
+- Ooze-covered veins, obsidian and more crates are found too.
+- The beam shows over you when a node's spot isn't known.
+- Sharing no longer asks for a last name.
+
 ## 0.2.0
 
 - A fishing bar with Cast and Add Lure shows while you hold a fishing pole.
