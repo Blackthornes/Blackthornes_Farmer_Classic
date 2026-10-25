@@ -4,6 +4,13 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 0.2.0
+
+- **Fishing buttons:** a small bar with Cast and Add Lure shows while a fishing pole is in your hand.
+- **Node Pointer:** an arrow points you to herbs, ore and chests close to you, and a beam of light or sparkles marks the spot. Pick the arrow, the beam or both.
+- **Node Sound:** a ping or a spoken line plays when the pointer finds a node.
+- **Fixes:** the beam and sparkles now show on Era when the game gives no nameplate.
+
 ## 0.1.0
 
 First release for WoW Classic Era.
