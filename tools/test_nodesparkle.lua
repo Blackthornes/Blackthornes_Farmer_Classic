@@ -167,16 +167,22 @@ suite.check("the arrow goes with the marker", NodeSparkle.pointer.frame:IsShown(
 
 -- Never gathered here: Classic's own spots stand in, yours still win.
 local realShipped, realNames = ns.NODE_SPOTS, ns.NODE_NAMES
-turnTo = 0
+turnTo = math.pi   -- facing south
 spots = {}
-ns.NODE_SPOTS = { [1429] = { ["Copper Vein"] = "500520" .. "300300" } }   -- 20 yards south, and one far off
+-- 18 yards south, in front; 10 yards north, behind you; one far off.
+ns.NODE_SPOTS = { [1429] = { ["Copper Vein"] = "500518" .. "500490" .. "300300" } }
 NodeSparkle.shippedCache = nil
 suite.check("the shipped data has Classic's spots", type(realShipped) == "table" and type(realShipped[1411]) == "table"
     and type(realShipped[1411]["Peacebloom"]) == "string" and #realShipped[1411]["Peacebloom"] % 6 == 0)
 suite.check("a spot Classic grows it at counts", Face("Copper Vein", VEIN) == "screen" and NodeSparkle.pointer.frame:IsShown())
-suite.check("the nearest of them, behind you to the south", math.abs(math.abs(NodeSparkle:PointerTurn("Copper Vein")) - math.pi) < 1e-6)
+suite.check("the one in front of you, not the nearer one behind", math.abs(NodeSparkle:PointerTurn("Copper Vein")) < 1e-6)
+ns.NODE_SPOTS[1429]["Copper Vein"] = "500525" .. "500490"
+NodeSparkle.shippedCache = nil
+suite.check("one 25 yards off is too far to be the one you face", NodeSparkle:PointerTarget("Copper Vein") == nil)
+ns.NODE_SPOTS[1429]["Copper Vein"] = "500518"
+NodeSparkle.shippedCache = nil
 spots = { { map = 1429, x = 0.49, y = 0.5, node = "Copper Vein" } }
-suite.check("a spot you gathered at wins", math.abs(NodeSparkle:PointerTurn("Copper Vein") - math.pi / 2) < 1e-6)
+suite.check("a spot you gathered at wins", math.abs(NodeSparkle:PointerTurn("Copper Vein") + math.pi / 2) < 1e-6)
 spots = {}
 ns.NODE_NAMES = { deDE = { ["Kupferader"] = "Copper Vein" } }
 local realLocale = _G.GetLocale

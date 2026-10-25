@@ -156,6 +156,9 @@ NodeSparkle.SCREEN_Y = 0.11
 NodeSparkle.ARROW = "Interface\\AddOns\\Blackthornes_Farmer\\Media\\Frame\\GlowArrow"
 NodeSparkle.DOT = "Interface\\AddOns\\Blackthornes_Farmer\\Media\\Frame\\TravelDot"
 NodeSparkle.POINT_YARDS = 40
+-- A spot Classic grows the node at counts only this near and in front of
+-- you, where the game picks the node you face from, so it is that node.
+NodeSparkle.SHIPPED_YARDS = 20
 NodeSparkle.NEAR_ENOUGH = 2.5
 NodeSparkle.POINTER_Y = 0.08
 NodeSparkle.POINTER_REACH = 64
@@ -1151,7 +1154,8 @@ end
 
 --- Where the node called `name` lies from you, as yards north and west,
 --- from the nearest spot you gathered it at within POINT_YARDS, else the
---- nearest spot Classic grows it at. Nil when none is known or the client
+--- nearest spot Classic grows it at within SHIPPED_YARDS in front of you
+--- (the half you face). Nil when none is known or the client
 --- will not say where you stand.
 function NodeSparkle:PointerTarget(name)
     if type(name) ~= "string" or not ns.Gathering or not ns.Harvest then return nil end
@@ -1160,11 +1164,13 @@ function NodeSparkle:PointerTarget(name)
     local width, height = ns.Gathering.MapSize(mapID)
     if not (width and height) then return nil end
     local bestNorth, bestWest, best
+    local reach, facing = self.POINT_YARDS, nil
     local function Consider(sx, sy)
         local north = (y - sy) * height
         local west = (x - sx) * width
         local yards = math.sqrt(north * north + west * west)
-        if yards <= self.POINT_YARDS and (not best or yards < best) then
+        if facing and yards >= self.NEAR_ENOUGH and math.cos(math.atan2(west, north) - facing) <= 0 then return end
+        if yards <= reach and (not best or yards < best) then
             bestNorth, bestWest, best = north, west, yards
         end
     end
@@ -1174,6 +1180,8 @@ function NodeSparkle:PointerTarget(name)
         end
     end
     if best then return bestNorth, bestWest, best end
+    reach = self.SHIPPED_YARDS
+    facing = ns.Arrow and ns.Arrow.Facing and ns.Arrow.Facing() or nil
     for _, spot in ipairs(self:ShippedSpots(mapID, name) or {}) do
         Consider(spot[1], spot[2])
     end
