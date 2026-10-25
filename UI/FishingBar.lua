@@ -276,7 +276,7 @@ function FishingBar:Build()
     self.cast = cast
 
     local lure = Widgets.CreateButton(frame, L["Add Lure"], function() FishingBar:TogglePicker() end,
-        { width = half, height = self.BUTTON_HEIGHT })
+        { primary = true, width = half, height = self.BUTTON_HEIGHT })
     lure:SetSize(half, self.BUTTON_HEIGHT)
     lure:SetPoint("TOPLEFT", cast, "TOPRIGHT", PAD, 0)
     WithIcon(lure, 30):SetTexture(134400)
