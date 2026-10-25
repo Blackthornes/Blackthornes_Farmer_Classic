@@ -465,6 +465,27 @@ section "f"), so the pace never leaves the account.
 `FishZoneText`, `FishRows`. `/farm grind fish`. Tested in
 `tools/test_fishview.lua`. Not yet seen in game.
 
+## The fishing bar (Classic only)
+
+A player asked, the owner approved the mockup and said build it
+(2026-10-25). `UI/FishingBar.lua`: a small house-framed window ("Fishing",
+fold gem, size grip) that shows only while a fishing pole is in the main
+hand (item class 2, subclass 20). **Cast** is a secure button casting
+Fishing by the client's name for spell 7620. **Add Lure** opens a list of
+the Era lures in the bags (`FishingBar.LURES`), best first, each row a
+secure button running "/use item:ID" then "/use 16"; the game's own box
+asks before it replaces a lure. Under them, the lure's time left
+(`GetWeaponEnchantInfo`, read every `TICK` seconds only while shown) and
+the Fishing skill (`GatherToCap.ReadSkill`). Attributes are set only out
+of combat; the bar hides at `PLAYER_REGEN_DISABLED` and at a vendor, bank,
+mailbox, auction house or trade. The close gem puts it away until the pole
+comes off and goes on again. "Fishing Buttons:" under FISHING on the Loot
+page (`fishingBar`, off unless ticked) and `/farm fishingbar [on|off]`
+(`/farm fishing` is the chat list it always was). Saved, account wide,
+never rename them: `fishingBar`, `fishingBarX`, `fishingBarY`,
+`fishingBarScale`. Tested in `tools/test_fishingbar.lua`. Not yet seen in
+game.
+
 ## Legacy perks (read only)
 
 The owner said build it (2026-10-22): Forever's Legacy trees give

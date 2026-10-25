@@ -1706,3 +1706,17 @@ L["guildmates"] = "согильдийцев"
 -- The fold gem beside a window's close gem (2026-10-24)
 L["Collapse this window"] = "Свернуть это окно"
 L["Expand this window"] = "Развернуть это окно"
+
+-- The fishing bar (2026-10-25)
+L["Cast"] = "Забросить"
+L["Add Lure"] = "Насадить приманку"
+L["LURES IN YOUR BAGS"] = "ПРИМАНКИ В СУМКАХ"
+L["Click one to put it on your pole."] = "Нажми на приманку, чтобы насадить её на удочку."
+L["Lure on: %d min left"] = "Приманка: осталось %d мин."
+L["No lure on"] = "Приманки нет"
+L["No lures in your bags."] = "В сумках нет приманок."
+L["Fishing Buttons:"] = "Кнопки рыбалки:"
+L["Fishing %d / %d"] = "Рыбная ловля %d / %d"
+L["the fishing bar with Cast and Add Lure (on/off)"] = "панель рыбалки с кнопками «Забросить» и «Насадить приманку» (on/off)"
+L["the fishing bar shows while a fishing pole is in your hand."] = "панель рыбалки видна, пока у тебя в руке удочка."
+L["the fishing bar is hidden."] = "панель рыбалки скрыта."

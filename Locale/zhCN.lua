@@ -1699,3 +1699,17 @@ L["guildmates"] = "位公会成员"
 -- The fold gem beside a window's close gem (2026-10-24)
 L["Collapse this window"] = "收起这个窗口"
 L["Expand this window"] = "展开这个窗口"
+
+-- The fishing bar (2026-10-25)
+L["Cast"] = "抛竿"
+L["Add Lure"] = "上鱼饵"
+L["LURES IN YOUR BAGS"] = "背包里的鱼饵"
+L["Click one to put it on your pole."] = "点击一个鱼饵，把它装到鱼竿上。"
+L["Lure on: %d min left"] = "鱼饵：还剩%d分钟"
+L["No lure on"] = "没有鱼饵"
+L["No lures in your bags."] = "背包里没有鱼饵。"
+L["Fishing Buttons:"] = "钓鱼按钮："
+L["Fishing %d / %d"] = "钓鱼 %d / %d"
+L["the fishing bar with Cast and Add Lure (on/off)"] = "钓鱼栏，带有抛竿和上鱼饵按钮（on/off）"
+L["the fishing bar shows while a fishing pole is in your hand."] = "手里拿着鱼竿时会显示钓鱼栏。"
+L["the fishing bar is hidden."] = "钓鱼栏已隐藏。"

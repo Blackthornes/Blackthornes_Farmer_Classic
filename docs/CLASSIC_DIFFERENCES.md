@@ -122,6 +122,15 @@ used only once the character knows it, so they need no change.
   `UI/KillPlates.lua` blends Forever's change on top of this. Tested in
   `tools/test_killplates.lua`.
 
+### The fishing bar
+- Classic only (the owner said build it, 2026-10-25, from a mockup):
+  `UI/FishingBar.lua`, a small window while a fishing pole is in the main
+  hand, with Cast and Add Lure (every Era lure in the bags, best first,
+  put on with "/use item:ID" then "/use 16"). Secure buttons, hidden in a
+  fight and at vendors. Off unless ticked (`fishingBar`). Forever has no
+  such file, so a catch-up leaves it alone. Tested in
+  `tools/test_fishingbar.lua`.
+
 ## Not yet done
 - Not yet seen in an Era client. Client calls are read in a pcall, and the
   code already falls back to the classic calls (skill lines, spell info, the
