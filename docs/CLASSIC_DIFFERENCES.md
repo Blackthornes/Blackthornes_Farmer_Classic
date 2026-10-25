@@ -193,3 +193,16 @@ used only once the character knows it, so they need no change.
 - Not yet seen in an Era client. Client calls are read in a pcall, and the
   code already falls back to the classic calls (skill lines, spell info, the
   older tooltip scripts) where Era lacks the newer ones.
+
+### Friends
+- The owner said build it (2026-10-25: a friend typed as the other account
+  had their counts merged into his). "Friends:" under FRIENDS on the
+  Sharing page (`friendNames`, account wide, never rename it): a friend is
+  shared with as a guildmate is (`Logic/GuildShare.lua`: `Friends`,
+  `IsFriend`, `Active`, `Allowed`, `SetFriends`), by whisper, with or
+  without a guild. Their drops go to `guildDrops` and never join the
+  player's own counts. A name typed in both boxes is a friend
+  (`Share:GetPartners` leaves it out), and an old account ledger for them
+  no longer stops their data (`Share:Identify`, `OnHello`). Counts merged
+  before stay. Forever has no such box; a catch-up that touches those
+  files keeps it. Tested in `tools/test_friendshare.lua`.

@@ -1333,6 +1333,19 @@ function SettingsUI:BuildSharingPage()
     local guildStatusRow = pages:Row("sharing", 2, L["Guild Status:"], nil)
     GrowRow(guildStatusRow, 30)
     controls.guildStatus = StatusText(guildStatusRow, -18)
+
+    -- Friends: shared like guildmates, by whisper, kept apart from yours.
+    pages:Section("sharing", 2, L["FRIENDS"])
+    local friendsRow = pages:Row("sharing", 2, L["Friends:"],
+        L["Type your friend's character names, with commas. Their data stays apart from yours."])
+    GrowRow(friendsRow, 26)
+    local friends = Widgets.CreateSearchBox(friendsRow, L["Ana, Bob"], nil, function(text)
+        ns.GuildShare:SetFriends(text)
+    end, { plain = true })
+    friends:SetPoint("TOPLEFT", 0, -26)
+    friends:SetWidth(COLUMN_WIDTH)
+    friends:SetHeight(20)
+    controls.friendNames = friends
 end
 
 --- Advanced: debug output, the data the addon carries, and the commands.
@@ -1464,6 +1477,8 @@ function SettingsUI:Refresh()
     controls.shareGuild:SetChecked(db.shareGuild == true)
     controls.shareStatus:SetText(ns.Share:Status() or "")
     controls.guildStatus:SetText(ns.GuildShare:Status() or "")
+    local friendBox = controls.friendNames
+    if not (friendBox.HasFocus and friendBox:HasFocus()) then friendBox:SetText(db.friendNames or "") end
     if controls.shareDrops then controls.shareDrops:SetChecked(db.shareDrops == true) end
     controls.markersWorld:SetChecked(db.markersWorld ~= false)
     controls.markersMinimap:SetChecked(db.markersMinimap ~= false)

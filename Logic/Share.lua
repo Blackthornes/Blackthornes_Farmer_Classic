@@ -442,11 +442,13 @@ end
 
 --- Sharing with the other account or with the guild, either.
 function Share:Active()
-    return self:Enabled() or (ns.GuildShare ~= nil and ns.GuildShare:On())
+    return self:Enabled() or (ns.GuildShare ~= nil and ns.GuildShare:Active())
         or (ns.Contribute ~= nil and ns.Contribute:Active())
 end
 
 --- The names typed in Settings, as { key = "ana smith", name = "Ana Smith" }.
+--- A name also typed under Friends is a friend, never another account
+--- (Logic/GuildShare.lua): their counts must not join the player's own.
 function Share:GetPartners()
     local list, seen = {}, {}
     local text = ns.db and ns.db.shareNames
@@ -455,7 +457,8 @@ function Share:GetPartners()
     for part in text:gmatch("[^,;]+") do
         local name = part:gsub("^%s+", ""):gsub("%s+$", "")
         local key = Comm.NameKey(name)
-        if key and not seen[key] and #name <= 48 then
+        if key and not seen[key] and #name <= 48
+            and not (ns.GuildShare and ns.GuildShare:IsFriend(name)) then
             seen[key] = true
             list[#list + 1] = { key = key, name = name }
         end
@@ -655,7 +658,9 @@ function Share:Identify(state, id)
         state.duplicate, state.sameAs = true, L["this account"]
         return false
     end
-    for key, held in pairs(ns.db.shareIn or {}) do
+    -- A friend (Logic/GuildShare.lua) once typed as the other account still
+    -- has that ledger; what they send now is kept apart, so it counts.
+    for key, held in pairs(not state.friend and ns.db.shareIn or {}) do
         if key ~= state.key and type(held) == "table" and held.kind ~= "import" and held.account == id then
             state.duplicate, state.sameAs = true, held.name or key
             return false

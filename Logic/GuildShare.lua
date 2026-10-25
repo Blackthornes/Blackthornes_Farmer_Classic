@@ -33,6 +33,14 @@
 --
 -- Saved, account wide, never renamed: `shareGuild` (on or off),
 -- `guildDrops` and `guildIn` (`top` there is the hash last taken in full).
+--
+-- Friends (2026-10-25, the owner said build it): a friend typed in
+-- Settings ("Friends:", `friendNames`, account wide, never rename it) is
+-- treated as a guildmate, by whisper instead of the guild channel, with the
+-- guild's sharing on or off. Their drops land in `guildDrops` too and never
+-- join the player's own counts, as typing them under "Other Accounts
+-- Characters:" did; a name typed in both is a friend (Share:GetPartners
+-- leaves it out).
 
 local _, ns = ...
 local L = ns.L
@@ -59,6 +67,46 @@ GuildShare.shown = {}       -- record key -> { corpses, rows } put in the databa
 
 function GuildShare:On()
     return ns.db ~= nil and ns.db.shareGuild == true
+end
+
+GuildShare.MAX_FRIENDS = 20
+
+--- The friends typed in Settings, as { key = "ana", name = "Ana" }; never
+--- the character playing.
+function GuildShare:Friends()
+    local list, seen = {}, {}
+    local text = ns.db and ns.db.friendNames
+    if type(text) ~= "string" then return list end
+    for part in text:gmatch("[^,;]+") do
+        local name = part:gsub("^%s+", ""):gsub("%s+$", "")
+        local key = Comm.NameKey(name)
+        if key and not seen[key] and #name <= 48 and not Comm.IsMe(name) and #list < self.MAX_FRIENDS then
+            seen[key] = true
+            list[#list + 1] = { key = key, name = name }
+        end
+    end
+    return list
+end
+
+function GuildShare:IsFriend(name)
+    local key = Comm.NameKey(name)
+    if not key then return false end
+    for _, friend in ipairs(self:Friends()) do
+        if friend.key == key then return true end
+    end
+    return false
+end
+
+--- Sharing with the guild or with a friend, either.
+function GuildShare:Active()
+    return self:On() or #self:Friends() > 0
+end
+
+--- A state this side still talks to: the guild's while it is on, a friend's
+--- while they are named.
+function GuildShare:Allowed(state)
+    if state.friend then return self:IsFriend(state.name) end
+    return self:On()
 end
 
 local function InGuild()
@@ -134,16 +182,21 @@ end
 -- Hellos
 --------------------------------------------------------------------------------
 
---- Say to the guild who this Farmer is and what it has.
+--- Say to the guild, and whisper each friend, who this Farmer is and what
+--- it has.
 function GuildShare:Hello()
-    if not self:On() or not InGuild() or self.building then return end
+    if not self:Active() or self.building then return end
     self.building = true
     self.helloAt = time()
     Share:Build(self.me, function(manifest)
         self.building = nil
-        if not self:On() or not InGuild() then return end
         local top = Comm.Hash(ns.Serialize.EncodeCanonical(manifest))
-        Comm:Send("G", ns.Transfer:SourceId() .. ":" .. top, "GUILD")
+        local body = ns.Transfer:SourceId() .. ":" .. top
+        if self:On() and InGuild() then Comm:Send("G", body, "GUILD") end
+        for _, friend in ipairs(self:Friends()) do
+            Comm:NoteWhisper(friend.name)
+            Comm:Send("G", body, "WHISPER", Comm.WithRealm(friend.name))
+        end
     end)
 end
 
@@ -157,10 +210,18 @@ function GuildShare:AnswerSoon()
 end
 
 function GuildShare:OnHello(sender, body, channel)
-    if channel ~= "GUILD" or not self:On() or Comm.IsMe(sender) then return end
+    if Comm.IsMe(sender) then return end
+    local friend = self:IsFriend(sender)
+    if channel == "GUILD" then
+        if not (self:On() or friend) then return end
+    elseif channel ~= "WHISPER" or not friend then
+        return
+    end
     local id, top = (body or ""):match("^(%x+):(%w+)$")
     if not ValidId(id) or #top > 12 then return end
-    if id == ns.Transfer:SourceId() or LinkedAccount(id) then return end
+    -- A friend once typed as another account still has that ledger: as a
+    -- friend now, what they send is kept apart.
+    if id == ns.Transfer:SourceId() or (not friend and LinkedAccount(id)) then return end
     local senderKey = Comm.NameKey(sender)
     if not senderKey then return end
 
@@ -178,6 +239,9 @@ function GuildShare:OnHello(sender, body, channel)
         self.byId[id] = state
     end
 
+    local wasOnline = state.online
+    state.friend = friend or nil
+
     -- The character playing on that account now.
     if state.senderKey and state.senderKey ~= senderKey then self.bySender[state.senderKey] = nil end
     local other = self.bySender[senderKey]
@@ -186,7 +250,9 @@ function GuildShare:OnHello(sender, body, channel)
     self.bySender[senderKey] = state
     state.online, state.heardAt, state.top = true, time(), top
 
-    if new then self:AnswerSoon() end
+    -- A friend who was away gets a hello back too: they only whisper a hello
+    -- now and then, and theirs alone starts nothing coming this way.
+    if new or (friend and not wasOnline) then self:AnswerSoon() end
     local held = Ledgers()[state.key]
     if not (type(held) == "table" and held.top == top) then self:Want(state) end
 end
@@ -209,7 +275,7 @@ function GuildShare:Finish(state)
 end
 
 function GuildShare:Next()
-    if not self:On() then return end
+    if not self:Active() then return end
     local current = self.current
     if current then
         -- A big harvest takes longer than the timeout to send: while its
@@ -217,7 +283,7 @@ function GuildShare:Next()
         local now = time()
         local busy = now - (current.syncStart or 0) < self.SYNC_TIMEOUT
             or now - (current.lastRecordAt or 0) < self.STILL_COMING
-        if current.online and busy then
+        if current.online and busy and self:Allowed(current) then
             if not self.lookAgain then
                 self.lookAgain = true
                 C_Timer.After(self.STILL_COMING, function()
@@ -234,7 +300,7 @@ function GuildShare:Next()
     repeat
         state = table.remove(self.queue, 1)
         if state then state.queued = nil end
-    until not state or state.online
+    until not state or (state.online and self:Allowed(state))
     if not state then return end
 
     self.current, state.syncStart, state.syncedAt = state, time(), time()
@@ -268,16 +334,17 @@ function GuildShare:Received(state)
             return
         end
         state.confirming = nil
-        if self:On() and state.online and self.current == state then Share:Hello(state.name) end
+        if self:Allowed(state) and state.online and self.current == state then Share:Hello(state.name) end
     end
     C_Timer.After(self.CONFIRM_AFTER, Confirm)
 end
 
---- A whisper from a guildmate: their state, or nil.
+--- A whisper from a guildmate or a friend: their state, or nil.
 function GuildShare:PartnerFor(sender)
-    if not self:On() then return nil end
     local key = Comm.NameKey(sender)
-    return key and self.bySender[key] or nil
+    local state = key and self.bySender[key]
+    if not state then return nil end
+    return self:Allowed(state) and state or nil
 end
 
 function GuildShare:OnOffline(key)
@@ -364,7 +431,7 @@ function GuildShare:Publish()
         self.publishAgain = true
         return
     end
-    local drops = self:On() and Drops() or {}
+    local drops = self:Active() and Drops() or {}
     local todo = {}
     for key, entry in pairs(self.shown) do
         local record = drops[key]
@@ -388,7 +455,7 @@ function GuildShare:Publish()
                 pcall(Hide, entry)
                 self.shown[key] = nil
             end
-            local record = self:On() and Drops() and Drops()[key]
+            local record = self:Active() and Drops() and Drops()[key]
             if Usable(record) then
                 local ok, rows = pcall(Show, record, byID)
                 self.shown[key] = { corpses = record.corpses, rows = ok and rows or {} }
@@ -422,7 +489,7 @@ end
 --- The guild's drop rate for `itemName` off `mob`, all its places together:
 --- the percentage and how many corpses it is from, or nil below MIN_SAMPLE.
 function GuildShare:RateFor(mob, itemName)
-    if not self:On() then return nil end
+    if not self:Active() then return nil end
     local drops = Drops()
     if not drops or type(mob) ~= "string" or type(itemName) ~= "string" then return nil end
     local corpses, dropped = 0, 0
@@ -443,21 +510,26 @@ end
 
 --- Start or stop to match the setting; Share:Apply calls it.
 function GuildShare:Apply()
-    if self:On() then
+    if self:Active() then
         if not self.ticker and type(C_Timer) == "table" then
             self.ticker = C_Timer.NewTicker(self.HELLO_SECONDS, function() GuildShare:Hello() end)
             C_Timer.After(self.FIRST_HELLO, function() GuildShare:Hello() end)
         end
-    else
-        if self.ticker then
-            pcall(self.ticker.Cancel, self.ticker)
-            self.ticker = nil
-        end
-        for _, state in pairs(self.byId) do
-            state.online, state.queued = false, nil
-        end
-        self.queue, self.current = {}, nil
+    elseif self.ticker then
+        pcall(self.ticker.Cancel, self.ticker)
+        self.ticker = nil
     end
+    -- Whoever this side no longer talks to (the guild turned off, a friend
+    -- taken off the list) is let go; their data is kept.
+    local queue = {}
+    for _, state in ipairs(self.queue) do
+        if self:Allowed(state) then queue[#queue + 1] = state else state.queued = nil end
+    end
+    self.queue = queue
+    for _, state in pairs(self.byId) do
+        if not self:Allowed(state) then state.online, state.queued = false, nil end
+    end
+    if self.current and not self:Allowed(self.current) then self.current = nil end
     -- On, the guild's rows go in; off, they come out (the data is kept).
     self:Publish()
 end
@@ -465,6 +537,20 @@ end
 function GuildShare:SetOn(on)
     ns.db.shareGuild = on == true
     Share:Apply()
+end
+
+--- The friends box in Settings; a new name gets a hello straight away.
+function GuildShare:SetFriends(text)
+    local before = {}
+    for _, friend in ipairs(self:Friends()) do before[friend.key] = true end
+    ns.db.friendNames = (text or ""):gsub("^%s+", ""):gsub("%s+$", "")
+    Share:Apply()
+    for _, friend in ipairs(self:Friends()) do
+        if not before[friend.key] then
+            self:AnswerSoon()
+            break
+        end
+    end
 end
 
 --- Delete everything taken from the guild, and turn it off. The player's

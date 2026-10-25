@@ -548,6 +548,9 @@ local DEFAULTS = {
     -- The same with guildmates who use Farmer (Logic/GuildShare.lua, asked
     -- 2026-10-13): off until ticked. Their ledgers are in shareIn too.
     shareGuild = false,
+    -- Friends who use Farmer (Logic/GuildShare.lua, 2026-10-25): names,
+    -- comma apart. Shared as guildmates are, kept apart from your own.
+    friendNames = "",
     -- Drop records sent to the addon's maker for the shipped data
     -- (Logic/Contribute.lua, asked 2026-10-15): off until ticked.
     shareDrops = false,
