@@ -667,11 +667,7 @@ function Search:SourceLine(source)
 
     line = line .. " " .. Util.Colored("accent", "(" .. detail .. ")")
 
-    -- Only confirmed rows are marked. Tagging every Classic row instead would
-    -- put a label on almost every line and say nothing.
-    if source.provenance == "forever" then
-        line = line .. " " .. Util.Colored("good", "[Forever]")
-    end
+    -- Classic Era marks no row [Forever] (docs/CLASSIC_DIFFERENCES.md).
 
     if source.note then
         line = line .. " " .. Util.Colored("muted", source.note)

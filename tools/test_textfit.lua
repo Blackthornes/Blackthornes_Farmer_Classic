@@ -136,14 +136,14 @@ UI:FitColumns({ { type = "source", source = far } })
 suite.check("the where column grows past 400 for a long place", UI.columns.where.w > 400,
     UI.columns.where.w)
 
--- The [Forever] badge sat over the end of the drop column, on a long
--- "needs" text; it has a slot of its own now, as wide as its text.
+-- The badge slot sits after the drop column; on Classic Era it holds no
+-- Forever tag, so it stays narrow.
 UI:FitColumns({ { type = "source", source = { kind = "node", name = "Copper Vein",
     zone = "Durotar", requires = "Mining 1", provenance = "forever" } } })
 columns = UI.columns
 suite.check("the badge's slot starts after the drop column",
     columns.badge.x >= columns.drop.x + columns.drop.w, columns.badge.x)
-suite.check("and holds its text", columns.badge.w >= Theme.TextWidth("tiny", "Forever"),
+suite.check("and stays narrow, with no Forever tag", columns.badge.w < Theme.TextWidth("tiny", "Forever"),
     columns.badge.w)
 suite.check("inside the row", columns.badge.x + columns.badge.w <= RowWidth(),
     columns.badge.x + columns.badge.w)
