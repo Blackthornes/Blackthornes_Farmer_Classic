@@ -150,7 +150,7 @@ suite.check("facing north, it turns left toward the west", math.abs(NodeSparkle:
 turnTo = math.pi / 2
 suite.check("facing west, it points straight ahead", math.abs(NodeSparkle:PointerTurn("Copper Vein")) < 1e-6)
 suite.check("a dotted trail with it, and a flare and beam at its end",
-    #NodeSparkle.pointer.pieces == 3 + #NodeSparkle.TRAIL + #NodeSparkle.TRAIL_SPARKS)
+    #NodeSparkle.pointer.pieces == 3 + #NodeSparkle.TRAIL + 2 * #NodeSparkle.TRAIL_SPARKS)
 local lastPiece = NodeSparkle.pointer.pieces[#NodeSparkle.pointer.pieces]
 suite.check("the beam stands at the trail's end",
     lastPiece.anchor == "BOTTOM" and lastPiece.at > NodeSparkle.TRAIL[#NodeSparkle.TRAIL].at)

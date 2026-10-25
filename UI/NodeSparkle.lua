@@ -170,12 +170,18 @@ NodeSparkle.TRAIL_BEAM = { at = 182, width = 14, height = 90, flare = 34 }
 -- With "Sparkles" picked under Sparkle Look, these twinkle at the trail's
 -- end in place of the beam (the owner, 2026-10-25: the look did nothing on
 -- Era). Pixels from the trail's end, size and when in the loop each lights.
+-- Each has a soft glow behind it at TRAIL_SPARK_GLOW, so they read on
+-- bright ground without glaring (the owner, 2026-10-25: brighter, not
+-- super bright).
 NodeSparkle.TRAIL_SPARKS = {
-    { x = 0, y = 18, size = 26, delay = 0.0 },
-    { x = -16, y = 38, size = 18, delay = 0.5 },
-    { x = 14, y = 52, size = 16, delay = 1.0 },
-    { x = -4, y = 72, size = 12, delay = 0.3 },
+    { x = 0, y = 18, size = 32, delay = 0.0 },
+    { x = -18, y = 40, size = 24, delay = 0.5 },
+    { x = 16, y = 54, size = 22, delay = 1.0 },
+    { x = -6, y = 76, size = 18, delay = 0.3 },
+    { x = 22, y = 26, size = 16, delay = 0.8 },
+    { x = -22, y = 12, size = 14, delay = 1.2 },
 }
+NodeSparkle.TRAIL_SPARK_GLOW = 0.45
 -- What shows (the owner, 2026-10-25): the arrow, dots and beam, the arrow
 -- and dots alone, or the beam alone. `nodePointer`, account wide, "both"
 -- unless picked; never rename it. Alone, the beam stands toward the node,
@@ -1216,6 +1222,12 @@ function NodeSparkle:BuildPointer()
             pulse = Pulse(texture, 0.15, index * NodeSparkle.POINTER_PULSE / 3) }
     end
     for _, spark in ipairs(self.TRAIL_SPARKS) do
+        local halo = frame:CreateTexture(nil, "ARTWORK")
+        halo:SetTexture(self.GLOW)
+        halo:SetSize(spark.size * 1.3, spark.size * 1.3)
+        pcall(halo.SetBlendMode, halo, "ADD")
+        pieces[#pieces + 1] = { texture = halo, at = self.TRAIL_BEAM.at, across = spark.x, lift = spark.y,
+            part = "beam", style = "sparkles", alpha = self.TRAIL_SPARK_GLOW, pulse = Twinkle(halo, spark.delay) }
         local star = frame:CreateTexture(nil, "OVERLAY")
         star:SetTexture(self.STAR)
         star:SetSize(spark.size, spark.size)
@@ -1364,7 +1376,7 @@ function NodeSparkle:ShowPointer(name, color)
     color = color or self.GOLD
     local moving = Moving()
     for _, piece in ipairs(pointer.pieces) do
-        pcall(piece.texture.SetVertexColor, piece.texture, color[1], color[2], color[3], 1)
+        pcall(piece.texture.SetVertexColor, piece.texture, color[1], color[2], color[3], piece.alpha or 1)
         if piece.pulse and moving then
             local playing, on = pcall(piece.pulse.IsPlaying, piece.pulse)
             if not (playing and on == true) then pcall(piece.pulse.Play, piece.pulse) end
