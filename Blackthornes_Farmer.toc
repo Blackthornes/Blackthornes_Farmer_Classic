@@ -1,6 +1,12 @@
 ## Interface: 11509
 ## Title: Blackthornes Farmer
 ## Notes: Search for a material or item and get the mobs, zones and levels to farm it.
+## Notes-deDE: Such nach einem Material oder Gegenstand und finde die Gegner, Gebiete und Stufen, um es zu farmen.
+## Notes-frFR: Cherche un matériau ou un objet et trouve les monstres, les zones et les niveaux pour le farmer.
+## Notes-esES: Busca un material u objeto y encuentra los enemigos, zonas y niveles para conseguirlo.
+## Notes-esMX: Busca un material u objeto y encuentra los enemigos, zonas y niveles para conseguirlo.
+## Notes-ruRU: Найди материал или предмет и узнай, каких существ, в каких зонах и на каких уровнях бить, чтобы его добыть.
+## Notes-zhCN: 搜索材料或物品，找到可以刷它的怪物、区域和等级。
 ## Author: Blackthornes
 ## Version: @project-version@
 ## X-License: All Rights Reserved
