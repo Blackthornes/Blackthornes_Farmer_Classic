@@ -96,10 +96,12 @@ local function Copper(ok, value)
 end
 
 --- Where auction prices come from now: "tradeskills", "tsm", "auctionator"
---- ("tsm" when both of the last two are loaded), or nil for vendor only.
+--- (with both of the last two loaded, the one "Price Order:" asks first),
+--- or nil for vendor only.
 function Value:PriceSource()
     if self:Prices() then return "tradeskills" end
     if not self:UsesOtherAddons() then return nil end
+    if ns.db and ns.db.priceOrder == "auctionator" and AuctionatorCall() then return "auctionator" end
     if TSMCall() then return "tsm" end
     if AuctionatorCall() then return "auctionator" end
     return nil
@@ -117,13 +119,25 @@ function Value:OtherPrice(itemID)
         return kept[1] or nil
     end
 
+    -- TSM first unless "Price Order:" says Auctionator first (`priceOrder`).
     local copper
-    if tsm then copper = Copper(pcall(tsm, "DBMarket", "i:" .. itemID)) end
-    if not copper and auctionator then
+    local auctionatorFirst = ns.db and ns.db.priceOrder == "auctionator"
+    if auctionatorFirst and auctionator then
+        copper = Copper(pcall(auctionator, "Blackthornes_Farmer", itemID))
+    end
+    if not copper and tsm then copper = Copper(pcall(tsm, "DBMarket", "i:" .. itemID)) end
+    if not copper and auctionator and not auctionatorFirst then
         copper = Copper(pcall(auctionator, "Blackthornes_Farmer", itemID))
     end
     otherCache[itemID] = { copper or false, now }
     return copper
+end
+
+--- Ask "tsm" or "auctionator" first.
+function Value:SetPriceOrder(order)
+    if not ns.db then return end
+    ns.db.priceOrder = order == "auctionator" and "auctionator" or "tsm"
+    otherCache = {}
 end
 
 --- Turn reading TSM and Auctionator on or off.

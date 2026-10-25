@@ -65,6 +65,14 @@ suite.check("a grey stays vendor only", select(2, Value:UnitPrice(3300)) == "ven
 suite.check("the vendor price wins when higher", Value:UnitPrice(4000) == 9000)
 suite.check("the auction price wins when higher", Value:UnitPrice(5637) == 400)
 
+-- Price Order: Auctionator first (the owner, 2026-10-25).
+Value:SetPriceOrder("auctionator")
+suite.check("Auctionator first is named", Value:PriceSource() == "auctionator")
+suite.check("Auctionator first takes its price", Value:AuctionPrice(5637) == 300, Value:AuctionPrice(5637))
+suite.check("TSM fills what Auctionator lacks", Value:AuctionPrice(3300) == 900, Value:AuctionPrice(3300))
+Value:SetPriceOrder("tsm")
+suite.check("back to TSM first", Value:AuctionPrice(5637) == 400)
+
 _G.BlackthornesTS = { Prices = { GetValue = function() return 5 end } }
 suite.check("Tradeskills loaded is the source", Value:PriceSource() == "tradeskills")
 before = #tsmAsked
