@@ -150,7 +150,7 @@ suite.check("facing north, it turns left toward the west", math.abs(NodeSparkle:
 turnTo = math.pi / 2
 suite.check("facing west, it points straight ahead", math.abs(NodeSparkle:PointerTurn("Copper Vein")) < 1e-6)
 suite.check("a dotted trail with it, and a flare and beam at its end",
-    #NodeSparkle.pointer.pieces == 3 + #NodeSparkle.TRAIL)
+    #NodeSparkle.pointer.pieces == 3 + #NodeSparkle.TRAIL + #NodeSparkle.TRAIL_SPARKS)
 local lastPiece = NodeSparkle.pointer.pieces[#NodeSparkle.pointer.pieces]
 suite.check("the beam stands at the trail's end",
     lastPiece.anchor == "BOTTOM" and lastPiece.at > NodeSparkle.TRAIL[#NodeSparkle.TRAIL].at)
@@ -177,6 +177,23 @@ suite.check("Beam Only leaves the arrow and dots out", arrowOn == false and beam
 suite.check("alone, the beam stands nearer the nearer the node is",
     math.abs(NodeSparkle.pointer.reach - NodeSparkle.BeamReach(10)) < 0.01 and NodeSparkle.BeamReach(10) < NodeSparkle.BeamReach(30)
     and NodeSparkle.BeamReach(0) == NodeSparkle.BEAM_NEAR and NodeSparkle.BeamReach(99) == NodeSparkle.BEAM_FAR)
+local function StylesShown()
+    local shown = { beacon = false, sparkles = false }
+    for _, piece in ipairs(NodeSparkle.pointer.pieces) do
+        if piece.style and piece.texture:IsShown() then shown[piece.style] = true end
+    end
+    return shown.beacon, shown.sparkles
+end
+local beamShown, sparksShown = StylesShown()
+suite.check("the beacon look puts a beam at the trail's end", beamShown and not sparksShown)
+NodeSparkle:SetStyle("sparkles")
+NodeSparkle:AimPointer()
+beamShown, sparksShown = StylesShown()
+suite.check("the sparkles look twinkles there instead", sparksShown and not beamShown)
+NodeSparkle:SetStyle("beacon")
+NodeSparkle:AimPointer()
+beamShown, sparksShown = StylesShown()
+suite.check("and back to the beam", beamShown and not sparksShown)
 NodeSparkle:SetPointerLook("nonsense")
 suite.check("anything else reads as both", ns.db.nodePointer == "both" and NodeSparkle:PointerLook() == "both")
 ns.db.nodePointer = nil

@@ -167,6 +167,15 @@ NodeSparkle.TRAIL = { { at = 100, size = 12 }, { at = 128, size = 10 }, { at = 1
 -- A short glowing beam stands at the trail's end, a soft flare at its foot
 -- (the owner asked, 2026-10-25), the same art as the beacon.
 NodeSparkle.TRAIL_BEAM = { at = 182, width = 14, height = 90, flare = 34 }
+-- With "Sparkles" picked under Sparkle Look, these twinkle at the trail's
+-- end in place of the beam (the owner, 2026-10-25: the look did nothing on
+-- Era). Pixels from the trail's end, size and when in the loop each lights.
+NodeSparkle.TRAIL_SPARKS = {
+    { x = 0, y = 18, size = 26, delay = 0.0 },
+    { x = -16, y = 38, size = 18, delay = 0.5 },
+    { x = 14, y = 52, size = 16, delay = 1.0 },
+    { x = -4, y = 72, size = 12, delay = 0.3 },
+}
 -- What shows (the owner, 2026-10-25): the arrow, dots and beam, the arrow
 -- and dots alone, or the beam alone. `nodePointer`, account wide, "both"
 -- unless picked; never rename it. Alone, the beam stands toward the node,
@@ -1142,18 +1151,26 @@ function NodeSparkle:BuildPointer()
         pieces[#pieces + 1] = { texture = texture, at = dot.at, part = "arrow",
             pulse = Pulse(texture, 0.15, index * NodeSparkle.POINTER_PULSE / 3) }
     end
+    for _, spark in ipairs(self.TRAIL_SPARKS) do
+        local star = frame:CreateTexture(nil, "OVERLAY")
+        star:SetTexture(self.STAR)
+        star:SetSize(spark.size, spark.size)
+        pcall(star.SetBlendMode, star, "ADD")
+        pieces[#pieces + 1] = { texture = star, at = self.TRAIL_BEAM.at, across = spark.x, lift = spark.y,
+            part = "beam", style = "sparkles", pulse = Twinkle(star, spark.delay) }
+    end
     local spec = self.TRAIL_BEAM
     local flare = frame:CreateTexture(nil, "ARTWORK")
     flare:SetTexture(self.GLOW)
     flare:SetSize(spec.flare, spec.flare * 0.5)
     pcall(flare.SetBlendMode, flare, "ADD")
-    pieces[#pieces + 1] = { texture = flare, at = spec.at, part = "beam",
+    pieces[#pieces + 1] = { texture = flare, at = spec.at, part = "beam", style = "beacon",
         pulse = Pulse(flare, 0.4, NodeSparkle.POINTER_PULSE) }
     local beam = frame:CreateTexture(nil, "OVERLAY")
     beam:SetTexture(self.BEAM)
     beam:SetSize(spec.width, spec.height)
     pcall(beam.SetBlendMode, beam, "ADD")
-    pieces[#pieces + 1] = { texture = beam, at = spec.at, anchor = "BOTTOM", lift = -4, part = "beam",
+    pieces[#pieces + 1] = { texture = beam, at = spec.at, anchor = "BOTTOM", lift = -4, part = "beam", style = "beacon",
         pulse = Pulse(beam, 0.5, NodeSparkle.POINTER_PULSE) }
 
     local wait = 0
@@ -1249,10 +1266,13 @@ function NodeSparkle:AimPointer()
     if not turn then return false end
     local look = self:PointerLook()
     local reach = look == "beam" and self.BeamReach(yards) or nil
+    -- The end of the trail wears the Sparkle Look: a beam, or sparkles.
+    local style = self:Style()
     -- Only a turn or a step the eye could see moves it.
     if pointer.turn and math.abs(turn - pointer.turn) < 0.01 and pointer.look == look
+        and pointer.style == style
         and (not reach or math.abs(reach - (pointer.reach or 0)) < 1) then return true end
-    pointer.turn, pointer.look, pointer.reach = turn, look, reach
+    pointer.turn, pointer.look, pointer.reach, pointer.style = turn, look, reach, style
     local ok, height = pcall(function() return UIParent:GetHeight() end)
     if not ok or type(height) ~= "number" or height ~= height or height <= 0 then height = 768 end
     local feet = -height * self.POINTER_Y
@@ -1260,10 +1280,11 @@ function NodeSparkle:AimPointer()
     for _, piece in ipairs(pointer.pieces) do
         local texture = piece.texture
         local at = (reach and piece.part == "beam") and reach or piece.at
-        pcall(texture.SetShown, texture, look == "both" or piece.part == look)
+        pcall(texture.SetShown, texture, (look == "both" or piece.part == look)
+            and (not piece.style or piece.style == style))
         texture:ClearAllPoints()
         texture:SetPoint(piece.anchor or "CENTER", UIParent, "CENTER",
-            across * at, feet + up * at + (piece.lift or 0))
+            across * at + (piece.across or 0), feet + up * at + (piece.lift or 0))
         if piece.turn then pcall(texture.SetRotation, texture, turn) end
     end
     return true
