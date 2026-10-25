@@ -60,6 +60,19 @@ suite.check("any case", Face("peacebloom", VEIN) == "shown")
 suite.check("a mob does not", Face("Kobold Vermin", "Creature-0-1-2-3-6-0000000001") == "nothing")
 suite.check("and the sparkle goes", not NodeSparkle.frame:IsShown())
 suite.check("a chest sparkles", Face("Battered Chest", VEIN) == "shown")
+suite.check("an ooze covered vein sparkles", Face("Ooze Covered Mithril Deposit", VEIN) == "shown")
+suite.check("and asks Mithril's skill", select(2, NodeSparkle:NodeNeeds("Ooze Covered Mithril Deposit")) == 175)
+suite.check("an obsidian chunk sparkles", Face("Large Obsidian Chunk", VEIN) == "shown")
+do
+    local realLocale = _G.GetLocale
+    _G.GetLocale = function() return "deDE" end
+    suite.check("a vein on a German client sparkles", Face("Kupferader", VEIN) == "shown")
+    local skill, need = NodeSparkle:NodeNeeds("Mithrilablagerung")
+    suite.check("and knows its skill", skill == "Mining" and need == 175)
+    suite.check("a German chest name is no vein", not NodeSparkle:IsNode("Ramponierte Truhe"))
+    _G.GetLocale = realLocale
+    suite.check("back in English the German name is nothing", Face("Kupferader", VEIN) == "notnode")
+end
 suite.check("a fishing school sparkles", Face("Oily Blackmouth School", VEIN) == "shown")
 suite.check("your fishing bobber does", Face("Fishing Bobber", VEIN) == "shown")
 suite.check("a mailbox does not", Face("Mailbox", VEIN) == "notnode")

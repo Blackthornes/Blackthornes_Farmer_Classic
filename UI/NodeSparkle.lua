@@ -489,6 +489,29 @@ local function GatherCount()
     return count
 end
 
+-- Veins Classic grows that no ore in the data names as a source, each with
+-- the vein whose skill it asks for (false: gold, no skill colour).
+NodeSparkle.MORE_VEINS = {
+    ["Ooze Covered Silver Vein"] = "Silver Vein",
+    ["Ooze Covered Gold Vein"] = "Gold Vein",
+    ["Ooze Covered Mithril Deposit"] = "Mithril Deposit",
+    ["Ooze Covered Truesilver Deposit"] = "Truesilver Deposit",
+    ["Ooze Covered Thorium Vein"] = "Small Thorium Vein",
+    ["Ooze Covered Rich Thorium Vein"] = "Rich Thorium Vein",
+    ["Hakkari Thorium Vein"] = "Rich Thorium Vein",
+    ["Small Obsidian Chunk"] = false,
+    ["Large Obsidian Chunk"] = false,
+}
+
+--- Classic's node names in the client's language, by the English name
+--- (`ns.NODE_NAMES`, Data/NodeSpots.lua). Empty on an English client.
+function NodeSparkle.ClientNodeNames()
+    if type(ns.NODE_NAMES) ~= "table" or type(GetLocale) ~= "function" then return {} end
+    local ok, locale = pcall(GetLocale)
+    local list = ok and ns.NODE_NAMES[locale]
+    return type(list) == "table" and list or {}
+end
+
 local function Add(set, name)
     if type(name) == "string" and name ~= "" then set[name:lower()] = name end
 end
@@ -497,7 +520,8 @@ end
 --- data, the client's names or the gathered nodes changed.
 function NodeSparkle:Names()
     local DB = ns.DB
-    local key = ("%s:%s:%d"):format(tostring(DB and DB.changes), tostring(DB and DB.namesVersion), GatherCount())
+    local key = ("%s:%s:%d:%s"):format(tostring(DB and DB.changes), tostring(DB and DB.namesVersion), GatherCount(),
+        tostring(NodeSparkle.ClientNodeNames()))
     if names and namesKey == key then return names end
 
     local set, need = {}, {}
@@ -523,6 +547,26 @@ function NodeSparkle:Names()
                     Needs(source.name, source.requires)
                 end
             end
+        end
+    end
+
+    -- Veins the data has no ore item row for, known by the vein they are
+    -- like, so they take its skill.
+    for vein, like in pairs(NodeSparkle.MORE_VEINS) do
+        Add(set, vein)
+        local kept = like and need[like:lower()]
+        if kept and not need[vein:lower()] then need[vein:lower()] = kept end
+    end
+
+    -- On another language a vein's name is the client's own. Herbs come in
+    -- by their item's name above, but a vein has no item of its name, so
+    -- it was never a node there (a player's report, 2026-10-25). Classic's
+    -- names for each node in the client's language stand in for it.
+    for client, english in pairs(NodeSparkle.ClientNodeNames()) do
+        local lower = english:lower()
+        if set[lower] then
+            Add(set, client)
+            if need[lower] and not need[client:lower()] then need[client:lower()] = need[lower] end
         end
     end
 
