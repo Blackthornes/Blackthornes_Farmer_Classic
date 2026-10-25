@@ -101,6 +101,18 @@ used only once the character knows it, so they need no change.
   touches these tools keeps Classic's word. Tested in
   `tools/test_announce_discord.py` and `tools/test_post_general.py`.
 
+### No Forever words for players
+- The owner asked (2026-10-24) for no "Forever" a player can see. Search
+  rows, chat lines (`Search:SourceLine`) and Grind rows carry no Forever
+  tag, the search footer is only "Click a row to put it in chat.", and
+  `/farm data` has no "Forever can be different" line and calls the
+  `forever` rows "seen in your own play" (`DB.PROVENANCE`; the key stays). The badge slot stays
+  for clean merges. Tested in `tools/test_search.lua` and
+  `tools/test_textfit.lua`.
+- The About thank-you (`About.THANKS`) has no "WoW Forever is almost here"
+  paragraph (the owner, 2026-10-24). `UI/About.lua` is shared with Forever;
+  a catch-up that brings the paragraph back keeps Classic's.
+
 ## Not yet done
 - Not yet seen in an Era client. Client calls are read in a pcall, and the
   code already falls back to the classic calls (skill lines, spell info, the

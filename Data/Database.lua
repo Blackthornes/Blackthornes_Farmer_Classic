@@ -27,7 +27,7 @@ DB.changes = 0
 -- which rows have been checked rather than presenting all of them as equal.
 DB.PROVENANCE = {
     classic = "from Classic data",
-    forever = "confirmed on Forever",
+    forever = "seen in your own play",
     guild   = "measured by your guild",
 }
 

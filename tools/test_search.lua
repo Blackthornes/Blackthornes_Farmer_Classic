@@ -98,15 +98,15 @@ local _, occurrences = herbLine:gsub("herb node", "")
 
 suite.check("an unnamed node does not repeat its kind", occurrences == 1, herbLine)
 
--- Only confirmed rows carry the marker.
+-- No row carries a Forever marker on Classic Era.
 suite.check("Classic rows are unmarked",
     not Util.StripColor(Search:SourceLine(sorted[1])):find("[Forever]", 1, true))
 
 local confirmed = { kind = "mob", name = "a checked mob", zone = "Durotar",
     minLevel = 5, maxLevel = 8, provenance = "forever" }
 
-suite.check("a confirmed row is marked",
-    Util.StripColor(Search:SourceLine(confirmed)):find("[Forever]", 1, true) ~= nil)
+suite.check("nor a confirmed row",
+    not Util.StripColor(Search:SourceLine(confirmed)):find("Forever", 1, true))
 
 local lines, total = Search:BuildLines("copper ore", 12)
 suite.check("building lines produces output", #lines > 1, #lines)

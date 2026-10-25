@@ -103,8 +103,8 @@ local TABS = {
 -- Column widths, left to right, at their narrowest. The source, where and
 -- drop columns widen to fit what a search turns up, and the window with them:
 -- the game's font runs wider than widths picked by eye, and names were being
--- cut off. The last slot holds the [Forever] badge, as wide as its text when
--- a row has one, so a long "needs" in the drop column never runs under it.
+-- cut off. The last slot held Forever's badge; on Classic Era it stays empty
+-- and narrow.
 -- The map slot holds a mob's Map button (Show on Map), only while the kill
 -- heat map is on the world map; otherwise it takes no room at all.
 local COLUMN_ORDER = { "kind", "name", "where", "level", "drop", "value", "badge", "map" }
@@ -116,7 +116,6 @@ local MAX_WIDTH = { name = 320, where = 520, drop = 220, value = 140 }
 local COLUMN_GAP = 6
 
 local DROP_BAR_WIDTH = 46
-local BADGE_TEXT = "Forever"
 
 -- A row is this much narrower than the window: the window's padding, the
 -- list's inset in its panel, and the scrollbar beside the rows.
@@ -459,7 +458,7 @@ function UI:BuildBody()
     footer:SetHeight(26)
     footer:SetWordWrap(true)
     footer:SetJustifyV("MIDDLE")
-    footer:SetText(L["Unmarked spots are from Classic and not yet seen on Forever. Click a row to put it in chat."])
+    footer:SetText(L["Click a row to put it in chat."])
     self.footer = footer
 
     self:BuildEmpty()
@@ -627,9 +626,6 @@ function UI:FitColumns(rows)
             local worth = self:WorthText(row.source)
             if worth then
                 widths.value = math.max(widths.value, Theme.TextWidth("small", worth) + 6)
-            end
-            if row.source.provenance == "forever" then
-                widths.badge = math.max(widths.badge, Theme.TextWidth("tiny", BADGE_TEXT))
             end
             if UI.MapsMob(row.source) then widths.map = MAP_BUTTON_WIDTH end
         elseif row.type == "zone" then
@@ -1141,10 +1137,7 @@ function UI:UpdateRow(row, data, index)
         row.value:Show()
     end
 
-    if source.provenance == "forever" then
-        row.badge:SetText(BADGE_TEXT)
-        row.badge:Show()
-    end
+    -- Classic Era shows no Forever tag (docs/CLASSIC_DIFFERENCES.md).
 
     local mapKind, mapName = UI.MapTarget(data)
     if mapKind and (self.columns or COLUMN).map.w > 0 then

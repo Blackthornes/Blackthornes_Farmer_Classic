@@ -64,7 +64,6 @@ GrindingUI.WIDTH = 980
 -- The sort arrow beside a heading's words and the gap past it.
 GrindingUI.ARROW_ROOM = 16
 
-local BADGE_TEXT = "Forever"
 local INDENT = "     "
 
 --- The view the list is in: "mobs", "leather", "nodes" or "fish".
@@ -970,10 +969,7 @@ function GrindingUI:UpdateRow(row, data)
     row.count:SetTextColor(Theme.Unpack(short and "dim" or "text"))
     row.worth:SetTextColor(Theme.Unpack(short and "dim" or (texts.worth:sub(1, 1) == "~" and "muted" or "good")))
 
-    if mob.forever then
-        row.badge:SetText(BADGE_TEXT)
-        row.badge:Show()
-    end
+    -- Classic Era shows no Forever tag (docs/CLASSIC_DIFFERENCES.md).
 end
 
 function GrindingUI:ShowRowTooltip(row, data)
