@@ -174,6 +174,11 @@ ns.NODE_SPOTS = { [1429] = { ["Copper Vein"] = "500518" .. "500490" .. "300300" 
 NodeSparkle.shippedCache = nil
 suite.check("the shipped data has Classic's spots", type(realShipped) == "table" and type(realShipped[1411]) == "table"
     and type(realShipped[1411]["Peacebloom"]) == "string" and #realShipped[1411]["Peacebloom"] % 6 == 0)
+local chests = 0
+for _, zone in pairs(realShipped) do
+    if zone["Solid Chest"] or zone["Battered Chest"] then chests = chests + 1 end
+end
+suite.check("and where its chests are", chests > 10)
 suite.check("a spot Classic grows it at counts", Face("Copper Vein", VEIN) == "screen" and NodeSparkle.pointer.frame:IsShown())
 suite.check("the one in front of you, not the nearer one behind", math.abs(NodeSparkle:PointerTurn("Copper Vein")) < 1e-6)
 ns.NODE_SPOTS[1429]["Copper Vein"] = "500525" .. "500490"

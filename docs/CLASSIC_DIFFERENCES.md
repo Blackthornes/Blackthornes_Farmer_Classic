@@ -152,7 +152,7 @@ used only once the character knows it, so they need no change.
   within `POINT_YARDS` on your map, turning as you turn. With none of
   yours, the nearest spot Classic grows it at, within `SHIPPED_YARDS` and
   in the half you face (so it is the node the game says is there), stands
-  in (the owner,
+  in, for chests too (the owner,
   2026-10-25; `NodeSparkle:ShippedSpots`, `Data/NodeSpots.lua` with
   `ns.NODE_SPOTS[mapID][English name]` and `ns.NODE_NAMES[locale]`,
   written by `tools/make_node_spots.py <Classic data>`, never by hand;
