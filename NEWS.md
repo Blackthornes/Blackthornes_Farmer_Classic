@@ -23,6 +23,15 @@ tell a friend: no hype, no questions to the reader, no exclamation marks
 outside the thanks line, no dashes as punctuation, no "now you can". The
 tool prints a note for a shipped line that reads like an advert.
 
+## 0.2.0
+
+- A fishing bar with Cast and Add Lure shows while you hold a fishing pole.
+- A Node Pointer shows the way to herbs, ore and chests near you, with an arrow, a beam of light or sparkles.
+- Node Sound plays a ping or a spoken line when it finds one.
+
+Fixes and changes:
+- The beam and sparkles show up on Era even without a nameplate.
+
 ## 0.1.0
 
 - Farmer is here for Classic Era. Search any material, mob or zone to see where to farm it.
