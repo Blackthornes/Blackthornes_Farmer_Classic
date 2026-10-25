@@ -261,7 +261,7 @@ end
 local covered = {
     settings = true, tracker = true, worlddrops = true, report = true, celebrate = true,
     raresound = true, voice = true, effects = true, markers = true, heat = true, tooltip = true, killcount = true, sparkle = true, questcount = true, plates = true, numbers = true,
-    seethrough = true, transparent = true, arrow = true, openbutton = true, grind = true, trash = true, opennote = true, bagsfull = true, export = true, sisters = true, skinning = true, hide = true, unhide = true,
+    seethrough = true, transparent = true, arrow = true, openbutton = true, fishingbar = true, grind = true, trash = true, opennote = true, bagsfull = true, export = true, sisters = true, skinning = true, hide = true, unhide = true,
 }
 for _, command in pairs(buttons) do covered[command:match("^(%S*)")] = true end
 -- Chat-only commands are typed only (the owner, 2026-10-15): the ones that

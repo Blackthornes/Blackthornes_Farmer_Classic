@@ -1705,3 +1705,17 @@ L["guildmates"] = "membres de la guilde"
 -- The fold gem beside a window's close gem (2026-10-24)
 L["Collapse this window"] = "Replier cette fenêtre"
 L["Expand this window"] = "Déplier cette fenêtre"
+
+-- The fishing bar (2026-10-25)
+L["Cast"] = "Lancer"
+L["Add Lure"] = "Ajouter un appât"
+L["LURES IN YOUR BAGS"] = "APPÂTS DANS TES SACS"
+L["Click one to put it on your pole."] = "Clique sur un appât pour le mettre sur ta canne."
+L["Lure on: %d min left"] = "Appât posé : encore %d min"
+L["No lure on"] = "Pas d'appât posé"
+L["No lures in your bags."] = "Aucun appât dans tes sacs."
+L["Fishing Buttons:"] = "Boutons de pêche :"
+L["Fishing %d / %d"] = "Pêche %d / %d"
+L["the fishing bar with Cast and Add Lure (on/off)"] = "la barre de pêche avec Lancer et Ajouter un appât (on/off)"
+L["the fishing bar shows while a fishing pole is in your hand."] = "la barre de pêche s'affiche quand tu tiens une canne à pêche."
+L["the fishing bar is hidden."] = "la barre de pêche est masquée."

@@ -419,6 +419,7 @@ local UI_FILES = {
     "UI/OpenNote.lua",
     "UI/LootFeed.lua",
     "UI/OpenButton.lua",
+    "UI/FishingBar.lua",
     "UI/BagsFull.lua",
     "UI/Veil.lua",
     "UI/XPBar.lua",

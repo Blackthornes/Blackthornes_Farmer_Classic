@@ -974,6 +974,14 @@ function SettingsUI:BuildLootPage()
         ns.OpenButton:SetAuto(checked)
     end, false)
     controls.autoOpen:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    -- The fishing bar (UI/FishingBar.lua), off unless ticked.
+    pages:Section("loot", 2, L["FISHING"])
+    local fishingBarRow = pages:Row("loot", 2, L["Fishing Buttons:"], nil)
+    controls.fishingBar = Widgets.CreateCheckbox(fishingBarRow, L["On"], function(checked)
+        ns.FishingBar:SetEnabled(checked)
+    end, false)
+    controls.fishingBar:SetPoint("TOPLEFT", CONTROL_X, -2)
 end
 
 --- Map and goals: what is drawn on the maps, and the goals and their arrow.
@@ -1451,6 +1459,7 @@ function SettingsUI:Refresh()
     controls.lootFeedWorth:SetChecked(db.lootFeedWorth ~= false)
     controls.bagsFull:SetChecked(db.bagsFullNotice ~= false)
     controls.openButton:SetChecked(db.openButton ~= false)
+    controls.fishingBar:SetChecked(db.fishingBar == true)
     controls.autoOpen:SetChecked(db.autoOpen == true)
     controls.arrow:SetChecked(db.arrowShown == true)
     controls.tomtom:SetChecked(db.useTomTom ~= false)
