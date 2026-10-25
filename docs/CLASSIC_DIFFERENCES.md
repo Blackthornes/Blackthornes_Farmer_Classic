@@ -173,6 +173,9 @@ used only once the character knows it, so they need no change.
   (`NodeSparkle:SayFound`, `nodeVoice`, off unless picked, never rename it;
   `/farm sparkle voice [off|character|peon|ping|try]`).
 
+- One-word names (the owner, 2026-10-25): Era characters have one name,
+  so the account sharing hint asks for names only.
+
 ## Not yet done
 - Not yet seen in an Era client. Client calls are read in a pcall, and the
   code already falls back to the classic calls (skill lines, spell info, the
