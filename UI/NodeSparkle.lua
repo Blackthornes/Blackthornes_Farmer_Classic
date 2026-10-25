@@ -131,6 +131,15 @@ NodeSparkle.BEAM = "Interface\\AddOns\\Blackthornes_Farmer\\Media\\Frame\\Beacon
 NodeSparkle.STYLES = { "sparkles", "beacon" }
 NodeSparkle.BEACON_WIDTH, NodeSparkle.BEACON_HEIGHT = 22, 240
 NodeSparkle.PULSE = 1.2            -- seconds for the beacon to dim, and again to brighten
+-- Era gives no nameplate for objects (the probe, 2026-10-25: none showing
+-- while facing a herb), so there is nothing that follows the node on
+-- screen. Then the beacon or sparkles stand in one spot above the middle
+-- of the screen, over the character, with the node's name under them, in
+-- the same colour (the owner picked it from a mockup, 2026-10-25). The
+-- game's own icon still marks the node itself. `SCREEN_Y` is how far up
+-- from the middle, as a share of the screen's height.
+NodeSparkle.SCREEN = "screen"
+NodeSparkle.SCREEN_Y = 0.11
 
 function NodeSparkle:Style()
     local db = ns.db
@@ -849,6 +858,15 @@ function NodeSparkle:Build()
         self.sparks[index] = MakeSpark(frame, spec)
     end
     self.beacon = self:MakeBeacon(frame)
+    local name = frame:CreateFontString(nil, "OVERLAY")
+    if not pcall(name.SetFontObject, name, _G.GameFontNormalLarge) or not name:GetFont() then
+        pcall(name.SetFont, name, "Fonts\\FRIZQT__.TTF", 16, "OUTLINE")
+    end
+    pcall(name.SetShadowColor, name, 0, 0, 0, 1)
+    pcall(name.SetShadowOffset, name, 1, -1)
+    name:SetPoint("TOP", frame, "CENTER", 0, -14)
+    name:Hide()
+    self.nameText = name
     self.frame = frame
     return frame
 end
@@ -933,14 +951,42 @@ function NodeSparkle:ColorFor(kind, name, level)
     return self.GOLD
 end
 
-function NodeSparkle:ShowSparkle(plate, guid, color)
+--- Where the screen marker stands: above the middle of the screen.
+function NodeSparkle.ScreenOffset()
+    local ok, height = pcall(function() return UIParent:GetHeight() end)
+    if not ok or type(height) ~= "number" or height ~= height or height <= 0 then height = 768 end
+    return height * NodeSparkle.SCREEN_Y
+end
+
+--- `plate` nil puts the marker in its spot on screen (Era), with `name`
+--- under it.
+function NodeSparkle:ShowSparkle(plate, guid, color, name)
     local frame = self:Build()
     if color then self.shownColor = color end
     self:Tint(self.shownColor)
+    local onScreen = plate == nil or plate == self.SCREEN
+    if onScreen then
+        name = name or self.shownName
+        self.shownName = name
+    end
+    local label = self.nameText
+    if label then
+        if onScreen and type(name) == "string" then
+            local tint = self.shownColor or self.GOLD
+            pcall(label.SetTextColor, label, tint[1], tint[2], tint[3], 1)
+            label:SetText(name)
+            label:Show()
+        else
+            label:Hide()
+        end
+    end
+    plate = plate or self.SCREEN
     if self.shownOn ~= plate then
         frame:ClearAllPoints()
-        local icon = self.Icon(plate)
-        if icon then
+        local icon = not onScreen and self.Icon(plate) or nil
+        if onScreen then
+            frame:SetPoint("CENTER", UIParent, "CENTER", 0, self.ScreenOffset())
+        elseif icon then
             -- Under the game's icon, on the node itself.
             frame:SetPoint("CENTER", icon, "CENTER", 0, -self:Drop(plate))
         else
@@ -980,7 +1026,7 @@ function NodeSparkle:ShowSparkle(plate, guid, color)
 end
 
 function NodeSparkle:HideSparkle()
-    self.shownOn, self.shownGuid = nil, nil
+    self.shownOn, self.shownGuid, self.shownName = nil, nil, nil
     local frame = self.frame
     if not frame then return end
     for _, spark in ipairs(self.sparks or {}) do
@@ -1053,7 +1099,8 @@ function NodeSparkle:SkinnableCorpse(guid, name)
 end
 
 --- Look again at what the interact key points at.
--- @return "shown", "off", "nothing", "notnode" or "noplate"
+-- @return "shown", "screen" (no nameplate: the marker on screen), "off",
+-- "nothing" or "notnode"
 function NodeSparkle:Refresh()
     if not self:IsEnabled() then self:HideSparkle(); return "off" end
     local guid, name, object = self:Facing()
@@ -1061,17 +1108,15 @@ function NodeSparkle:Refresh()
         local level = self:SkinnableCorpse(guid, name)
         if not level then self:HideSparkle(); return "nothing" end
         local plate = self:Plate(guid)
-        if not plate then self:HideSparkle(); return "noplate" end
-        self:ShowSparkle(plate, guid, self:ColorFor("corpse", name, level))
-        return "shown"
+        self:ShowSparkle(plate, guid, self:ColorFor("corpse", name, level), name)
+        return plate and "shown" or "screen"
     end
     if not guid then self:HideSparkle(); return "nothing" end
     local kind = self:Kind(name)
     if not kind then self:HideSparkle(); return "notnode" end
     local plate = self:Plate(guid)
-    if not plate then self:HideSparkle(); return "noplate" end
-    self:ShowSparkle(plate, guid, self:ColorFor(kind, name))
-    return "shown"
+    self:ShowSparkle(plate, guid, self:ColorFor(kind, name), name)
+    return plate and "shown" or "screen"
 end
 
 --- The interact nameplate is only wanted for objects. On a creature the
