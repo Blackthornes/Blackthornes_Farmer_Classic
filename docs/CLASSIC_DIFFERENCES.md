@@ -176,6 +176,15 @@ used only once the character knows it, so they need no change.
   `PING_KIT`), the game's own vanilla lines and sounds by ID, once a node and not again for `VOICE_GAP` seconds
   (`NodeSparkle:SayFound`, `nodeVoice`, off unless picked, never rename it;
   `/farm sparkle voice [off|character|peon|ping|try]`).
+- Veins in another language (a player's report, 2026-10-25): a herb is
+  known by its item's client name, but a vein has no item of its name, so
+  off English no vein was a node. `NodeSparkle:Names` lays in Classic's
+  names in every language (`NodeSparkle.OtherNodeNames`, `EnglishNodeName`,
+  `ns.NODE_NAMES`), on any client (the owner, 2026-10-25), for every node
+  it knows, with its skill, and the veins no ore row names (ooze covered,
+  Hakkari, obsidian; `MORE_VEINS`). Chests are told by their English name
+  too, and crates, clams and dungeon caches count as chests (`CRATES`).
+  Forever has none of it; a catch-up keeps them.
 
 - One-word names (the owner, 2026-10-25): Era characters have one name,
   so the account sharing hint asks for names only.
