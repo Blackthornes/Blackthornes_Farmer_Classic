@@ -1043,9 +1043,9 @@ function SettingsUI:BuildMapPage()
     controls.nodePointer:SetPoint("TOPLEFT", CONTROL_X, -2)
 
     -- A spoken line when the arrow finds a node (the owner, 2026-10-25).
-    local voiceNames = { off = L["Off"], character = L["Your Character"], peon = L["Peon"] }
-    local nodeVoiceRow = pages:Row("map", 1, L["Node Voice:"],
-        L["A voice speaks up when the arrow finds a node. Your character says \"Follow me!\", or a peon says \"Ready to work!\""])
+    local voiceNames = { off = L["Off"], character = L["Your Character"], peon = L["Peon"], ping = L["Ping"] }
+    local nodeVoiceRow = pages:Row("map", 1, L["Node Sound:"],
+        L["A sound plays when the arrow finds a node. Your character says \"Follow me!\", a peon says \"Ready to work!\", or the map's ping plays."])
     controls.nodeVoice = Widgets.CreateChoice(nodeVoiceRow, {
         min = 1, max = #ns.NodeSparkle.VOICES, step = 1, value = 1,
         format = function(index) return voiceNames[ns.NodeSparkle.VOICES[index]] end,
