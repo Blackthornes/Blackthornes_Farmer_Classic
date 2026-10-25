@@ -141,6 +141,27 @@ NodeSparkle.PULSE = 1.2            -- seconds for the beacon to dim, and again t
 NodeSparkle.SCREEN = "screen"
 NodeSparkle.SCREEN_Y = 0.11
 
+-- On screen the beam is left out (the owner, 2026-10-25: "drop the beam");
+-- a glowing arrow by the character's feet points at the node instead, with
+-- a dotted trail going on past it, pulsing, in the node's colour. Era says
+-- nowhere where an object stands, so it points at the spot you gathered
+-- that node at before (`gathering.spots`), the nearest within POINT_YARDS
+-- on the map you stand on; with none, only the name shows. POINTER_Y is
+-- how far down from the middle of the screen the feet are, as a share of
+-- its height; POINTER_REACH how far from them the arrow sits and TRAIL
+-- where each dot sits, in pixels; NEAR_ENOUGH the yards at which you are
+-- on it and the arrow goes.
+NodeSparkle.ARROW = "Interface\\AddOns\\Blackthornes_Farmer\\Media\\Frame\\GlowArrow"
+NodeSparkle.DOT = "Interface\\AddOns\\Blackthornes_Farmer\\Media\\Frame\\TravelDot"
+NodeSparkle.POINT_YARDS = 40
+NodeSparkle.NEAR_ENOUGH = 2.5
+NodeSparkle.POINTER_Y = 0.08
+NodeSparkle.POINTER_REACH = 64
+NodeSparkle.ARROW_SIZE = 46
+NodeSparkle.TRAIL = { { at = 100, size = 12 }, { at = 128, size = 10 }, { at = 154, size = 8 } }
+NodeSparkle.POINTER_LOOK = 0.03     -- seconds between turns of the arrow
+NodeSparkle.POINTER_PULSE = 0.6     -- seconds to dim, and again to brighten
+
 function NodeSparkle:Style()
     local db = ns.db
     if not db then return "beacon" end
@@ -1022,10 +1043,175 @@ function NodeSparkle:ShowSparkle(plate, guid, color, name)
             spark.holder:SetAlpha(0.85)
         end
     end
+    if onScreen then
+        -- No beam on screen: the arrow by your feet points the way.
+        if light then
+            light.holder:Hide()
+            if light.pulse then pcall(light.pulse.Stop, light.pulse) end
+        end
+        for _, spark in ipairs(self.sparks) do
+            spark.holder:Hide()
+            if spark.twinkle then pcall(spark.twinkle.Stop, spark.twinkle) end
+        end
+        self:ShowPointer(name, self.shownColor)
+    else
+        self:HidePointer()
+    end
     frame:Show()
 end
 
+--------------------------------------------------------------------------------
+-- The arrow by your feet (on screen, Era)
+--------------------------------------------------------------------------------
+
+local function Pulse(texture, low, delay)
+    local ok, group = pcall(texture.CreateAnimationGroup, texture)
+    if not ok or type(group) ~= "table" then return nil end
+    local made = pcall(function()
+        group:SetLooping("REPEAT")
+        local dim = group:CreateAnimation("Alpha")
+        dim:SetFromAlpha(1)
+        dim:SetToAlpha(low)
+        dim:SetDuration(NodeSparkle.POINTER_PULSE)
+        dim:SetStartDelay(delay or 0)
+        dim:SetSmoothing("IN_OUT")
+        dim:SetOrder(1)
+        local glow = group:CreateAnimation("Alpha")
+        glow:SetFromAlpha(low)
+        glow:SetToAlpha(1)
+        glow:SetDuration(NodeSparkle.POINTER_PULSE)
+        glow:SetSmoothing("IN_OUT")
+        glow:SetOrder(2)
+    end)
+    return made and group or nil
+end
+
+function NodeSparkle:BuildPointer()
+    if self.pointer then return self.pointer end
+    local frame = CreateFrame("Frame", "BlackthornesFarmerNodePointer", UIParent)
+    frame:SetSize(1, 1)
+    pcall(frame.SetFrameStrata, frame, "BACKGROUND")
+    pcall(frame.EnableMouse, frame, false)
+    frame:Hide()
+
+    local pieces = {}
+    local arrow = frame:CreateTexture(nil, "OVERLAY")
+    arrow:SetTexture(self.ARROW)
+    arrow:SetSize(self.ARROW_SIZE, self.ARROW_SIZE)
+    pcall(arrow.SetBlendMode, arrow, "ADD")
+    pieces[1] = { texture = arrow, at = self.POINTER_REACH, turn = true,
+        pulse = Pulse(arrow, 0.45, 0) }
+    for index, dot in ipairs(self.TRAIL) do
+        local texture = frame:CreateTexture(nil, "ARTWORK")
+        texture:SetTexture(self.DOT)
+        texture:SetSize(dot.size, dot.size)
+        pcall(texture.SetBlendMode, texture, "ADD")
+        pieces[#pieces + 1] = { texture = texture, at = dot.at,
+            pulse = Pulse(texture, 0.15, index * NodeSparkle.POINTER_PULSE / 3) }
+    end
+
+    local wait = 0
+    frame:SetScript("OnUpdate", function(_, elapsed)
+        wait = wait - (elapsed or 0)
+        if wait > 0 then return end
+        wait = NodeSparkle.POINTER_LOOK
+        if not NodeSparkle:AimPointer() then NodeSparkle:HidePointer() end
+    end)
+    self.pointer = { frame = frame, pieces = pieces }
+    return self.pointer
+end
+
+--- Where the node called `name` lies from you, as yards north and west,
+--- from the nearest spot you gathered it at within POINT_YARDS. Nil when
+--- none is known or the client will not say where you stand.
+function NodeSparkle:PointerTarget(name)
+    if type(name) ~= "string" or not ns.Gathering or not ns.Harvest then return nil end
+    local mapID, x, y = ns.Harvest:PlayerMapPosition()
+    if not (mapID and x and y) then return nil end
+    local width, height = ns.Gathering.MapSize(mapID)
+    if not (width and height) then return nil end
+    local bestNorth, bestWest, best
+    for _, spot in ipairs(ns.Gathering:SpotsOn(mapID)) do
+        if spot.node == name or (type(spot.also) == "table" and spot.also[name]) then
+            local north = (y - tonumber(spot.y)) * height
+            local west = (x - tonumber(spot.x)) * width
+            local yards = math.sqrt(north * north + west * west)
+            if yards <= self.POINT_YARDS and (not best or yards < best) then
+                bestNorth, bestWest, best = north, west, yards
+            end
+        end
+    end
+    return bestNorth, bestWest, best
+end
+
+--- Which way the arrow turns on screen: the node's bearing less your
+--- facing, anticlockwise from straight ahead. Nil when it can't be read
+--- or you are standing on it.
+function NodeSparkle:PointerTurn(name)
+    local north, west, yards = self:PointerTarget(name)
+    if not north or yards < self.NEAR_ENOUGH then return nil end
+    local facing = ns.Arrow and ns.Arrow.Facing and ns.Arrow.Facing()
+    if not facing then return nil end
+    return math.atan2(west, north) - facing
+end
+
+--- Turn the arrow and lay the trail along it. False when there is nothing
+--- to point at.
+function NodeSparkle:AimPointer()
+    local pointer = self.pointer
+    if not pointer or not self.pointName then return false end
+    local turn = self:PointerTurn(self.pointName)
+    if not turn then return false end
+    -- Only a turn the eye could see moves it.
+    if pointer.turn and math.abs(turn - pointer.turn) < 0.01 then return true end
+    pointer.turn = turn
+    local ok, height = pcall(function() return UIParent:GetHeight() end)
+    if not ok or type(height) ~= "number" or height ~= height or height <= 0 then height = 768 end
+    local feet = -height * self.POINTER_Y
+    local across, up = -math.sin(turn), math.cos(turn)
+    for _, piece in ipairs(pointer.pieces) do
+        local texture = piece.texture
+        texture:ClearAllPoints()
+        texture:SetPoint("CENTER", UIParent, "CENTER", across * piece.at, feet + up * piece.at)
+        if piece.turn then pcall(texture.SetRotation, texture, turn) end
+    end
+    return true
+end
+
+--- Show the arrow for the node called `name`, in `color`, when its spot is
+--- known; hide it otherwise.
+function NodeSparkle:ShowPointer(name, color)
+    if type(name) ~= "string" then self:HidePointer(); return false end
+    local pointer = self:BuildPointer()
+    self.pointName, pointer.turn = name, nil
+    if not self:AimPointer() then self:HidePointer(); return false end
+    color = color or self.GOLD
+    local moving = Moving()
+    for _, piece in ipairs(pointer.pieces) do
+        pcall(piece.texture.SetVertexColor, piece.texture, color[1], color[2], color[3], 1)
+        if piece.pulse and moving then
+            local playing, on = pcall(piece.pulse.IsPlaying, piece.pulse)
+            if not (playing and on == true) then pcall(piece.pulse.Play, piece.pulse) end
+        elseif piece.pulse then
+            pcall(piece.pulse.Stop, piece.pulse)
+        end
+    end
+    pointer.frame:Show()
+    return true
+end
+
+function NodeSparkle:HidePointer()
+    self.pointName = nil
+    local pointer = self.pointer
+    if not pointer then return end
+    for _, piece in ipairs(pointer.pieces) do
+        if piece.pulse then pcall(piece.pulse.Stop, piece.pulse) end
+    end
+    pointer.frame:Hide()
+end
+
 function NodeSparkle:HideSparkle()
+    self:HidePointer()
     self.shownOn, self.shownGuid, self.shownName = nil, nil, nil
     local frame = self.frame
     if not frame then return end
@@ -1115,6 +1301,9 @@ function NodeSparkle:Refresh()
     local kind = self:Kind(name)
     if not kind then self:HideSparkle(); return "notnode" end
     local plate = self:Plate(guid)
+    -- On screen the bobber gets nothing: it bobs off where you cast, and a
+    -- mark in the middle of the screen can't follow it (the owner, 2026-10-25).
+    if not plate and kind == "bobber" then self:HideSparkle(); return "nothing" end
     self:ShowSparkle(plate, guid, self:ColorFor(kind, name), name)
     return plate and "shown" or "screen"
 end

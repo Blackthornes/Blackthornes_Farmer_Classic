@@ -132,6 +132,42 @@ suite.check("with the node's name", NodeSparkle.nameText:IsShown() and NodeSpark
 NodeSparkle:SetStyle("sparkles")
 suite.check("a new look keeps the name", NodeSparkle.nameText:IsShown() and NodeSparkle.nameText:GetText() == "Copper Vein")
 NodeSparkle:SetStyle("beacon")
+suite.check("no beam on screen", not NodeSparkle.beacon.holder:IsShown() and not NodeSparkle.sparks[1].holder:IsShown())
+suite.check("no spot known, no arrow", not (NodeSparkle.pointer and NodeSparkle.pointer.frame:IsShown()))
+
+-- A spot you gathered it at before: the arrow by your feet points there.
+local realPosition, realSize, realSpots, realFacing = ns.Harvest.PlayerMapPosition, ns.Gathering.MapSize, ns.Gathering.SpotsOn, ns.Arrow.Facing
+local here = { x = 0.5, y = 0.5 }
+local turnTo = 0
+ns.Harvest.PlayerMapPosition = function() return 1429, here.x, here.y end
+ns.Gathering.MapSize = function() return 1000, 1000 end
+local spots = { { map = 1429, x = 0.49, y = 0.5, node = "Copper Vein" } }   -- 10 yards west
+ns.Gathering.SpotsOn = function() return spots end
+ns.Arrow.Facing = function() return turnTo end
+suite.check("a known spot: the marker on screen", Face("Copper Vein", VEIN) == "screen")
+suite.check("the arrow shows", NodeSparkle.pointer and NodeSparkle.pointer.frame:IsShown())
+suite.check("facing north, it turns left toward the west", math.abs(NodeSparkle:PointerTurn("Copper Vein") - math.pi / 2) < 1e-6)
+turnTo = math.pi / 2
+suite.check("facing west, it points straight ahead", math.abs(NodeSparkle:PointerTurn("Copper Vein")) < 1e-6)
+suite.check("a dotted trail with it", #NodeSparkle.pointer.pieces == 1 + #NodeSparkle.TRAIL)
+suite.check("in the node's colour", NodeSparkle.pointer.pieces[1].texture)
+spots[1].x = 0.4   -- 100 yards off: too far to be the one you face
+suite.check("too far, no arrow", not NodeSparkle:AimPointer())
+spots[1].x, spots[1].node, spots[1].also = 0.49, "Tin Vein", { ["Copper Vein"] = true }
+suite.check("a vein that grew on that spot counts", NodeSparkle:AimPointer())
+here.x = 0.4901
+suite.check("standing on it, no arrow", not NodeSparkle:AimPointer())
+here.x = 0.5
+plateShown = true
+suite.check("a nameplate: no arrow", Face("Copper Vein", VEIN) == "shown" and not NodeSparkle.pointer.frame:IsShown())
+plateShown = false
+Face("Copper Vein", VEIN)
+suite.check("the arrow goes with the marker", NodeSparkle.pointer.frame:IsShown() and Face(nil, nil) == "nothing"
+    and not NodeSparkle.pointer.frame:IsShown())
+ns.Harvest.PlayerMapPosition, ns.Gathering.MapSize, ns.Gathering.SpotsOn, ns.Arrow.Facing = realPosition, realSize, realSpots, realFacing
+NodeSparkle.fishing = true
+suite.check("the bobber on screen gets nothing", Face("Fishing Bobber", VEIN) == "nothing" and not NodeSparkle.frame:IsShown())
+NodeSparkle.fishing = nil
 suite.check("a mob on screen gets nothing", Face("Kobold Vermin", "Creature-0-1-2-3-6-0000000001") == "nothing"
     and not NodeSparkle.frame:IsShown())
 plateShown = true

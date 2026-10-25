@@ -4,7 +4,9 @@ degrees and a soft glow at its heart; and Media/Frame/Beacon.tga, the
 other look: a tall beam of light, brightest at its foot, fading upward.
 Also two small marks the kills panel and its banners use: Heart.tga, a
 soft heart that floats up the panel, and Laurel.tga, a laurel branch on
-each side (left half, right half) that sits round a crown.
+each side (left half, right half) that sits round a crown. And
+GlowArrow.tga, the arrow by your feet that points at the node you face on
+Era: an arrow pointing up, with a soft glow round it.
 
     python tools/make_sparkle_art.py
 
@@ -27,6 +29,11 @@ BEACON_W, BEACON_H = 32, 256
 HEART = os.path.join(ROOT, "Media", "Frame", "Heart.tga")
 LAUREL = os.path.join(ROOT, "Media", "Frame", "Laurel.tga")
 LAUREL_W, LAUREL_H = 128, 64
+GLOW_ARROW = os.path.join(ROOT, "Media", "Frame", "GlowArrow.tga")
+
+# The arrow's outline, x and y from -1 to 1, y up, tip at the top.
+ARROW = [(0.0, 0.82), (0.62, 0.02), (0.2, 0.02), (0.2, -0.72),
+         (-0.2, -0.72), (-0.2, 0.02), (-0.62, 0.02)]
 
 # The long rays reach the edge; the short ones reach this far of it.
 SHORT = 0.55
@@ -131,6 +138,36 @@ def laurel(u, v):
     return branch((1 - u) * 2, v)
 
 
+def inside(x, y, points):
+    """Is (x, y) inside the polygon?"""
+    hit = False
+    for i, (ax, ay) in enumerate(points):
+        bx, by = points[i - 1]
+        if (ay > y) != (by > y) and x < (bx - ax) * (y - ay) / (by - ay) + ax:
+            hit = not hit
+    return hit
+
+
+def edge(x, y, points):
+    """How far (x, y) is from the polygon's edge."""
+    best = float("inf")
+    for i, (ax, ay) in enumerate(points):
+        bx, by = points[i - 1]
+        dx, dy = bx - ax, by - ay
+        t = max(0.0, min(1.0, ((x - ax) * dx + (y - ay) * dy) / (dx * dx + dy * dy)))
+        best = min(best, math.hypot(x - ax - t * dx, y - ay - t * dy))
+    return best
+
+
+def glow_arrow(x, y):
+    """0 to 1 at a point of the arrow, x and y from -1 to 1, tip up: solid
+    inside, a soft glow outside."""
+    d = edge(x, y, ARROW)
+    if inside(x, y, ARROW):
+        return 1.0
+    return 0.55 * math.exp(-(d / 0.12) ** 2)
+
+
 def write(path, width, height, shade):
     pixels = []
     # TGA rows run bottom up (descriptor 8), so row 0 is the foot.
@@ -155,6 +192,7 @@ def main():
     write(BEACON, BEACON_W, BEACON_H, lambda u, v: beam(u * 2 - 1, v))
     write(HEART, SIZE, SIZE, lambda u, v: heart(u * 2 - 1, v * 2 - 1))
     write(LAUREL, LAUREL_W, LAUREL_H, laurel)
+    write(GLOW_ARROW, SIZE, SIZE, lambda u, v: glow_arrow(u * 2 - 1, v * 2 - 1))
 
 
 if __name__ == "__main__":
