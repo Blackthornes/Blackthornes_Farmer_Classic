@@ -927,8 +927,8 @@ L["HOW THESE ADDONS ARE MADE"] = "КАК ДЕЛАЮТСЯ ЭТИ АДДОНЫ"
 L["How these addons are made, the version, the Discord and the other Blackthornes addons"] = "Как делаются эти аддоны, версия, Discord и другие аддоны Blackthornes"
 
 -- Sparkles on the node you face (UI/NodeSparkle.lua).
-L["turn sparkles on or off for the node, school, chest or quest object you face (beacon, sparkles, colors, corpses, icon, check)"] =
-    "включает или выключает искры на жиле, траве, косяке рыбы, сундуке или предмете задания перед тобой (beacon, sparkles, colors, corpses, icon, check)"
+L["turn sparkles on or off for the node, school, chest or quest object you face (beacon, sparkles, pointer, colors, corpses, icon, check)"] =
+    "включает или выключает искры на жиле, траве, косяке рыбы, сундуке или предмете задания перед тобой (beacon, sparkles, pointer, colors, corpses, icon, check)"
 L["the game's interact icon is hidden unless you play with a controller."] = "значок взаимодействия игры скрыт, если ты не играешь с контроллером."
 L["the game's interact icon shows."] = "значок взаимодействия игры показывается."
 L["a beacon shows the spot."] = "место показывает маяк."
@@ -943,6 +943,14 @@ L["Herbs and ore show your skill color. Quest things are blue. Chests, fish and 
 L["A dead beast you can skin sparkles until you skin it."] = "Мёртвый зверь, которого можно освежевать, искрится, пока ты его не освежуешь."
 L["sparkles show your skill color."] = "искры показывают цвет твоего навыка."
 L["sparkles are all gold."] = "все искры золотые."
+L["Arrow and Beam"] = "Стрелка и луч"
+L["Arrow Only"] = "Только стрелка"
+L["Beam Only"] = "Только луч"
+L["Node Pointer:"] = "Путь к жиле:"
+L["Shows the way to the node you face. The beam alone stands where the node is."] = "Показывает путь к жиле или траве перед тобой. Один луч стоит там, где она находится."
+L["the arrow and dots show the way to a node."] = "стрелка и точки показывают путь к жиле."
+L["a beam stands toward the node."] = "луч стоит в сторону жилы."
+L["the arrow, dots and beam show the way to a node."] = "стрелка, точки и луч показывают путь к жиле."
 L["corpses you can skin sparkle."] = "туши, которые можно освежевать, искрятся."
 L["corpses don't sparkle."] = "туши не искрятся."
 L["open the kills panel first, then try again."] = "сначала открой панель убийств, потом попробуй ещё раз."

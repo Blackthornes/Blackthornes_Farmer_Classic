@@ -167,8 +167,33 @@ NodeSparkle.TRAIL = { { at = 100, size = 12 }, { at = 128, size = 10 }, { at = 1
 -- A short glowing beam stands at the trail's end, a soft flare at its foot
 -- (the owner asked, 2026-10-25), the same art as the beacon.
 NodeSparkle.TRAIL_BEAM = { at = 182, width = 14, height = 90, flare = 34 }
+-- What shows (the owner, 2026-10-25): the arrow, dots and beam, the arrow
+-- and dots alone, or the beam alone. `nodePointer`, account wide, "both"
+-- unless picked; never rename it. Alone, the beam stands toward the node,
+-- nearer your feet the nearer it is: BEAM_NEAR pixels from them on top of
+-- it, BEAM_FAR at POINT_YARDS or more.
+NodeSparkle.POINTER_LOOKS = { "both", "arrow", "beam" }
+NodeSparkle.BEAM_NEAR, NodeSparkle.BEAM_FAR = 40, 240
 NodeSparkle.POINTER_LOOK = 0.03     -- seconds between turns of the arrow
 NodeSparkle.POINTER_PULSE = 0.6     -- seconds to dim, and again to brighten
+
+function NodeSparkle:PointerLook()
+    local look = ns.db and ns.db.nodePointer
+    if look == "arrow" or look == "beam" then return look end
+    return "both"
+end
+
+function NodeSparkle:SetPointerLook(look)
+    ns.db.nodePointer = (look == "arrow" or look == "beam") and look or "both"
+    if self.pointer then self.pointer.turn = nil end
+    self:SafeRefresh()
+end
+
+--- How far from your feet the beam stands alone, for a node `yards` away.
+function NodeSparkle.BeamReach(yards)
+    local share = math.max(0, math.min(1, (tonumber(yards) or 0) / NodeSparkle.POINT_YARDS))
+    return NodeSparkle.BEAM_NEAR + share * (NodeSparkle.BEAM_FAR - NodeSparkle.BEAM_NEAR)
+end
 
 function NodeSparkle:Style()
     local db = ns.db
@@ -1107,14 +1132,14 @@ function NodeSparkle:BuildPointer()
     arrow:SetTexture(self.ARROW)
     arrow:SetSize(self.ARROW_SIZE, self.ARROW_SIZE)
     pcall(arrow.SetBlendMode, arrow, "ADD")
-    pieces[1] = { texture = arrow, at = self.POINTER_REACH, turn = true,
+    pieces[1] = { texture = arrow, at = self.POINTER_REACH, turn = true, part = "arrow",
         pulse = Pulse(arrow, 0.45, 0) }
     for index, dot in ipairs(self.TRAIL) do
         local texture = frame:CreateTexture(nil, "ARTWORK")
         texture:SetTexture(self.DOT)
         texture:SetSize(dot.size, dot.size)
         pcall(texture.SetBlendMode, texture, "ADD")
-        pieces[#pieces + 1] = { texture = texture, at = dot.at,
+        pieces[#pieces + 1] = { texture = texture, at = dot.at, part = "arrow",
             pulse = Pulse(texture, 0.15, index * NodeSparkle.POINTER_PULSE / 3) }
     end
     local spec = self.TRAIL_BEAM
@@ -1122,13 +1147,13 @@ function NodeSparkle:BuildPointer()
     flare:SetTexture(self.GLOW)
     flare:SetSize(spec.flare, spec.flare * 0.5)
     pcall(flare.SetBlendMode, flare, "ADD")
-    pieces[#pieces + 1] = { texture = flare, at = spec.at,
+    pieces[#pieces + 1] = { texture = flare, at = spec.at, part = "beam",
         pulse = Pulse(flare, 0.4, NodeSparkle.POINTER_PULSE) }
     local beam = frame:CreateTexture(nil, "OVERLAY")
     beam:SetTexture(self.BEAM)
     beam:SetSize(spec.width, spec.height)
     pcall(beam.SetBlendMode, beam, "ADD")
-    pieces[#pieces + 1] = { texture = beam, at = spec.at, anchor = "BOTTOM", lift = -4,
+    pieces[#pieces + 1] = { texture = beam, at = spec.at, anchor = "BOTTOM", lift = -4, part = "beam",
         pulse = Pulse(beam, 0.5, NodeSparkle.POINTER_PULSE) }
 
     local wait = 0
@@ -1205,14 +1230,14 @@ function NodeSparkle:PointerTarget(name)
 end
 
 --- Which way the arrow turns on screen: the node's bearing less your
---- facing, anticlockwise from straight ahead. Nil when it can't be read
---- or you are standing on it.
+--- facing, anticlockwise from straight ahead, and the yards to it. Nil
+--- when it can't be read or you are standing on it.
 function NodeSparkle:PointerTurn(name)
     local north, west, yards = self:PointerTarget(name)
     if not north or yards < self.NEAR_ENOUGH then return nil end
     local facing = ns.Arrow and ns.Arrow.Facing and ns.Arrow.Facing()
     if not facing then return nil end
-    return math.atan2(west, north) - facing
+    return math.atan2(west, north) - facing, yards
 end
 
 --- Turn the arrow and lay the trail along it. False when there is nothing
@@ -1220,20 +1245,25 @@ end
 function NodeSparkle:AimPointer()
     local pointer = self.pointer
     if not pointer or not self.pointName then return false end
-    local turn = self:PointerTurn(self.pointName)
+    local turn, yards = self:PointerTurn(self.pointName)
     if not turn then return false end
-    -- Only a turn the eye could see moves it.
-    if pointer.turn and math.abs(turn - pointer.turn) < 0.01 then return true end
-    pointer.turn = turn
+    local look = self:PointerLook()
+    local reach = look == "beam" and self.BeamReach(yards) or nil
+    -- Only a turn or a step the eye could see moves it.
+    if pointer.turn and math.abs(turn - pointer.turn) < 0.01 and pointer.look == look
+        and (not reach or math.abs(reach - (pointer.reach or 0)) < 1) then return true end
+    pointer.turn, pointer.look, pointer.reach = turn, look, reach
     local ok, height = pcall(function() return UIParent:GetHeight() end)
     if not ok or type(height) ~= "number" or height ~= height or height <= 0 then height = 768 end
     local feet = -height * self.POINTER_Y
     local across, up = -math.sin(turn), math.cos(turn)
     for _, piece in ipairs(pointer.pieces) do
         local texture = piece.texture
+        local at = (reach and piece.part == "beam") and reach or piece.at
+        pcall(texture.SetShown, texture, look == "both" or piece.part == look)
         texture:ClearAllPoints()
         texture:SetPoint(piece.anchor or "CENTER", UIParent, "CENTER",
-            across * piece.at, feet + up * piece.at + (piece.lift or 0))
+            across * at, feet + up * at + (piece.lift or 0))
         if piece.turn then pcall(texture.SetRotation, texture, turn) end
     end
     return true
@@ -1535,7 +1565,7 @@ function NodeSparkle:Skinned(guid)
     if guid and self.shownGuid == guid then self:SafeRefresh() end
 end
 
-ns.RegisterCommand("sparkle", L["turn sparkles on or off for the node, school, chest or quest object you face (beacon, sparkles, colors, corpses, icon, check)"], function(rest)
+ns.RegisterCommand("sparkle", L["turn sparkles on or off for the node, school, chest or quest object you face (beacon, sparkles, pointer, colors, corpses, icon, check)"], function(rest)
     local argument = ns.Util.Trim(rest or ""):lower()
     local word, value = argument:match("^(%a+)%s*(%a*)$")
     if word == "colors" or word == "colours" then
@@ -1555,6 +1585,21 @@ ns.RegisterCommand("sparkle", L["turn sparkles on or off for the node, school, c
         else on = not NodeSparkle:CorpsesOn() end
         NodeSparkle:SetCorpses(on)
         ns.Print(on and L["corpses you can skin sparkle."] or L["corpses don't sparkle."])
+        if ns.SettingsUI then ns.SettingsUI:Refresh() end
+        return
+    end
+    if word == "pointer" then
+        local look = (value == "both" or value == "arrow" or value == "beam") and value or nil
+        if not look then
+            local looks, now = NodeSparkle.POINTER_LOOKS, NodeSparkle:PointerLook()
+            for index, name in ipairs(looks) do
+                if name == now then look = looks[index % #looks + 1] end
+            end
+        end
+        NodeSparkle:SetPointerLook(look)
+        ns.Print(look == "arrow" and L["the arrow and dots show the way to a node."]
+            or look == "beam" and L["a beam stands toward the node."]
+            or L["the arrow, dots and beam show the way to a node."])
         if ns.SettingsUI then ns.SettingsUI:Refresh() end
         return
     end

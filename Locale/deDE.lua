@@ -925,8 +925,8 @@ L["HOW THESE ADDONS ARE MADE"] = "WIE DIESE ADDONS ENTSTEHEN"
 L["How these addons are made, the version, the Discord and the other Blackthornes addons"] = "Wie diese Addons entstehen, die Version, der Discord und die anderen Blackthornes-Addons"
 
 -- Sparkles on the node you face (UI/NodeSparkle.lua).
-L["turn sparkles on or off for the node, school, chest or quest object you face (beacon, sparkles, colors, corpses, icon, check)"] =
-    "Funkeln an Vorkommen, Fischschwarm, Truhe oder Questobjekt vor dir ein- oder ausschalten (beacon, sparkles, colors, corpses, icon, check)"
+L["turn sparkles on or off for the node, school, chest or quest object you face (beacon, sparkles, pointer, colors, corpses, icon, check)"] =
+    "Funkeln an Vorkommen, Fischschwarm, Truhe oder Questobjekt vor dir ein- oder ausschalten (beacon, sparkles, pointer, colors, corpses, icon, check)"
 L["the game's interact icon is hidden unless you play with a controller."] = "Das Interaktionssymbol des Spiels bleibt verborgen, außer du spielst mit einem Controller."
 L["the game's interact icon shows."] = "Das Interaktionssymbol des Spiels wird angezeigt."
 L["a beacon shows the spot."] = "Ein Leuchtfeuer zeigt die Stelle."
@@ -941,6 +941,14 @@ L["Herbs and ore show your skill color. Quest things are blue. Chests, fish and 
 L["A dead beast you can skin sparkles until you skin it."] = "Ein totes Tier, das du häuten kannst, funkelt, bis du es häutest."
 L["sparkles show your skill color."] = "Funkeln zeigt die Farbe deiner Fertigkeit."
 L["sparkles are all gold."] = "Funkeln ist ganz golden."
+L["Arrow and Beam"] = "Pfeil und Strahl"
+L["Arrow Only"] = "Nur Pfeil"
+L["Beam Only"] = "Nur Strahl"
+L["Node Pointer:"] = "Weg zum Vorkommen:"
+L["Shows the way to the node you face. The beam alone stands where the node is."] = "Zeigt dir den Weg zum Vorkommen vor dir. Der Strahl allein steht dort, wo das Vorkommen ist."
+L["the arrow and dots show the way to a node."] = "Pfeil und Punkte zeigen dir den Weg zum Vorkommen."
+L["a beam stands toward the node."] = "ein Strahl steht in Richtung des Vorkommens."
+L["the arrow, dots and beam show the way to a node."] = "Pfeil, Punkte und Strahl zeigen dir den Weg zum Vorkommen."
 L["corpses you can skin sparkle."] = "Leichen, die du häuten kannst, funkeln."
 L["corpses don't sparkle."] = "Leichen funkeln nicht."
 L["open the kills panel first, then try again."] = "öffne zuerst das Kill-Fenster und versuch es dann noch mal."
