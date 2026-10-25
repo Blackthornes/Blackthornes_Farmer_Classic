@@ -149,7 +149,11 @@ suite.check("the arrow shows", NodeSparkle.pointer and NodeSparkle.pointer.frame
 suite.check("facing north, it turns left toward the west", math.abs(NodeSparkle:PointerTurn("Copper Vein") - math.pi / 2) < 1e-6)
 turnTo = math.pi / 2
 suite.check("facing west, it points straight ahead", math.abs(NodeSparkle:PointerTurn("Copper Vein")) < 1e-6)
-suite.check("a dotted trail with it", #NodeSparkle.pointer.pieces == 1 + #NodeSparkle.TRAIL)
+suite.check("a dotted trail with it, and a flare and beam at its end",
+    #NodeSparkle.pointer.pieces == 3 + #NodeSparkle.TRAIL)
+local lastPiece = NodeSparkle.pointer.pieces[#NodeSparkle.pointer.pieces]
+suite.check("the beam stands at the trail's end",
+    lastPiece.anchor == "BOTTOM" and lastPiece.at > NodeSparkle.TRAIL[#NodeSparkle.TRAIL].at)
 suite.check("in the node's colour", NodeSparkle.pointer.pieces[1].texture)
 spots[1].x = 0.4   -- 100 yards off: too far to be the one you face
 suite.check("too far, no arrow", not NodeSparkle:AimPointer())
@@ -174,6 +178,11 @@ ns.NODE_SPOTS = { [1429] = { ["Copper Vein"] = "500518" .. "500490" .. "300300" 
 NodeSparkle.shippedCache = nil
 suite.check("the shipped data has Classic's spots", type(realShipped) == "table" and type(realShipped[1411]) == "table"
     and type(realShipped[1411]["Peacebloom"]) == "string" and #realShipped[1411]["Peacebloom"] % 6 == 0)
+local chests = 0
+for _, zone in pairs(realShipped) do
+    if zone["Solid Chest"] or zone["Battered Chest"] then chests = chests + 1 end
+end
+suite.check("and where its chests are", chests > 10)
 suite.check("a spot Classic grows it at counts", Face("Copper Vein", VEIN) == "screen" and NodeSparkle.pointer.frame:IsShown())
 suite.check("the one in front of you, not the nearer one behind", math.abs(NodeSparkle:PointerTurn("Copper Vein")) < 1e-6)
 ns.NODE_SPOTS[1429]["Copper Vein"] = "500525" .. "500490"
