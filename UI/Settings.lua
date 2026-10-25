@@ -1042,6 +1042,21 @@ function SettingsUI:BuildMapPage()
     ns.SettingsPages.FitStepper(controls.nodePointer, pointerNames)
     controls.nodePointer:SetPoint("TOPLEFT", CONTROL_X, -2)
 
+    -- A spoken line when the arrow finds a node (the owner, 2026-10-25).
+    local voiceNames = { off = L["Off"], character = L["Your Character"], peon = L["Peon"] }
+    local nodeVoiceRow = pages:Row("map", 1, L["Node Voice:"],
+        L["A voice speaks up when the arrow finds a node. Your character says \"Follow me!\", or a peon says \"Ready to work!\""])
+    controls.nodeVoice = Widgets.CreateChoice(nodeVoiceRow, {
+        min = 1, max = #ns.NodeSparkle.VOICES, step = 1, value = 1,
+        format = function(index) return voiceNames[ns.NodeSparkle.VOICES[index]] end,
+        onChange = function(index)
+            ns.NodeSparkle:SetVoice(ns.NodeSparkle.VOICES[index])
+            ns.NodeSparkle:SayFound(nil, true)
+        end,
+    })
+    ns.SettingsPages.FitStepper(controls.nodeVoice, voiceNames)
+    controls.nodeVoice:SetPoint("TOPLEFT", CONTROL_X, -2)
+
     -- Each thing in its own colour, herbs and ore by your skill, and a
     -- corpse to skin (the owner, 2026-10-24).
     local sparkleColorsRow = pages:Row("map", 1, L["Sparkle Colors:"],
@@ -1446,6 +1461,9 @@ function SettingsUI:Refresh()
     controls.sparkleStyle:SetValue(ns.NodeSparkle:Style() == "sparkles" and 1 or 2, true)
     for index, look in ipairs(ns.NodeSparkle.POINTER_LOOKS) do
         if look == ns.NodeSparkle:PointerLook() then controls.nodePointer:SetValue(index, true) end
+    end
+    for index, voice in ipairs(ns.NodeSparkle.VOICES) do
+        if voice == ns.NodeSparkle:Voice() then controls.nodeVoice:SetValue(index, true) end
     end
     controls.nodeSparkleHideIcon:SetChecked(db.nodeSparkleHideIcon ~= false)
     controls.nodeSparkleColors:SetChecked(db.nodeSparkleColors ~= false)

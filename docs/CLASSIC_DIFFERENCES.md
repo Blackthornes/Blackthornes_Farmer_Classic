@@ -167,6 +167,11 @@ used only once the character knows it, so they need no change.
 - "Sparkle Look:" picks what stands at the trail's end on screen: Beacon
   is the beam, Sparkles twinkle there instead (`TRAIL_SPARKS`, pieces with
   `style`; the owner, 2026-10-25: Sparkles did nothing on Era).
+- "Node Voice:" (the owner, 2026-10-25): Off, Your Character (its race's
+  "Follow me!") or Peon ("Ready to work!"), the game's own vanilla lines by
+  file ID, once a node and not again for `VOICE_GAP` seconds
+  (`NodeSparkle:SayFound`, `nodeVoice`, off unless picked, never rename it;
+  `/farm sparkle voice [off|character|peon|try]`).
 
 ## Not yet done
 - Not yet seen in an Era client. Client calls are read in a pcall, and the

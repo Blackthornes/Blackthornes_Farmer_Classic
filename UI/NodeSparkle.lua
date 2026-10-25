@@ -198,6 +198,69 @@ function NodeSparkle:SetPointerLook(look)
     self:SafeRefresh()
 end
 
+-- A spoken line when the arrow finds a node (the owner asked, 2026-10-25):
+-- your own character's "Follow me!" in its race and voice, or the orc
+-- peon's "Ready to work!". The game's own files by ID, nothing shipped.
+-- `nodeVoice` is "off", "character" or "peon", account wide, off unless
+-- picked; never rename it. Once a node, and not again for VOICE_GAP seconds.
+NodeSparkle.VOICES = { "off", "character", "peon" }
+NodeSparkle.VOICE_GAP = 20
+NodeSparkle.FOLLOW_ME = {   -- [race] = { male, female }
+    Human = { 540711, 540631 }, Dwarf = { 540057, 540004 },
+    NightElf = { 541086, 541066 }, Gnome = { 540474, 540419 },
+    Orc = { 541410, 541337 }, Scourge = { 542744, 542695 },
+    Tauren = { 543048, 542972 }, Troll = { 543288, 543258 },
+}
+NodeSparkle.PEON_READY = 558137
+
+function NodeSparkle:Voice()
+    local voice = ns.db and ns.db.nodeVoice
+    if voice == "character" or voice == "peon" then return voice end
+    return "off"
+end
+
+function NodeSparkle:SetVoice(voice)
+    ns.db.nodeVoice = (voice == "character" or voice == "peon") and voice or "off"
+end
+
+--- The file the picked voice plays, or nil.
+function NodeSparkle:VoiceFile(voice)
+    voice = voice or self:Voice()
+    if voice == "peon" then return self.PEON_READY end
+    if voice ~= "character" then return nil end
+    local race, sex
+    if type(UnitRace) == "function" then
+        local ok, _, file = pcall(UnitRace, "player")
+        if ok and type(file) == "string" then race = file end
+    end
+    if type(UnitSex) == "function" then
+        local ok, value = pcall(UnitSex, "player")
+        if ok and type(value) == "number" then sex = value end
+    end
+    local pair = race and self.FOLLOW_ME[race]
+    if not pair then return self.FOLLOW_ME.Human[1] end
+    return sex == 3 and pair[2] or pair[1]
+end
+
+--- Say the line for the node `guid`, once, unless one was said lately.
+--- `force` plays it now (Try it). True when the client will play it.
+function NodeSparkle:SayFound(guid, force)
+    local id = self:VoiceFile(force and force ~= true and force or nil)
+    if not id or type(PlaySoundFile) ~= "function" then return false end
+    local now = type(GetTime) == "function" and GetTime() or 0
+    if not force then
+        if guid and guid == self.saidGuid then return false end
+        if self.saidAt and now - self.saidAt < self.VOICE_GAP then
+            self.saidGuid = guid
+            return false
+        end
+    end
+    local ok, willPlay = pcall(PlaySoundFile, id, "Dialog")
+    if not (ok and willPlay) then return false end
+    self.saidGuid, self.saidAt = guid, now
+    return true
+end
+
 --- How far from your feet the beam stands alone, for a node `yards` away.
 function NodeSparkle.BeamReach(yards)
     local share = math.max(0, math.min(1, (tonumber(yards) or 0) / NodeSparkle.POINT_YARDS))
@@ -1095,9 +1158,10 @@ function NodeSparkle:ShowSparkle(plate, guid, color, name)
             spark.holder:Hide()
             if spark.twinkle then pcall(spark.twinkle.Stop, spark.twinkle) end
         end
-        self:ShowPointer(name, self.shownColor)
+        if self:ShowPointer(name, self.shownColor) then self:SayFound(guid) end
     else
         self:HidePointer()
+        self:SayFound(guid)
     end
     frame:Show()
 end
@@ -1586,7 +1650,7 @@ function NodeSparkle:Skinned(guid)
     if guid and self.shownGuid == guid then self:SafeRefresh() end
 end
 
-ns.RegisterCommand("sparkle", L["turn sparkles on or off for the node, school, chest or quest object you face (beacon, sparkles, pointer, colors, corpses, icon, check)"], function(rest)
+ns.RegisterCommand("sparkle", L["turn sparkles on or off for the node, school, chest or quest object you face (beacon, sparkles, pointer, voice, colors, corpses, icon, check)"], function(rest)
     local argument = ns.Util.Trim(rest or ""):lower()
     local word, value = argument:match("^(%a+)%s*(%a*)$")
     if word == "colors" or word == "colours" then
@@ -1606,6 +1670,25 @@ ns.RegisterCommand("sparkle", L["turn sparkles on or off for the node, school, c
         else on = not NodeSparkle:CorpsesOn() end
         NodeSparkle:SetCorpses(on)
         ns.Print(on and L["corpses you can skin sparkle."] or L["corpses don't sparkle."])
+        if ns.SettingsUI then ns.SettingsUI:Refresh() end
+        return
+    end
+    if word == "voice" then
+        local voice = (value == "off" or value == "character" or value == "peon") and value or nil
+        if value == "try" then
+            if not NodeSparkle:SayFound(nil, true) then ns.Print(L["pick a voice first."]) end
+            return
+        end
+        if not voice then
+            local voices, now = NodeSparkle.VOICES, NodeSparkle:Voice()
+            for index, name in ipairs(voices) do
+                if name == now then voice = voices[index % #voices + 1] end
+            end
+        end
+        NodeSparkle:SetVoice(voice)
+        ns.Print(voice == "character" and L["your character says \"Follow me!\" when the arrow finds a node."]
+            or voice == "peon" and L["a peon speaks up when the arrow finds a node."]
+            or L["no voice when the arrow finds a node."])
         if ns.SettingsUI then ns.SettingsUI:Refresh() end
         return
     end

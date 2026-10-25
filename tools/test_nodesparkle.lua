@@ -194,6 +194,32 @@ NodeSparkle:SetStyle("beacon")
 NodeSparkle:AimPointer()
 beamShown, sparksShown = StylesShown()
 suite.check("and back to the beam", beamShown and not sparksShown)
+-- A voice when the arrow finds a node.
+local played = {}
+local kept = { _G.PlaySoundFile, _G.UnitRace, _G.UnitSex, _G.GetTime }
+_G.PlaySoundFile = function(id) played[#played + 1] = id; return true end
+_G.UnitRace = function() return "Orc", "Orc" end
+_G.UnitSex = function() return 3 end
+local clock = 100
+_G.GetTime = function() return clock end
+suite.check("no voice unless picked", NodeSparkle:Voice() == "off" and not NodeSparkle:SayFound("g1"))
+NodeSparkle:SetVoice("character")
+suite.check("your character says follow me, in its own voice",
+    NodeSparkle:SayFound("g1") and played[#played] == NodeSparkle.FOLLOW_ME.Orc[2])
+suite.check("once a node", not NodeSparkle:SayFound("g1"))
+clock = clock + 5
+suite.check("and not again too soon", not NodeSparkle:SayFound("g2"))
+clock = clock + NodeSparkle.VOICE_GAP
+suite.check("a new node later speaks again", NodeSparkle:SayFound("g3"))
+NodeSparkle:SetVoice("peon")
+suite.check("Try it plays the peon now", NodeSparkle:SayFound(nil, true) and played[#played] == NodeSparkle.PEON_READY)
+_G.UnitRace = function() return "Pandaren", "Pandaren" end
+NodeSparkle:SetVoice("character")
+suite.check("a race with no line falls back to a human's", NodeSparkle:VoiceFile() == NodeSparkle.FOLLOW_ME.Human[1])
+NodeSparkle:SetVoice("loud")
+suite.check("anything else is off", ns.db.nodeVoice == "off")
+_G.PlaySoundFile, _G.UnitRace, _G.UnitSex, _G.GetTime = kept[1], kept[2], kept[3], kept[4]
+NodeSparkle.saidGuid, NodeSparkle.saidAt = nil, nil
 NodeSparkle:SetPointerLook("nonsense")
 suite.check("anything else reads as both", ns.db.nodePointer == "both" and NodeSparkle:PointerLook() == "both")
 ns.db.nodePointer = nil
