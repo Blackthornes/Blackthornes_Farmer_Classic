@@ -146,7 +146,9 @@ NodeSparkle.SCREEN_Y = 0.11
 -- a dotted trail going on past it, pulsing, in the node's colour. Era says
 -- nowhere where an object stands, so it points at the spot you gathered
 -- that node at before (`gathering.spots`), the nearest within POINT_YARDS
--- on the map you stand on; with none, only the name shows. POINTER_Y is
+-- on the map you stand on, else the nearest spot Classic grows it at
+-- (`ns.NODE_SPOTS`, Data/NodeSpots.lua; the owner, 2026-10-25); with
+-- neither, only the name shows. POINTER_Y is
 -- how far down from the middle of the screen the feet are, as a share of
 -- its height; POINTER_REACH how far from them the arrow sits and TRAIL
 -- where each dot sits, in pixels; NEAR_ENOUGH the yards at which you are
@@ -154,6 +156,9 @@ NodeSparkle.SCREEN_Y = 0.11
 NodeSparkle.ARROW = "Interface\\AddOns\\Blackthornes_Farmer\\Media\\Frame\\GlowArrow"
 NodeSparkle.DOT = "Interface\\AddOns\\Blackthornes_Farmer\\Media\\Frame\\TravelDot"
 NodeSparkle.POINT_YARDS = 40
+-- A spot Classic grows the node at counts only this near and in front of
+-- you, where the game picks the node you face from, so it is that node.
+NodeSparkle.SHIPPED_YARDS = 20
 NodeSparkle.NEAR_ENOUGH = 2.5
 NodeSparkle.POINTER_Y = 0.08
 NodeSparkle.POINTER_REACH = 64
@@ -1121,9 +1126,37 @@ function NodeSparkle:BuildPointer()
     return self.pointer
 end
 
+--- The spots Classic grows the node called `name` at on map `mapID`, as
+--- { x, y } from 0 to 1, read from Data/NodeSpots.lua once a map and name.
+--- A client in another language names the node in its own words.
+function NodeSparkle:ShippedSpots(mapID, name)
+    local zone = type(ns.NODE_SPOTS) == "table" and ns.NODE_SPOTS[mapID]
+    if type(zone) ~= "table" then return nil end
+    local packed = zone[name]
+    if not packed and type(ns.NODE_NAMES) == "table" and type(GetLocale) == "function" then
+        local ok, locale = pcall(GetLocale)
+        local names = ok and ns.NODE_NAMES[locale]
+        local english = type(names) == "table" and names[name]
+        packed = english and zone[english]
+    end
+    if type(packed) ~= "string" then return nil end
+    self.shippedCache = self.shippedCache or {}
+    local found = self.shippedCache[packed]
+    if found then return found end
+    found = {}
+    for at = 1, #packed - 5, 6 do
+        local x, y = tonumber(packed:sub(at, at + 2)), tonumber(packed:sub(at + 3, at + 5))
+        if x and y then found[#found + 1] = { x / 1000, y / 1000 } end
+    end
+    self.shippedCache[packed] = found
+    return found
+end
+
 --- Where the node called `name` lies from you, as yards north and west,
---- from the nearest spot you gathered it at within POINT_YARDS. Nil when
---- none is known or the client will not say where you stand.
+--- from the nearest spot you gathered it at within POINT_YARDS, else the
+--- nearest spot Classic grows it at within SHIPPED_YARDS in front of you
+--- (the half you face). Nil when none is known or the client
+--- will not say where you stand.
 function NodeSparkle:PointerTarget(name)
     if type(name) ~= "string" or not ns.Gathering or not ns.Harvest then return nil end
     local mapID, x, y = ns.Harvest:PlayerMapPosition()
@@ -1131,15 +1164,26 @@ function NodeSparkle:PointerTarget(name)
     local width, height = ns.Gathering.MapSize(mapID)
     if not (width and height) then return nil end
     local bestNorth, bestWest, best
+    local reach, facing = self.POINT_YARDS, nil
+    local function Consider(sx, sy)
+        local north = (y - sy) * height
+        local west = (x - sx) * width
+        local yards = math.sqrt(north * north + west * west)
+        if facing and yards >= self.NEAR_ENOUGH and math.cos(math.atan2(west, north) - facing) <= 0 then return end
+        if yards <= reach and (not best or yards < best) then
+            bestNorth, bestWest, best = north, west, yards
+        end
+    end
     for _, spot in ipairs(ns.Gathering:SpotsOn(mapID)) do
         if spot.node == name or (type(spot.also) == "table" and spot.also[name]) then
-            local north = (y - tonumber(spot.y)) * height
-            local west = (x - tonumber(spot.x)) * width
-            local yards = math.sqrt(north * north + west * west)
-            if yards <= self.POINT_YARDS and (not best or yards < best) then
-                bestNorth, bestWest, best = north, west, yards
-            end
+            Consider(tonumber(spot.x), tonumber(spot.y))
         end
+    end
+    if best then return bestNorth, bestWest, best end
+    reach = self.SHIPPED_YARDS
+    facing = ns.Arrow and ns.Arrow.Facing and ns.Arrow.Facing() or nil
+    for _, spot in ipairs(self:ShippedSpots(mapID, name) or {}) do
+        Consider(spot[1], spot[2])
     end
     return bestNorth, bestWest, best
 end
