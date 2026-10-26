@@ -402,6 +402,7 @@ function LootFeed:SetMoving(on)
     self.moveBorder:SetShown(self.moving)
     if not self.moving then self:SavePlace() end
     self:Layout()
+    if ns.SettingsUI then ns.SettingsUI:Refresh() end
 end
 
 --- What the rows show: the feed's, or the one row Move holds on to.

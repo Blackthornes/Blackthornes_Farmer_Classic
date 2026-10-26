@@ -1449,6 +1449,9 @@ function SettingsUI:Refresh()
     controls.lootFeed:SetChecked(db.lootFeed == true)
     controls.lootFeedHold:SetValue(ns.LootFeed:Hold(), true)
     controls.lootFeedWorth:SetChecked(db.lootFeedWorth ~= false)
+    -- Move reads Done while the feed is being moved, so it's clear a
+    -- second click locks it in place.
+    controls.lootFeedMove.label:SetText(ns.LootFeed.moving and L["Done"] or L["Move"])
     controls.bagsFull:SetChecked(db.bagsFullNotice ~= false)
     controls.openButton:SetChecked(db.openButton ~= false)
     controls.autoOpen:SetChecked(db.autoOpen == true)

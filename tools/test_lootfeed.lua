@@ -213,4 +213,20 @@ do
         and ns.db.lootFeedScale == nil)
 end
 
+-- 6. The Settings button reads Done while the feed is moved.
+do
+    local ns = Load({ ui = true })
+    ns.SettingsUI:Show()
+    local button = ns.SettingsUI.controls.lootFeedMove
+    suite.check("the button starts as Move", button.label:GetText() == "Move", button.label:GetText())
+    button:GetScript("OnClick")(button)
+    suite.check("a click starts moving", ns.LootFeed.moving == true)
+    suite.check("and the button reads Done", button.label:GetText() == "Done", button.label:GetText())
+    button:GetScript("OnClick")(button)
+    suite.check("Done locks it in place", ns.LootFeed.moving == false)
+    suite.check("and the button reads Move again", button.label:GetText() == "Move", button.label:GetText())
+    ns.HandleSlash("lootfeed move")
+    suite.check("the typed command changes it too", button.label:GetText() == "Done")
+end
+
 suite.done()
