@@ -6,7 +6,7 @@ the top; a release is refused if its version has no section here.
 
 ## 0.3.0
 
-- **Fixes:** various bug fixes.
+- **Bug fixes:** We fixed a few bugs to keep things running smooth.
 
 ## 0.2.1
 

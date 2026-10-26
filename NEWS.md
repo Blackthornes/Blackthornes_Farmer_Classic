@@ -26,7 +26,7 @@ tool prints a note for a shipped line that reads like an advert.
 ## 0.3.0
 
 Fixes and changes:
-- Various bug fixes.
+- We fixed a few bugs to keep things running smooth.
 
 ## 0.2.1
 
