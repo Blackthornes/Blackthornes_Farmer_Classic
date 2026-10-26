@@ -8,7 +8,7 @@
 --
 -- It is guild sharing's conversation (Logic/Share.lua), one way:
 --   * A player with it ticked whispers a short hello ("Q<farmer id>:<hash>")
---     to each name in RECIPIENTS, soon after login and every half hour.
+--     to each name in RECIPIENTS, soon after login and every five minutes.
 --     Nothing in chat or Settings says whether anyone was there: the game's
 --     "No player named ..." line is hidden (Comm.FilterNotFound), and the
 --     names are never shown.
@@ -22,8 +22,9 @@
 --     with a ledger per sender in `sharedIn`, as guild drops are. They never
 --     join the receiver's own kills, loot or drop records, and nothing in
 --     the windows shows them. They are checked for being play
---     (GuildShare.Plausible), one sender is synced at a time, each at most
---     every half hour, and at most MAX_SENDERS are kept.
+--     (GuildShare.Plausible), one sender is synced at a time, the next taken
+--     as soon as one is done, each at most every SYNC_GAP, and at most
+--     MAX_SENDERS are kept.
 --   * When a sender's records finish coming in, one chat line says so, with
 --     a sound and a note on screen (Alert).
 --   * Only North American players send (InRegion), and only English
@@ -42,11 +43,16 @@ local Contribute = ns.NewModule("Contribute")
 local Comm = ns.Comm
 local Share = ns.Share
 
--- The characters drops are sent to: full names, first and last. Kept only
--- here, never shown to players. Empty sends nothing, and the tick box in
--- Settings is left out. This is the Classic Era copy: the shipped data's
--- characters play on Forever, so nothing is sent from here.
-Contribute.RECIPIENTS = {}
+-- The characters drops are sent to, as Name-Realm. Kept only here, never
+-- shown to players. This is the Classic Era copy: the owner's Era
+-- characters (2026-10-26), never Forever's, so Era drops only ever reach
+-- Era's shipped data. A whisper on Era only reaches the same realm, so a
+-- name is used only by players on its realm (Recipients); anyone else has
+-- nobody to send to, and the tick box in Settings is left out for them.
+Contribute.RECIPIENTS = {
+    "Blackthornes-Ashkandi",
+    "Blacklock-Ashkandi",
+}
 
 -- Only players on this region send (the owner, 2026-10-17: North America),
 -- since a whisper never crosses regions. GetCurrentRegion's 1 is the
@@ -54,9 +60,9 @@ Contribute.RECIPIENTS = {}
 Contribute.REGIONS = { [1] = true }
 Contribute.REGION_NAME = "US"
 
-Contribute.HELLO_SECONDS = 1800   -- a hello every half hour
+Contribute.HELLO_SECONDS = 300    -- a hello every five minutes (the owner, 2026-10-26)
 Contribute.FIRST_HELLO = 30       -- and this long after login
-Contribute.SYNC_GAP = 1800        -- one sender synced at most this often
+Contribute.SYNC_GAP = 300         -- one sender synced at most this often
 Contribute.SYNC_TIMEOUT = 180     -- a sync left this long is given up
 Contribute.CONFIRM_AFTER = 30     -- quiet this long after records: compare again
 Contribute.MAX_SENDERS = 200
@@ -71,11 +77,41 @@ local function ValidId(id)
     return type(id) == "string" and #id >= 6 and #id <= 16 and id:match("^%x+$") ~= nil
 end
 
---- The recipients as { key, name }, the character playing left out.
+--- "Ana-Some Realm" -> "somerealm": a name's realm as two realms are
+--- compared, or nil when it names none.
+local function RealmKey(name)
+    local realm = type(name) == "string" and name:match("%-(.+)$") or nil
+    if not realm then return nil end
+    realm = realm:gsub("[%s%-']", ""):lower()
+    return realm ~= "" and realm or nil
+end
+Contribute.RealmKey = RealmKey
+
+--- The realm of the character playing, as RealmKey gives it, or nil.
+local function MyRealm()
+    local ok, realm = pcall(function()
+        local name = type(GetNormalizedRealmName) == "function" and GetNormalizedRealmName() or nil
+        if (not name or name == "") and type(GetRealmName) == "function" then name = GetRealmName() end
+        return name .. ""
+    end)
+    if not ok then return nil end
+    return RealmKey("x-" .. realm)
+end
+Contribute.MyRealm = MyRealm
+
+--- The recipients as { key, name }: only those on the realm of the character
+--- playing (a name with no realm counts on any), since a whisper reaches no
+--- other; with the realm not read, none that name one.
 function Contribute:Recipients()
     local list, seen = {}, {}
+    local here
     for _, name in ipairs(self.RECIPIENTS) do
-        local key = type(name) == "string" and name:find(" ", 1, true) and Comm.NameKey(name)
+        local key = type(name) == "string" and Comm.NameKey(name)
+        local realm = key and RealmKey(name)
+        if realm then
+            here = here or MyRealm() or false
+            if realm ~= here then key = nil end
+        end
         if key and not seen[key] then
             seen[key] = true
             list[#list + 1] = { key = key, name = name }
@@ -94,11 +130,11 @@ function Contribute:On()
     return ns.db ~= nil and ns.db.shareDrops == true
 end
 
---- True when the character playing is one of the recipients, by its whole
---- name (a first name alone is never enough).
+--- True when the character playing is one of the recipients, by its name
+--- on its own realm.
 function Contribute:Receiving()
     local mine = Comm.PlayerName and Comm.PlayerName()
-    if type(mine) ~= "string" or not mine:find(" ", 1, true) then return false end
+    if type(mine) ~= "string" or mine == "" then return false end
     local key = Comm.NameKey(mine)
     for _, recipient in ipairs(self:Recipients()) do
         if recipient.key == key then return true end

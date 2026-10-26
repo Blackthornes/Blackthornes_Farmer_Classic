@@ -38,10 +38,12 @@ comes first, and nothing done here may ever touch the Forever addon. So:
   `tools/test_era.lua` checks it and that the addon loads, logs in and
   searches without them. `Data/Data_Harvested.lua` comes back once it is
   made from Era play (`tools/harvest_import.py` adds it to the TOC).
-- Sending drops to Blackthornes is off here: `Contribute.RECIPIENTS` is
-  empty (those characters play on Forever, and Era drops must never reach
-  Forever's shipped data), Forever's region 110 is gone, and the About page
-  shows no tick box while nobody is named.
+- Sending drops to Blackthornes goes to the owner's own Era characters
+  (2026-10-26), never Forever's, so Era drops never reach Forever's shipped
+  data. `Contribute.RECIPIENTS` names them as Name-Realm; an Era whisper
+  only reaches its own realm, so only players on that realm send and see
+  the About page's tick box (`Contribute:Recipients`, `RealmKey`,
+  `MyRealm`). Forever's region 110 is gone. See `docs/CLASSIC_DIFFERENCES.md`.
 - Never put Forever's CurseForge ID (1710618) in the TOC:
   `tools/check_release.py` refuses a tag that does. The owner makes the Era
   project himself: Farmer Classic is **1763311** (2026-10-24), on the TOC's

@@ -11,6 +11,9 @@ local env = dofile(lfs_cwd .. "/tools/testenv.lua")
 local suite = env.NewSuite("share")
 
 local ns = env.Load()
+-- The test player is "Blackthornes", one of the characters drops are sent
+-- to; that sharing is tested in test_contribute.lua, so nobody is named here.
+ns.Contribute.RECIPIENTS = {}
 local Share, Comm = ns.Share, ns.Comm
 
 suite.check("the module and the wire are loaded", Share ~= nil and Comm ~= nil and ns.Serialize ~= nil)

@@ -21,8 +21,29 @@ ns.GuildShare:OnEnable()
 Contribute:OnEnable()
 
 suite.check("off by default", ns.db.shareDrops == false and not Contribute:On())
-suite.check("the Classic Era copy sends to nobody",
-    type(Contribute.RECIPIENTS) == "table" and #Contribute:Recipients() == 0 and not Contribute:Sending())
+-- The Era copy names the owner's Era characters, used only on their realm.
+do
+    local realmName = nil
+    local oldNormal, oldRealm = _G.GetNormalizedRealmName, _G.GetRealmName
+    _G.GetNormalizedRealmName, _G.GetRealmName = function() return realmName end, nil
+    suite.check("the Classic Era copy names two characters", #Contribute.RECIPIENTS == 2)
+    suite.check("with the realm not read, nobody is sent to", #Contribute:Recipients() == 0)
+    realmName = "Ashkandi"
+    suite.check("on their realm both are sent to", #Contribute:Recipients() == 2)
+    realmName = "Mankrik"
+    suite.check("on another realm nobody is", #Contribute:Recipients() == 0 and not Contribute:Sending())
+    suite.check("realms compare without spaces or case",
+        Contribute.RealmKey("Ana-Some Realm") == Contribute.RealmKey("Bob-somerealm")
+        and Contribute.RealmKey("Ana") == nil)
+    realmName = "Ashkandi"
+    suite.check("no Forever character is named", (function()
+        for _, name in ipairs(Contribute.RECIPIENTS) do
+            if name:find(" ", 1, true) or not name:find("-Ashkandi$") then return false end
+        end
+        return true
+    end)())
+    _G.GetNormalizedRealmName, _G.GetRealmName = oldNormal, oldRealm
+end
 
 -- Only North America sends.
 _G.GetCurrentRegion, _G.GetCurrentRegionName = nil, nil
@@ -338,12 +359,19 @@ Contribute.RECIPIENTS = shipped
 -- Both of the shipped characters take drops, and nobody else does.
 do
     local before = Comm.PlayerName
+    local oldNormal = _G.GetNormalizedRealmName
+    _G.GetNormalizedRealmName = function() return "Ashkandi" end
     for _, name in ipairs(shipped) do
         Comm.PlayerName = function() return name end
         suite.check("a shipped character takes drops: " .. name, Contribute:Receiving())
     end
     Comm.PlayerName = function() return "Tia Smith" end
     suite.check("anyone else does not", not Contribute:Receiving())
+    Comm.PlayerName = function() return "Blacklock" end
+    suite.check("the first name alone is how Era says it", Contribute:Receiving())
+    _G.GetNormalizedRealmName = function() return "Mankrik" end
+    suite.check("the same name on another realm does not", not Contribute:Receiving())
+    _G.GetNormalizedRealmName = oldNormal
     Comm.PlayerName = before
 end
 suite.done()
