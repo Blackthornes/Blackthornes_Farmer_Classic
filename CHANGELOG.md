@@ -6,8 +6,7 @@ the top; a release is refused if its version has no section here.
 
 ## 0.3.0
 
-- **Price Order:** when Tradeskills isn't loaded, pick whether TSM or Auctionator prices come first.
-- **Fixes:** sharing between your accounts works on Era.
+- **Fixes:** various bug fixes.
 
 ## 0.2.1
 

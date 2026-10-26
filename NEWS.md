@@ -25,10 +25,8 @@ tool prints a note for a shipped line that reads like an advert.
 
 ## 0.3.0
 
-- Price Order picks whether TSM or Auctionator prices come first.
-
 Fixes and changes:
-- Sharing between your accounts works on Era.
+- Various bug fixes.
 
 ## 0.2.1
 
