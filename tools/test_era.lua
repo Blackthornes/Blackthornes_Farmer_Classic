@@ -37,7 +37,12 @@ local ns = env.Load({ ui = true, era = true })
 suite.check("Classic's mob names are there", type(ns.NPC_NAMES) == "table")
 suite.check("no Forever mob names", ns.FOREVER_NPC_NAMES == nil)
 suite.check("no Legacy perks", ns.Legacy == nil)
-suite.check("nothing is sent to Blackthornes", not ns.Contribute:HasRecipients())
+suite.check("drops go only to the owner's Era characters", (function()
+    for _, name in ipairs(ns.Contribute.RECIPIENTS) do
+        if name:find(" ", 1, true) or not name:find("-Ashkandi$") then return false end
+    end
+    return #ns.Contribute.RECIPIENTS > 0
+end)())
 
 local boot = ns.modules.Bootstrap
 local ok, err = pcall(function()

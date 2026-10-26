@@ -16,6 +16,9 @@ Copied over since, one at a time:
 - `3e278ad` Show the gathered item on map markers, greyed until it grows
   back (2026-10-24, blended with Retail's spot counts and joining; see
   "Gathered spots on the maps" in `docs/CLASSIC_DIFFERENCES.md`).
+- `82cb9cd` Share data with Blackthornes faster (2026-10-26, copied by
+  hand: hellos and syncs every five minutes; Classic's own recipients
+  kept, see "Sending drops to Blackthornes goes to Era characters").
 
 Every catch-up reads `docs/CLASSIC_DIFFERENCES.md` first, and the PR that
 brings Forever commits over updates the line above to the newest one it took.

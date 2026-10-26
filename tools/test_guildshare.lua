@@ -15,6 +15,9 @@ local env = dofile(lfs_cwd .. "/tools/testenv.lua")
 local suite = env.NewSuite("guildshare")
 
 local ns = env.Load({ ui = true })
+-- The test player is "Blackthornes", one of the characters drops are sent
+-- to; that sharing is tested in test_contribute.lua, so nobody is named here.
+ns.Contribute.RECIPIENTS = {}
 local Share, GuildShare, Comm = ns.Share, ns.GuildShare, ns.Comm
 
 suite.check("the module is loaded", GuildShare ~= nil)

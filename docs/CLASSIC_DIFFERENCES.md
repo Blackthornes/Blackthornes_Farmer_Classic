@@ -51,13 +51,21 @@ Classic's own data stays loaded: the seed files, `Data/Data_ClassicDrops.lua`,
 Forever-only zones and flight masters are never met on Era, and a flight is
 used only once the character knows it, so they need no change.
 
-### Sending drops to Blackthornes is off
-- `Contribute.RECIPIENTS` in `Logic/Contribute.lua` is empty: those
-  characters play on Forever, and Era drops must never reach Forever's
-  shipped data. `Contribute:HasRecipients()` says so, and `Sending()` asks it.
+### Sending drops to Blackthornes goes to Era characters
+- `Contribute.RECIPIENTS` in `Logic/Contribute.lua` names the owner's own
+  Era characters as Name-Realm (2026-10-26), never Forever's, so Era drops
+  never reach Forever's shipped data. Keep this list on a catch-up.
+- Era characters have no last name and a whisper only reaches its own
+  realm, so `Contribute:Recipients()` keeps only names on the realm of the
+  character playing (`RealmKey`, `MyRealm`; none when the realm can't be
+  read), and `Receiving()` needs no space in the name. Players on other
+  realms have nobody to send to and see no tick box.
 - `Contribute.REGIONS` is only `[1]`; Forever's test client region 110 is gone.
-- `UI/Settings.lua`'s About page shows no tick box while nobody is named.
-- Tested in `tools/test_contribute.lua`.
+- At release, `tools/harvest_import.py --shared` folds what came in into
+  Era's own drop data.
+- `tools/test_share.lua` and `tools/test_guildshare.lua` name nobody, since
+  the test player is one of the receiving characters.
+- Tested in `tools/test_contribute.lua` and `tools/test_era.lua`.
 
 ### Hiding an item hides its random rolls
 - `DB:IsHiddenItem` in `Data/Database.lua` also checks the item's own name
