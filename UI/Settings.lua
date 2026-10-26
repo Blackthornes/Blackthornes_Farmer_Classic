@@ -995,6 +995,13 @@ function SettingsUI:BuildLootPage()
         ns.FishingBar:SetEnabled(checked)
     end, false)
     controls.fishingBar:SetPoint("TOPLEFT", CONTROL_X, -2)
+    -- One key fishing (UI/OneKeyFishing.lua), off unless ticked.
+    local oneKeyRow = pages:Row("loot", 2, L["One Key Fishing:"],
+        L["Press your Fish key to put on a lure, cast, and reel in. Set the key in the game's Key Bindings."])
+    controls.oneKeyFishing = Widgets.CreateCheckbox(oneKeyRow, L["On"], function(checked)
+        ns.OneKeyFishing:SetEnabled(checked)
+    end, false)
+    controls.oneKeyFishing:SetPoint("TOPLEFT", CONTROL_X, -2)
 end
 
 --- Map and goals: what is drawn on the maps, and the goals and their arrow.
@@ -1511,6 +1518,7 @@ function SettingsUI:Refresh()
     controls.bagsFull:SetChecked(db.bagsFullNotice ~= false)
     controls.openButton:SetChecked(db.openButton ~= false)
     controls.fishingBar:SetChecked(db.fishingBar == true)
+    controls.oneKeyFishing:SetChecked(db.oneKeyFishing == true)
     controls.autoOpen:SetChecked(db.autoOpen == true)
     controls.arrow:SetChecked(db.arrowShown == true)
     controls.tomtom:SetChecked(db.useTomTom ~= false)

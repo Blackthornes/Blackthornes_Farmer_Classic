@@ -488,6 +488,27 @@ never rename them: `fishingBar`, `fishingBarX`, `fishingBarY`,
 `fishingBarScale`. Tested in `tools/test_fishingbar.lua`. Not yet seen in
 game.
 
+## One key fishing (Classic only)
+
+A player asked, the owner said build it with the words he approved
+(2026-10-26). `UI/OneKeyFishing.lua`: one key, "Fish" under Blackthornes
+Farmer in the game's Key Bindings (`Bindings.xml`, which the client loads
+by itself; the binding clicks the hidden secure button
+`BlackthornesFarmerFishKey`). With a fishing pole in hand and no lure on,
+it puts on the best lure in the bags (the fishing bar's `LureMacro`);
+otherwise it casts Fishing. While Fishing channels, the key is pointed at
+the game's INTERACTTARGET with `SetOverrideBinding`, so the same key reels
+in the bobber; the override goes when the channel ends or a fight starts.
+For the cast, the interact reach is raised (`NodeSparkle:RaiseReach(true)`)
+and `SoftTargetInteract` turned to 3 when lower, its old value kept in
+`oneKeyFishingInteract` and put back after (or at the next login).
+Attributes and bindings change only out of combat. "One Key Fishing:"
+under FISHING on the Loot page (`oneKeyFishing`, off unless ticked); turned
+on with no key set, chat says where to set one. The binding's name has its
+own locale key, `Fish (key binding)` (the verb), apart from the Grind
+tab's "Fish". Never rename `oneKeyFishing` or `oneKeyFishingInteract`.
+Tested in `tools/test_onekeyfishing.lua`. Not yet seen in game.
+
 ## Legacy perks (read only)
 
 The owner said build it (2026-10-22): Forever's Legacy trees give
