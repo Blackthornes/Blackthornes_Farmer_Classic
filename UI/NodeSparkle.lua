@@ -426,9 +426,10 @@ function NodeSparkle.IsFishingCast(spellID)
 end
 
 --- Let the interact target reach as far as a cast lands. Only out of a
---- fight, only when it reaches less now, and what it was is kept.
-function NodeSparkle:RaiseReach()
-    if not ns.db or not self:IsEnabled() or InCombat() then return false end
+--- fight, only when it reaches less now, and what it was is kept. `force`
+--- raises it with the sparkles off too (one key fishing reels in by it).
+function NodeSparkle:RaiseReach(force)
+    if not ns.db or not (force or self:IsEnabled()) or InCombat() then return false end
     local now = self.GetCVar("SoftTargetInteractRange")
     if now == nil or (tonumber(now) or 0) >= self.FISHING_RANGE then return false end
     if ns.db.nodeSparkleFishingRange == nil then ns.db.nodeSparkleFishingRange = now end

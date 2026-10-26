@@ -1,0 +1,6 @@
+<!-- Blackthornes Farmer: key bindings, under Options, Key Bindings, AddOns.
+     Names are set in UI/OneKeyFishing.lua. The client loads this file by
+     itself; it is not listed in the TOC. -->
+<Bindings>
+    <Binding name="CLICK BlackthornesFarmerFishKey:LeftButton" header="BLACKTHORNESFARMER" category="ADDONS"/>
+</Bindings>

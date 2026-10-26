@@ -124,6 +124,7 @@ UI\LootFeed.lua
 UI\BagsFull.lua
 UI\OpenButton.lua
 UI\FishingBar.lua
+UI\OneKeyFishing.lua
 UI\Veil.lua
 UI\XPBar.lua
 UI\Settings.lua

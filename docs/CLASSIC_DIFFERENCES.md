@@ -139,6 +139,15 @@ used only once the character knows it, so they need no change.
   such file, so a catch-up leaves it alone. Tested in
   `tools/test_fishingbar.lua`.
 
+### One key fishing
+- Classic only (a player asked, the owner said build it, 2026-10-26):
+  `UI/OneKeyFishing.lua` and `Bindings.xml`, the "Fish" key under
+  Blackthornes Farmer. It puts on a lure, casts, and reels in while the
+  line is out (an override binding to INTERACTTARGET, out of combat only).
+  `NodeSparkle:RaiseReach(force)` takes a new argument for it. Off unless
+  ticked (`oneKeyFishing`). Forever has neither file. Tested in
+  `tools/test_onekeyfishing.lua`.
+
 ### Beams and sparkles stand on screen
 - Era makes no nameplate for objects (the owner's sparkle check,
   2026-10-25: "nameplates showing: 0" facing a herb), so the beam had
