@@ -4,6 +4,10 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 0.3.0
+
+- Various bug fixes.
+
 ## 0.2.1
 
 - **Fixes:** ore veins, herbs and chests are found on every language client, and ooze-covered veins, obsidian and more crates are known too.
