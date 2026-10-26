@@ -5,6 +5,9 @@
 local _, ns = ...
 
 ns.WHATS_NEW = {
+    { version = "0.3.0", lines = {
+        "Price Order picks whether TSM or Auctionator prices come first.",
+    } },
     { version = "0.2.0", lines = {
         "A fishing bar with Cast and Add Lure shows while you hold a fishing pole.",
         "A Node Pointer shows the way to herbs, ore and chests near you, with an arrow, a beam of light or sparkles.",

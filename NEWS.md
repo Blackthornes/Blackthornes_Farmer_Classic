@@ -23,6 +23,13 @@ tell a friend: no hype, no questions to the reader, no exclamation marks
 outside the thanks line, no dashes as punctuation, no "now you can". The
 tool prints a note for a shipped line that reads like an advert.
 
+## 0.3.0
+
+- Price Order picks whether TSM or Auctionator prices come first.
+
+Fixes and changes:
+- Sharing between your accounts works on Era.
+
 ## 0.2.1
 
 Fixes and changes:

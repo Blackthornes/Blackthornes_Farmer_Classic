@@ -4,6 +4,11 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 0.3.0
+
+- **Price Order:** when Tradeskills isn't loaded, pick whether TSM or Auctionator prices come first.
+- **Fixes:** sharing between your accounts works on Era.
+
 ## 0.2.1
 
 - **Fixes:** ore veins, herbs and chests are found on every language client, and ooze-covered veins, obsidian and more crates are known too.
