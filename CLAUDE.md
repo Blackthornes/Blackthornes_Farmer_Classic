@@ -502,7 +502,10 @@ Farmer (a fix to it belongs in all three): `Plaque.Create(parent, { name,
 template, width })` and `:SetLines`, `:SetIcon`, `:SetGlowing`, `:Flash`.
 Here it is the fishing bar's Cast ("Fishing 87 / 150" under it) and Add
 Lure ("Bright Baubles, 3 left"; it glows while no lure is on and one is in
-the bags). Each catch flashes Cast gold (`FishingBar:Caught`, from
+the bags). A plaque given a fixed width wraps both lines and grows taller to fit them
+(`fitHeight`; the fishing bar sets both to the taller and grows by as
+much, `FishingBar:FitButtons`), so other languages never end in "...".
+Each catch flashes Cast gold (`FishingBar:Caught`, from
 `Fishing:OnLoot`), a small cheer. Tested in `tools/test_fishingbar.lua`.
 Not yet seen in game.
 
