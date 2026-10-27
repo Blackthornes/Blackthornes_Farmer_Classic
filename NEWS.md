@@ -32,6 +32,11 @@ tool prints a note for a shipped line that reads like an advert.
 Fixes and changes:
 - Various bug fixes.
 
+## 0.4.1
+
+Fixes and changes:
+- Various bug fixes.
+
 ## 0.3.1
 
 Fixes and changes:
