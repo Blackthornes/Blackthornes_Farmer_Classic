@@ -66,6 +66,19 @@ local function Gradient(texture, bottom, top)
 end
 Plaque.Gradient = Gradient
 
+--- How tall a wrapped label's words stand at `room` wide: the game's own
+--- answer, else lines counted from the words' width.
+function Plaque.TextHeight(label, size, room)
+    local text = label:GetText() or ""
+    if text == "" then return 0 end
+    local ok, high = pcall(label.GetStringHeight, label)
+    if ok and type(high) == "number" and high > 0 then return high end
+    local Theme = ns.Theme
+    local line = (Theme.sizes and Theme.sizes[size] or 12) + 2
+    local wide = Theme.TextWidth(size, text)
+    return line * math.max(1, math.ceil(wide / math.max(1, room)))
+end
+
 local function Level()
     local Motion = ns.Motion
     return Motion and Motion.Level and Motion.Level() or "full"
@@ -178,8 +191,12 @@ function Plaque.Create(parent, opts)
     second:SetTextColor(unpack(Plaque.SECOND))
     second:SetShadowOffset(1, -1)
     second:SetShadowColor(0, 0, 0, 1)
-    if opts.width then pcall(second.SetWordWrap, second, true) end
+    if opts.width then
+        pcall(first.SetWordWrap, first, true)
+        pcall(second.SetWordWrap, second, true)
+    end
     button.first, button.second = first, second
+    local baseHeight = opts.height or Plaque.HEIGHT
 
     local function TextLeft()
         return (icon:IsShown() and (RIM + 3 + ICON + 4 + PAD)) or (RIM + PAD + 4)
@@ -199,9 +216,21 @@ function Plaque.Create(parent, opts)
         end
         second:SetShown(hasSecond)
         if fixedWidth then
+            -- A fixed width wraps both lines and grows taller to fit them,
+            -- so a longer word in another language is never cut short.
             local room = math.max(20, fixedWidth - left - right)
             first:SetWidth(room)
             second:SetWidth(room)
+            local high1 = Plaque.TextHeight(first, "normal", room)
+            local high2 = hasSecond and Plaque.TextHeight(second, "small", room) or 0
+            local words = high1 + (hasSecond and (2 + high2) or 0)
+            first:ClearAllPoints()
+            second:ClearAllPoints()
+            first:SetPoint("TOPLEFT", button, "LEFT", left, words / 2)
+            if hasSecond then second:SetPoint("TOPLEFT", first, "BOTTOMLEFT", 0, -2) end
+            local height = math.max(baseHeight, math.ceil(words) + 2 * (RIM + PAD))
+            button:SetHeight(height)
+            button.fitHeight = height
             return
         end
         local wide = Theme.TextWidth("normal", first:GetText() or "")

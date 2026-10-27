@@ -35,6 +35,8 @@ local FishingBar = ns.NewModule("FishingBar")
 FishingBar.WIDTH = 300
 FishingBar.PAD = 16
 FishingBar.BUTTON_HEIGHT = 56
+-- The bar's height with plaques of BUTTON_HEIGHT.
+FishingBar.HEIGHT = 140
 FishingBar.ROW = 40
 FishingBar.PICKER_WIDTH = 300
 FishingBar.SETTLE = 0.2
@@ -209,7 +211,7 @@ function FishingBar:Build()
     local PAD = self.PAD
 
     local frame = CreateFrame("Frame", "BlackthornesFarmerFishingBar", UIParent)
-    frame:SetSize(self.WIDTH, 140)
+    frame:SetSize(self.WIDTH, self.HEIGHT)
     frame:SetFrameStrata("MEDIUM")
     frame:SetClampedToScreen(true)
     frame:SetMovable(true)
@@ -545,11 +547,21 @@ function FishingBar:Draw()
     -- The skill sits on the Cast plaque now, so its own line stays empty.
     self.cast:SetLines(L["Cast"], self.SkillText())
     self.skill:SetText("")
+    self:FitButtons()
     self.statusShown = nil
     self:UpdateStatus()
 
     if self.picker and self.picker:IsShown() then self:DrawPicker() end
     frame:Show()
+end
+
+--- Both plaques as tall as the taller one needs, so their words wrap
+--- rather than end in dots, and the bar as much taller as they grew.
+function FishingBar:FitButtons()
+    local tall = math.max(self.BUTTON_HEIGHT, self.cast.fitHeight or 0, self.lureButton.fitHeight or 0)
+    self.cast:SetHeight(tall)
+    self.lureButton:SetHeight(tall)
+    self.frame:SetHeight(self.HEIGHT + tall - self.BUTTON_HEIGHT)
 end
 
 --- A catch came in: the Cast plaque flashes gold, a small cheer.

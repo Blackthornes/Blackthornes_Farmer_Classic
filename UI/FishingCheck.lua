@@ -12,7 +12,7 @@
 -- kept, and no event's values beyond a unit token or the game's own error
 -- text), and, every POLL seconds, the soft interact target, the mouseover,
 -- the bobber's nameplate and the game's icon on it, written down only when
--- one changes. The loot window's opening is the click at the splash, so
+-- one changes (a name only as "changed", never the name). The loot window's opening is the click at the splash, so
 -- whatever changes a little before it every time is the bite.
 --
 -- Each finished cast rewrites lastProbe (the same shape ns.KeepCheck saves),
@@ -155,7 +155,10 @@ function FishingCheck:Poll()
     for label, text in pairs(state) do
         local was = cast.state[label]
         if was ~= text then
-            if label == "softinteract guid" or label == "channel" then
+            -- Names are never written down (the owner, 2026-10-27): only
+            -- that one changed, so no player's name reaches the save.
+            if label == "softinteract guid" or label == "channel"
+                or label:find(" name$") then
                 if was ~= nil then self:Note(label .. " changed") end
             else
                 self:Note(("%s: %s"):format(label, text))

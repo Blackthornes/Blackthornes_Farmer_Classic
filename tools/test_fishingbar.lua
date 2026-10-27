@@ -75,6 +75,20 @@ suite.check("Add Lure names the best lure and how many",
         and lureLine:find(", ", 1, true) ~= nil and lureLine:find("left", 1, true) ~= nil, lureLine)
 suite.check("Cast keeps its word", Bar.cast.first:GetText() == "Cast", Bar.cast.first:GetText())
 suite.check("a catch flashes the Cast plaque without an error", pcall(Bar.Caught, Bar))
+-- Long words wrap and the plaques grow taller to fit them, never "...".
+Bar.lureButton:SetLines("Ajouter un appât au bout", "Aquadynamic Fish Attractor, 3 left")
+Bar:FitButtons()
+suite.check("long words wrap on the plaque", Bar.lureButton.fitHeight and Bar.lureButton.fitHeight > Bar.BUTTON_HEIGHT,
+    tostring(Bar.lureButton.fitHeight))
+suite.check("both plaques stand as tall as the taller",
+    Bar.cast:GetHeight() == Bar.lureButton:GetHeight() and Bar.cast:GetHeight() == Bar.lureButton.fitHeight)
+suite.check("the bar grows by as much", Bar.frame:GetHeight() == Bar.HEIGHT + Bar.cast:GetHeight() - Bar.BUTTON_HEIGHT,
+    tostring(Bar.frame:GetHeight()))
+Bar:Draw()
+suite.check("a redraw fits them again, side by side", Bar.cast:GetHeight() == Bar.lureButton:GetHeight()
+    and Bar.frame:GetHeight() == Bar.HEIGHT + Bar.cast:GetHeight() - Bar.BUTTON_HEIGHT, tostring(Bar.cast:GetHeight()))
+Bar.cast:SetLines("Cast")
+suite.check("short words keep the usual height", Bar.cast.fitHeight == Bar.BUTTON_HEIGHT, tostring(Bar.cast.fitHeight))
 Bar:TogglePicker()
 suite.check("Add Lure opens the list", Bar.picker and Bar.picker:IsShown())
 suite.check("a row puts its lure on the pole",

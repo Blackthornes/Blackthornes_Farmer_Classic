@@ -61,8 +61,9 @@ Tick(2)
 suite.check("the cast is finished after the loot window", Check.cast == nil)
 
 local text = table.concat(ns.db.lastProbe.lines, "\n")
-suite.check("the bobber's name is kept with its time",
-    text:find("+1.00 softinteract name: Fishing Bobber", 1, true) ~= nil, text)
+suite.check("a name change is noted with its time, never the name",
+    text:find("+1.00 softinteract name changed", 1, true) ~= nil
+    and not text:find("Fishing Bobber", 1, true), text)
 suite.check("events are kept", text:find("SOUNDKIT_FINISHED", 1, true) ~= nil
     and text:find("LOOT_OPENED fishing loot true", 1, true) ~= nil, text)
 suite.check("the channel's end is kept", text:find("channel ended", 1, true) ~= nil)
