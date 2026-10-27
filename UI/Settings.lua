@@ -622,6 +622,14 @@ function SettingsUI:BuildWindowsPage()
     end, false)
     controls.rankingsSkipUncommon:SetPoint("TOPLEFT", CONTROL_X, -2)
 
+    -- The owner, 2026-10-27: worth per kill at what a vendor pays.
+    local vendorRow = pages:Row("windows", 2, L["Vendor Only:"],
+        L["Worth per kill uses what a vendor pays, not the auction house."])
+    controls.rankingsVendorOnly = Widgets.CreateCheckbox(vendorRow, L["On"], function(checked)
+        ns.Rankings:SetVendorOnly(checked)
+    end, false)
+    controls.rankingsVendorOnly:SetPoint("TOPLEFT", CONTROL_X, -2)
+
     local _, statsButton = CommandRow(pages, "windows", 2, L["Stats:"], nil, L["Open"], "charts")
     controls.statsTab = statsButton
 end
@@ -1507,6 +1515,7 @@ function SettingsUI:Refresh()
     controls.worldDrops:SetChecked(db.worldDrops ~= false)
     controls.rankingsOutside:SetChecked(db.rankingsOutside == true)
     controls.rankingsSkipUncommon:SetChecked(db.rankingsSkipUncommon == true)
+    controls.rankingsVendorOnly:SetChecked(db.rankingsVendorOnly == true)
     controls.trashCan:SetChecked(db.trashCan ~= false)
     controls.openNote:SetChecked(db.openNote ~= false)
     controls.lootFeed:SetChecked(db.lootFeed == true)

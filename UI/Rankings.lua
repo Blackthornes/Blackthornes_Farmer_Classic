@@ -158,6 +158,26 @@ function RankingsUI:Build(frame)
     uncommon:HookScript("OnLeave", function() if GameTooltip then GameTooltip:Hide() end end)
     self.uncommon = uncommon
     offset = offset + 12 + uncommon:GetWidth()
+
+    -- Every drop at what a vendor pays (the owner, 2026-10-27). Off unless
+    -- ticked. Ticked from here, the board comes in fresh and the mobs that
+    -- climb show "+N" for a moment (RankingsUI:NoteClimbs). The top row is
+    -- full, so it starts a second line under the chips.
+    local vendor = Widgets.CreateCheckbox(filters, L["Vendor only"], function(checked)
+        RankingsUI:NoteClimbs()
+        ns.Rankings:SetVendorOnly(checked)
+        RankingsUI:Render(true)
+        if ns.SettingsUI then ns.SettingsUI:Refresh() end
+    end, ns.Rankings.VendorOnly())
+    vendor:SetPoint("TOPLEFT", filters, "BOTTOMLEFT", 0, -4)
+    vendor:HookScript("OnEnter", function(box)
+        if not GameTooltip then return end
+        GameTooltip:SetOwner(box, "ANCHOR_BOTTOMLEFT")
+        GameTooltip:SetText(L["Worth per kill uses what a vendor pays, not the auction house."], 1, 1, 1, 1, true)
+        GameTooltip:Show()
+    end)
+    vendor:HookScript("OnLeave", function() if GameTooltip then GameTooltip:Hide() end end)
+    self.vendor = vendor
     self.headOffset = offset
 
     -- Where the prices come from, on the right of the chips.
@@ -167,7 +187,7 @@ function RankingsUI:Build(frame)
     self.summary = summary
 
     -- Below the portrait, as wide as the Search tab's results.
-    self.panelTop = top + 18 + 8
+    self.panelTop = top + 18 + 4 + 18 + 8
     local panel = Theme.CreatePanel(view, "panel", "border")
     self.panel = panel
     self:PlacePanel(false)
@@ -678,6 +698,8 @@ local function EntryTexts(data)
     end
 
     texts.rank = tostring(entry.rank)
+    local climb = RankingsUI:ClimbOf(entry)
+    if climb then texts.mob = texts.mob .. "  " .. Util.Colored("good", "+" .. climb) end
     texts.best = entry.best and entry.best.name or ""
 
     if entry.group == "measured" then
@@ -1311,6 +1333,7 @@ function RankingsUI:HeadWidth()
 end
 
 function RankingsUI:PriceText()
+    if ns.Rankings.VendorOnly() then return L["vendor prices"] end
     local source = ns.Value:PriceSource()
     if source == "tradeskills" then
         return L["Tradeskills auction prices"]
@@ -1318,6 +1341,37 @@ function RankingsUI:PriceText()
         return L["TSM or Auctionator auction prices"]
     end
     return L["vendor prices, Tradeskills not loaded"]
+end
+
+-- How long a climb's "+N" stays after the Vendor only box is ticked.
+RankingsUI.CLIMB_SHOWS = 4
+
+--- Keep each mob's place on the board shown now, so the board drawn next
+--- can say who climbed. Cleared CLIMB_SHOWS seconds later.
+function RankingsUI:NoteClimbs()
+    local places = {}
+    for _, group in ipairs({ "measured", "estimate" }) do
+        for _, entry in ipairs(self.board and self.board[group] or {}) do
+            if entry.rank then places[group .. "\t" .. entry.mob] = entry.rank end
+        end
+    end
+    self.climbs = places
+    local stamp = {}
+    self.climbStamp = stamp
+    if C_Timer and type(C_Timer.After) == "function" then
+        pcall(C_Timer.After, self.CLIMB_SHOWS, function()
+            if RankingsUI.climbStamp ~= stamp then return end
+            RankingsUI.climbs, RankingsUI.climbStamp = nil, nil
+            if RankingsUI.list and RankingsUI.view and RankingsUI.view:IsShown() then RankingsUI.list:Refresh() end
+        end)
+    end
+end
+
+--- How many places a mob climbed since NoteClimbs, or nil.
+function RankingsUI:ClimbOf(entry)
+    local was = self.climbs and entry.rank and self.climbs[(entry.group or "") .. "\t" .. entry.mob]
+    if was and was > entry.rank then return was - entry.rank end
+    return nil
 end
 
 --- A click on a heading: the board already built, in the new order, from
@@ -1361,6 +1415,7 @@ function RankingsUI:Render(arrive)
     end
     if self.outside then self.outside:SetChecked(ns.Rankings.OutsideOnly()) end
     if self.uncommon then self.uncommon:SetChecked(ns.Rankings.SkipUncommon()) end
+    if self.vendor then self.vendor:SetChecked(ns.Rankings.VendorOnly()) end
 
     self:ShowWorld()
     local board = ns.Rankings:Build()

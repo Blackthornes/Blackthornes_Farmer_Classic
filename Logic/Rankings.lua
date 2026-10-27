@@ -198,6 +198,63 @@ function Rankings.WithoutUncommon(value, details)
     return total, kept
 end
 
+--------------------------------------------------------------------------------
+-- Vendor only
+--------------------------------------------------------------------------------
+
+-- The owner said build it (2026-10-27, from a mockup): a tick box on Rankings
+-- that counts every drop at what a vendor pays, never the auction house, so
+-- the board ranks what a kill sells for at a vendor. Coin still counts. Off
+-- unless ticked, kept in `rankingsVendorOnly` (account wide, never rename
+-- it). It moves `outsideVersion` too, so the rank-up order is laid out again.
+
+function Rankings.VendorOnly()
+    return ns.db ~= nil and ns.db.rankingsVendorOnly == true
+end
+
+function Rankings:SetVendorOnly(on)
+    if not ns.db then return end
+    on = on and true or false
+    if (ns.db.rankingsVendorOnly == true) == on then return end
+    ns.db.rankingsVendorOnly = on
+    self.outsideVersion = self.outsideVersion + 1
+    if ns.RankingsUI then ns.RankingsUI:Refresh() end
+end
+
+--- What a vendor pays for one of a priced drop, or nil when none does.
+function Rankings.VendorPriceOf(drop)
+    if drop.from == "vendor" then return drop.unit end
+    local id = drop.id
+    if not id and ns.Tracker and ns.Tracker.LookOf then id = ns.Tracker:LookOf(drop.name).id end
+    if not id and ns.Value.ItemID then id = ns.Value:ItemID(drop.name) end
+    local vendor = id and ns.Value:VendorPrice(id)
+    return (type(vendor) == "number" and vendor > 0) and vendor or nil
+end
+
+--- A worth and its details with every drop at what a vendor pays: coin and
+--- the drops a vendor buys, best first. A drop no vendor buys leaves. A
+--- fresh details table; the one given is untouched.
+function Rankings.AtVendor(value, details)
+    local kept = {}
+    for key, field in pairs(details) do kept[key] = field end
+    kept.priced = {}
+    local total = tonumber(details.coin) or 0
+    for _, drop in ipairs(details.priced or {}) do
+        local vendor = Rankings.VendorPriceOf(drop)
+        local unit = tonumber(drop.unit)
+        if vendor and unit and unit > 0 then
+            local copy = {}
+            for key, field in pairs(drop) do copy[key] = field end
+            copy.perKill = (drop.perKill or 0) / unit * vendor
+            copy.unit, copy.from = vendor, "vendor"
+            kept.priced[#kept.priced + 1] = copy
+            total = total + copy.perKill
+        end
+    end
+    table.sort(kept.priced, function(a, b) return a.perKill > b.perKill end)
+    return total, kept
+end
+
 --- The zone part of a kill's place, "The Sepulcher, Silverpine Forest":
 --- the zone the client named (GetRealZoneText), which inside a dungeon is
 --- the dungeon.
@@ -258,6 +315,7 @@ end
 function Rankings:Entry(mobName)
     local value, details = ns.Value:ForMob(mobName)
     if value and self.SkipUncommon() then value, details = self.WithoutUncommon(value, details) end
+    if value and self.VendorOnly() then value, details = self.AtVendor(value, details) end
     local summary = ns.Tracker:Summary(mobName)
     local spot = self:Spot(mobName)
 
@@ -362,6 +420,17 @@ ns.RegisterCommand("rankings", L["mobs ranked by what a kill is worth, or only t
         end
         ns.Print(Rankings.SkipUncommon() and L["Rankings leave Uncommon and better drops out of worth per kill."]
             or L["Rankings count every drop in worth per kill."])
+        if ns.SettingsUI then ns.SettingsUI:Refresh() end
+        return
+    end
+    if word == "vendor" then
+        if value == "on" or value == "off" then
+            Rankings:SetVendorOnly(value == "on")
+        else
+            Rankings:SetVendorOnly(not Rankings.VendorOnly())
+        end
+        ns.Print(Rankings.VendorOnly() and L["Rankings count every drop at what a vendor pays."]
+            or L["Rankings count drops at their best price."])
         if ns.SettingsUI then ns.SettingsUI:Refresh() end
         return
     end

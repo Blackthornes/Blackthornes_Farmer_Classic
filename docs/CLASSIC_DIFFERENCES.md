@@ -209,6 +209,10 @@ used only once the character knows it, so they need no change.
 - One-word names (the owner, 2026-10-25): Era characters have one name,
   so the account sharing hint asks for names only.
 
+- Vendor only on Rankings (the owner, 2026-10-27): worth per kill at
+  vendor prices, `rankingsVendorOnly`, `Rankings.AtVendor`. Forever has
+  none of it; a catch-up keeps it.
+
 ## Not yet done
 - Not yet seen in an Era client. Client calls are read in a pcall, and the
   code already falls back to the classic calls (skill lines, spell info, the
