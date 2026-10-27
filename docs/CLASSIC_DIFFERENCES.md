@@ -143,7 +143,10 @@ used only once the character knows it, so they need no change.
 - Classic only (a player asked, the owner said build it, 2026-10-26):
   `UI/OneKeyFishing.lua` and `Bindings.xml`, the "Fish" key under
   Blackthornes Farmer. It puts on a lure, casts, and reels in while the
-  line is out (an override binding to INTERACTTARGET, out of combat only).
+  line is out (an override binding to INTERACTTARGET, out of combat only,
+  and only while the soft interact target is the bobber, entry 35591 or a
+  bobber's name; facing anything else it shows "Face your bobber to reel
+  in.", 2026-10-27).
   `NodeSparkle:RaiseReach(force)` takes a new argument for it. Off unless
   ticked (`oneKeyFishing`). Forever has neither file. Tested in
   `tools/test_onekeyfishing.lua`.

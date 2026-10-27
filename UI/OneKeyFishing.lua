@@ -3,7 +3,9 @@
 -- words approved): one key in the game's Key Bindings, "Fish" under
 -- Blackthornes Farmer. With a fishing pole in the main hand and no lure on,
 -- it puts on the best lure in the bags; otherwise it casts Fishing. While
--- the line is out, the same key reels in.
+-- the line is out, the same key reels in, only while you face your own
+-- bobber (the owner said yes, 2026-10-27): facing anything else, it shows
+-- "Face your bobber to reel in." and opens nothing.
 --
 -- The key clicks a hidden secure button (`BlackthornesFarmerFishKey`), whose
 -- attributes are set only out of combat: a macro that puts the lure on (the
@@ -11,7 +13,14 @@
 -- in is the game's own Interact With Target on the bobber: while Fishing
 -- channels, the key is pointed at INTERACTTARGET with an override binding
 -- (`SetOverrideBinding`, out of combat only), and the override goes as the
--- channel ends or a fight starts. The bobber is the interact target only
+-- channel ends or a fight starts. INTERACTTARGET would open whatever the
+-- interact key picks, a vendor or a mailbox closer than the bobber too, so
+-- the key goes there only while the soft interact target is the bobber
+-- (`OneKeyFishing.IsBobber`: a game object with the bobber's entry ID, else
+-- a bobber's name); otherwise it clicks a plain hidden button
+-- (`BlackthornesFarmerFishNote`) that only shows the note. Looked at again
+-- on PLAYER_SOFT_INTERACT_CHANGED, or, on a client without it, every
+-- `LOOK` seconds while the line is out (`OneKeyFishing:Aim`). The bobber is the interact target only
 -- when soft interact reaches it, so for the cast the reach is raised as the
 -- sparkles do (`NodeSparkle:RaiseReach(true)`) and `SoftTargetInteract` is
 -- turned to all input (3) when lower; what it was waits in
@@ -30,6 +39,12 @@ local OneKeyFishing = ns.NewModule("OneKeyFishing")
 OneKeyFishing.BUTTON = "BlackthornesFarmerFishKey"
 OneKeyFishing.BINDING = "CLICK " .. OneKeyFishing.BUTTON .. ":LeftButton"
 OneKeyFishing.REEL = "INTERACTTARGET"
+OneKeyFishing.NOTE_BUTTON = "BlackthornesFarmerFishNote"
+OneKeyFishing.NOTE = "CLICK " .. OneKeyFishing.NOTE_BUTTON .. ":LeftButton"
+-- The Fishing Bobber game object's entry ID.
+OneKeyFishing.BOBBER_ID = 35591
+-- How often to look at what you face, on a client with no event for it.
+OneKeyFishing.LOOK = 0.1
 -- Soft interact on for keyboard, mouse and gamepad alike.
 OneKeyFishing.INTERACT_ALL = 3
 OneKeyFishing.SETTLE = 0.2
@@ -154,16 +169,79 @@ end
 -- Reeling in
 --------------------------------------------------------------------------------
 
---- Fishing started: point the key at the bobber.
+--- Whether a soft interact target is a fishing bobber: a game object with
+--- the bobber's entry ID (the sixth part of its guid), else a bobber's name.
+function OneKeyFishing.IsBobber(guid, name)
+    if type(guid) ~= "string" or not guid:find("^GameObject%-") then return false end
+    local id = guid:match("^GameObject%-[^%-]*%-[^%-]*%-[^%-]*%-[^%-]*%-(%d+)")
+    if tonumber(id) == OneKeyFishing.BOBBER_ID then return true end
+    local sparkle = ns.NodeSparkle
+    return sparkle ~= nil and sparkle.IsBobber ~= nil and sparkle:IsBobber(name) == true
+end
+
+--- What the interact key would pick now is the bobber.
+function OneKeyFishing:FacingBobber()
+    local guid = Readable(Call(rawget(_G, "UnitGUID"), "softinteract"))
+    local name = Readable(Call(rawget(_G, "UnitName"), "softinteract"))
+    local ok, yes = pcall(OneKeyFishing.IsBobber, guid, name)
+    return ok and yes == true
+end
+
+--- The plain button the key clicks while you face something else.
+function OneKeyFishing:NoteButton()
+    if self.noteButton then return self.noteButton end
+    local button = CreateFrame("Button", self.NOTE_BUTTON, UIParent)
+    button:Hide()
+    button:RegisterForClicks("AnyUp")
+    button:SetScript("OnClick", function() OneKeyFishing:ShowNote() end)
+    self.noteButton = button
+    return button
+end
+
+function OneKeyFishing:ShowNote()
+    if ns.OpenNote then ns.OpenNote:Notice(L["Face your bobber to reel in."], 136245, 2) end
+end
+
+--- While the line is out, point the key at the bobber when you face it,
+--- else at the note. Bindings change out of combat only, and only when the
+--- aim moved.
+function OneKeyFishing:Aim()
+    if not self.reeling or InCombat() then return end
+    local target = self:FacingBobber() and self.REEL or self.NOTE
+    if target == self.aimed then return end
+    local owner = self:Build()
+    for _, key in ipairs(self.Keys()) do
+        Call(rawget(_G, "SetOverrideBinding"), owner, true, key, target)
+    end
+    self.aimed = target
+end
+
+--- A client with no soft interact event: look while the line is out only.
+function OneKeyFishing:Watch(on)
+    if self.hasEvent then return end
+    if not self.watcher then
+        local watcher = CreateFrame("Frame")
+        watcher:Hide()
+        watcher:SetScript("OnUpdate", function(frame, elapsed)
+            frame.wait = (frame.wait or 0) - (tonumber(elapsed) or 0)
+            if frame.wait > 0 then return end
+            frame.wait = OneKeyFishing.LOOK
+            OneKeyFishing:Aim()
+        end)
+        self.watcher = watcher
+    end
+    if on then self.watcher:Show() else self.watcher:Hide() end
+end
+
+--- Fishing started: the key reels in once you face the bobber.
 function OneKeyFishing:StartReel()
     if not self:Enabled() or InCombat() or self.reeling then return false end
     local keys = self.Keys()
     if #keys == 0 then return false end
-    local owner = self:Build()
-    for _, key in ipairs(keys) do
-        Call(rawget(_G, "SetOverrideBinding"), owner, true, key, self.REEL)
-    end
+    self:Build()
+    self:NoteButton()
     self.reeling = true
+    self.aimed = nil
     local sparkle = ns.NodeSparkle
     if sparkle then
         if sparkle.RaiseReach then sparkle:RaiseReach(true) end
@@ -173,6 +251,8 @@ function OneKeyFishing:StartReel()
             sparkle.SetCVar("SoftTargetInteract", tostring(self.INTERACT_ALL))
         end
     end
+    self:Aim()
+    self:Watch(true)
     return true
 end
 
@@ -190,6 +270,8 @@ function OneKeyFishing:StopReel()
         Call(rawget(_G, "ClearOverrideBindings"), self.button)
     end
     self.reeling = false
+    self.aimed = nil
+    self:Watch(false)
     self:PutBack()
     local sparkle = ns.NodeSparkle
     if sparkle and not sparkle.fishing and sparkle.LowerReach then sparkle:LowerReach() end
@@ -222,6 +304,9 @@ function OneKeyFishing:OnEnable()
     ns.RegisterPlayerEvent(self, "UNIT_SPELLCAST_CHANNEL_STOP", function(_, _, unit)
         if Readable(unit) == "player" and OneKeyFishing.reeling then OneKeyFishing:StopReel() end
     end)
+    self.hasEvent = ns.RegisterEvent(self, "PLAYER_SOFT_INTERACT_CHANGED", function()
+        if OneKeyFishing.reeling then OneKeyFishing:Aim() end
+    end) and true or false
     -- Just before combat locks bindings: back to normal.
     ns.RegisterEvent(self, "PLAYER_REGEN_DISABLED", function() OneKeyFishing:StopReel() end)
     ns.RegisterEvent(self, "PLAYER_REGEN_ENABLED", function()
