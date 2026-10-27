@@ -4,6 +4,13 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 0.4.0
+
+- One key fishing lets you add a lure, cast and reel in with a single key.
+- Rankings has a new Vendor Only box that counts drops at what a vendor pays.
+- The fishing buttons have a new gold look.
+- Various bug fixes.
+
 ## 0.3.1
 
 - Various bug fixes.
