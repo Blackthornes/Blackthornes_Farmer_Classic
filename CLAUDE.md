@@ -536,6 +536,16 @@ own locale key, `Fish (key binding)` (the verb), apart from the Grind
 tab's "Fish". Never rename `oneKeyFishing` or `oneKeyFishingInteract`.
 Tested in `tools/test_onekeyfishing.lua`. Not yet seen in game.
 
+`/farm fishing check` (typed only, the owner asked how to test a "PULL!"
+bite alert, 2026-10-27; `UI/FishingCheck.lua`): the game tells addons
+nothing at a bite, so for the next `CASTS` (8) Fishing casts it writes down,
+with times, every event (chat and the combat log left out, no values but a
+unit token or the game's error text) and each change to the soft interact
+target, the mouseover, the bobber's nameplate and the game's icon on it,
+until a moment after the loot window. Each cast rewrites `lastProbe`. Read
+the probe: whatever changes a little before LOOT_OPENED every time is the
+bite. Tested in `tools/test_fishingcheck.lua`.
+
 ## Legacy perks (read only)
 
 The owner said build it (2026-10-22): Forever's Legacy trees give

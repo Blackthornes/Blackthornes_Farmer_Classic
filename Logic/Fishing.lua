@@ -795,6 +795,12 @@ end
 ns.RegisterCommand("fishing", L["what you've caught in this zone (all for everywhere)"], function(rest)
     local argument = Util.Trim(rest):lower()
 
+    -- Typed only, for a report (UI/FishingCheck.lua).
+    if argument == "check" and ns.FishingCheck then
+        ns.FishingCheck:Arm()
+        return
+    end
+
     if argument == "reset" then
         ns.Print(L.Format("this deletes all %s you have recorded, for good. Type /farm fishing reset confirm to do it.",
             Util.Plural(Fishing:CountCasts(), L["fishing cast"], L["fishing casts"])))
