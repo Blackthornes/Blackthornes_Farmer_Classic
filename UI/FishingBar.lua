@@ -70,6 +70,15 @@ local PLACES = {
     AUCTION_HOUSE_SHOW = "AUCTION_HOUSE_CLOSED",
     TRADE_SHOW = "TRADE_CLOSED",
 }
+-- The game's window for each, read only: a close the client never said
+-- (walking away from a mailbox) left the bar hidden until a /reload.
+local PLACE_FRAMES = {
+    MERCHANT_SHOW = { "MerchantFrame" },
+    BANKFRAME_OPENED = { "BankFrame" },
+    MAIL_SHOW = { "MailFrame" },
+    AUCTION_HOUSE_SHOW = { "AuctionFrame", "AuctionHouseFrame" },
+    TRADE_SHOW = { "TradeFrame" },
+}
 FishingBar.at = {}
 
 -- What the last read found.
@@ -465,8 +474,30 @@ function FishingBar:StopTicker()
     self.ticker = nil
 end
 
+--- Is the window for a place still up? Nil when the game has none to read.
+function FishingBar.PlaceShown(open)
+    local found
+    for _, name in ipairs(PLACE_FRAMES[open] or {}) do
+        local frame = rawget(_G, name)
+        if type(frame) == "table" and type(frame.IsShown) == "function" then
+            local ok, shown = pcall(frame.IsShown, frame)
+            if ok and shown then return true end
+            if ok then found = false end
+        end
+    end
+    return found
+end
+
+--- Let go of a place whose window has closed without saying so.
+function FishingBar:ForgetClosedPlaces()
+    for open in pairs(self.at) do
+        if self.PlaceShown(open) == false then self.at[open] = nil end
+    end
+end
+
 --- Should the bar be up now?
 function FishingBar:ShouldShow()
+    self:ForgetClosedPlaces()
     if not self:Enabled() or not self.pole or self.closed or self.fighting then return false end
     for _, open in pairs(self.at) do
         if open then return false end
@@ -549,6 +580,7 @@ end
 --------------------------------------------------------------------------------
 
 function FishingBar:Read()
+    if not InCombat() then self.fighting = false end
     local pole = self.HasPole()
     if not pole then self.closed = false end
     self.pole = pole
@@ -572,7 +604,8 @@ end
 
 function FishingBar:OnEnable()
     for _, event in ipairs({ "PLAYER_ENTERING_WORLD", "PLAYER_EQUIPMENT_CHANGED",
-            "BAG_UPDATE_DELAYED", "SKILL_LINES_CHANGED", "GET_ITEM_INFO_RECEIVED" }) do
+            "BAG_UPDATE_DELAYED", "SKILL_LINES_CHANGED", "GET_ITEM_INFO_RECEIVED",
+            "PLAYER_INTERACTION_MANAGER_FRAME_HIDE" }) do
         ns.RegisterEvent(self, event, function() FishingBar:Changed() end)
     end
     -- A lure going on or wearing off.
