@@ -501,6 +501,15 @@ it puts on the best lure in the bags (the fishing bar's `LureMacro`);
 otherwise it casts Fishing. While Fishing channels, the key is pointed at
 the game's INTERACTTARGET with `SetOverrideBinding`, so the same key reels
 in the bobber; the override goes when the channel ends or a fight starts.
+Only while you face your own bobber (the owner, 2026-10-27: a vendor or
+mailbox closer than the bobber was opened instead): `OneKeyFishing:Aim`
+points the key at INTERACTTARGET while the soft interact target is a game
+object with the bobber's entry ID (`BOBBER_ID`, 35591) or a bobber's name
+(`OneKeyFishing.IsBobber`), else at a plain hidden button
+(`BlackthornesFarmerFishNote`) that shows "Face your bobber to reel in."
+through `OpenNote:Notice`. Looked at again on
+`PLAYER_SOFT_INTERACT_CHANGED`, or every `LOOK` seconds while the line is
+out on a client without it; the binding is set only when the aim moves.
 For the cast, the interact reach is raised (`NodeSparkle:RaiseReach(true)`)
 and `SoftTargetInteract` turned to 3 when lower, its old value kept in
 `oneKeyFishingInteract` and put back after (or at the next login).

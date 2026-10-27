@@ -8,6 +8,9 @@
 --      action, and soft interact reaches the bobber; it all goes back as the
 --      channel ends or a fight starts.
 --   4. Turned on with no key set, chat says where to set it.
+--   5. While the line is out, the key reels in only while you face your
+--      bobber; facing a vendor or a mailbox, it shows the note and opens
+--      nothing. It follows what you face, and never changes in a fight.
 
 local env = dofile(lfs_cwd .. "/tools/testenv.lua")
 local suite = env.NewSuite("onekeyfishing")
@@ -20,6 +23,10 @@ local fighting = false
 local boundKeys = {}
 local overrides = {}
 local cvars = { SoftTargetInteract = "1", SoftTargetInteractRange = "15" }
+local BOBBER = "GameObject-0-4372-0-1234-35591-0000ABCDEF"
+local MAILBOX = "GameObject-0-4372-0-1234-32349-0000ABCDEF"
+local VENDOR = "Creature-0-4372-0-1234-1257-0000ABCDEF"
+local facing, facingName = BOBBER, "Fishing Bobber"
 local ns = env.Load({ ui = true })
 _G.GetInventoryItemID = function(_, slot) if slot == 16 then return hand end end
 _G.GetItemInfoInstant = function(id)
@@ -41,6 +48,9 @@ _G.ClearOverrideBindings = function() overrides = {} end
 _G.GetCVar = function(name) return cvars[name] end
 _G.SetCVar = function(name, value) cvars[name] = tostring(value) return true end
 _G.C_CVar = { GetCVar = _G.GetCVar, SetCVar = _G.SetCVar }
+local realGUID, realName = _G.UnitGUID, _G.UnitName
+_G.UnitGUID = function(unit) if unit == "softinteract" then return facing end return realGUID and realGUID(unit) end
+_G.UnitName = function(unit) if unit == "softinteract" then return facingName end return realName and realName(unit) end
 
 local realCreate = _G.CreateFrame
 _G.CreateFrame = function(kind, name, parent, template)
@@ -109,6 +119,41 @@ suite.check("fishing stops: the key is back", overrides.F == nil)
 suite.check("soft interact put back", cvars.SoftTargetInteract == "1" and ns.db.oneKeyFishingInteract == nil)
 suite.check("and its reach", cvars.SoftTargetInteractRange == "15", cvars.SoftTargetInteractRange)
 
+-- 5.
+local NOTE = "CLICK BlackthornesFarmerFishNote:LeftButton"
+facing, facingName = MAILBOX, "Mailbox"
+Fire("UNIT_SPELLCAST_CHANNEL_START", "player", "guid", 7620)
+suite.check("facing a mailbox: the key opens nothing", overrides.F == NOTE, tostring(overrides.F))
+local note = _G.BlackthornesFarmerFishNote
+note:GetScript("OnClick")(note, "LeftButton")
+local shown = ns.OpenNote.frame
+suite.check("and shows the note", shown and shown:IsShown()
+    and shown.label:GetText() == "Face your bobber to reel in.", shown and tostring(shown.label:GetText()))
+facing, facingName = BOBBER, "Fishing Bobber"
+Fire("PLAYER_SOFT_INTERACT_CHANGED")
+suite.check("facing the bobber: the key reels in", overrides.F == "INTERACTTARGET")
+facing, facingName = VENDOR, "Innkeeper"
+Fire("PLAYER_SOFT_INTERACT_CHANGED")
+suite.check("facing a vendor: the note again", overrides.F == NOTE)
+facing, facingName = nil, nil
+Fire("PLAYER_SOFT_INTERACT_CHANGED")
+suite.check("facing nothing: the note", overrides.F == NOTE)
+facing, facingName = "GameObject-0-4372-0-1234-99999-0000ABCDEF", "Fishing Bobber"
+Fire("PLAYER_SOFT_INTERACT_CHANGED")
+suite.check("a bobber known by its name reels in", overrides.F == "INTERACTTARGET")
+facing, facingName = MAILBOX, "Mailbox"
+fighting = true
+Fire("PLAYER_SOFT_INTERACT_CHANGED")
+suite.check("nothing changes in a fight", overrides.F == "INTERACTTARGET")
+fighting = false
+Fire("UNIT_SPELLCAST_CHANNEL_STOP", "player")
+suite.check("the line in: the key is back", overrides.F == nil)
+Fire("PLAYER_SOFT_INTERACT_CHANGED")
+suite.check("and stays back", overrides.F == nil)
+suite.check("bobber IDs read from the guid", Key.IsBobber(BOBBER) and not Key.IsBobber(MAILBOX)
+    and not Key.IsBobber(VENDOR, "Fishing Bobber") and not Key.IsBobber(nil))
+facing, facingName = BOBBER, "Fishing Bobber"
+
 Fire("UNIT_SPELLCAST_CHANNEL_START", "player", "guid", 7620)
 Fire("PLAYER_REGEN_DISABLED")
 suite.check("a fight puts the key back", overrides.F == nil and cvars.SoftTargetInteract == "1")
@@ -129,5 +174,6 @@ _G.CreateFrame = realCreate
 _G.GetInventoryItemID, _G.GetItemInfoInstant, _G.GetItemCount, _G.GetItemInfo, _G.GetSpellInfo = nil, nil, nil, nil, nil
 _G.GetWeaponEnchantInfo, _G.InCombatLockdown, _G.GetBindingKey, _G.SetOverrideBinding = nil, nil, nil, nil
 _G.ClearOverrideBindings, _G.GetCVar, _G.SetCVar, _G.C_CVar = nil, nil, nil, nil
+_G.UnitGUID, _G.UnitName = realGUID, realName
 
 suite.done()
