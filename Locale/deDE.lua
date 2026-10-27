@@ -1732,6 +1732,7 @@ L["Expand this window"] = "Dieses Fenster aufklappen"
 -- The fishing bar (2026-10-25)
 L["Cast"] = "Auswerfen"
 L["Add Lure"] = "Köder anbringen"
+L["%s, %d left"] = "%s, noch %d"
 L["LURES IN YOUR BAGS"] = "KÖDER IN DEINEN TASCHEN"
 L["Click one to put it on your pole."] = "Klick einen an, um ihn an deiner Angel anzubringen."
 L["Lure on: %d min left"] = "Köder dran: noch %d Min."

@@ -490,6 +490,22 @@ never rename them: `fishingBar`, `fishingBarX`, `fishingBarY`,
 `fishingBarScale`. Tested in `tools/test_fishingbar.lua`. Not yet seen in
 game.
 
+## The gold plaque
+
+Buttons that sit out on the screen on their own wear the gold plaque (the
+owner picked it from a mockup, 2026-10-27, "Option B"): a gold rim with a
+red gem at each end round dark glass, the item's icon in a small gold
+frame, a first line saying what the click does and a second under it, and
+a soft glow that breathes while it waits (Effects Full; still on Subtle,
+none on Off). `UI/Plaque.lua` is the same file in Pets, Equipment and
+Farmer (a fix to it belongs in all three): `Plaque.Create(parent, { name,
+template, width })` and `:SetLines`, `:SetIcon`, `:SetGlowing`, `:Flash`.
+Here it is the fishing bar's Cast ("Fishing 87 / 150" under it) and Add
+Lure ("Bright Baubles, 3 left"; it glows while no lure is on and one is in
+the bags). Each catch flashes Cast gold (`FishingBar:Caught`, from
+`Fishing:OnLoot`), a small cheer. Tested in `tools/test_fishingbar.lua`.
+Not yet seen in game.
+
 ## One key fishing (Classic only)
 
 A player asked, the owner said build it with the words he approved

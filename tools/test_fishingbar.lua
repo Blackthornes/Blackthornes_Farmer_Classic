@@ -68,6 +68,13 @@ suite.check("Cast casts Fishing", Bar.cast:GetAttribute("type") == "spell"
 local order = {}
 for _, lure in ipairs(Bar.lures) do order[#order + 1] = lure.id end
 suite.check("lures best first", table.concat(order, ",") == "6533,6532,6530", table.concat(order, ","))
+-- The gold plaques: the best lure and how many on Add Lure.
+local lureLine = Bar.lureButton.second:GetText()
+suite.check("Add Lure names the best lure and how many",
+    Bar.lureButton.first:GetText() == "Add Lure" and type(lureLine) == "string"
+        and lureLine:find(", ", 1, true) ~= nil and lureLine:find("left", 1, true) ~= nil, lureLine)
+suite.check("Cast keeps its word", Bar.cast.first:GetText() == "Cast", Bar.cast.first:GetText())
+suite.check("a catch flashes the Cast plaque without an error", pcall(Bar.Caught, Bar))
 Bar:TogglePicker()
 suite.check("Add Lure opens the list", Bar.picker and Bar.picker:IsShown())
 suite.check("a row puts its lure on the pole",
