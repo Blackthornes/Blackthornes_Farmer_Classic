@@ -101,6 +101,18 @@ suite.check("hidden at a vendor", not Bar.frame:IsShown())
 Fire("MERCHANT_CLOSED")
 suite.check("back after the vendor", Bar.frame:IsShown())
 
+-- A mailbox whose close the client never said: the bar comes back once
+-- the game's window is gone, without a /reload.
+_G.MailFrame = { shown = true, IsShown = function(self) return self.shown end }
+Fire("MAIL_SHOW")
+suite.check("hidden at a mailbox", not Bar.frame:IsShown())
+Fire("BAG_UPDATE_DELAYED")
+suite.check("still hidden while the mailbox shows", not Bar.frame:IsShown())
+_G.MailFrame.shown = false
+Fire("PLAYER_INTERACTION_MANAGER_FRAME_HIDE")
+suite.check("back once the mailbox is gone, no close heard", Bar.frame:IsShown())
+_G.MailFrame = nil
+
 Bar:Close()
 Fire("BAG_UPDATE_DELAYED")
 suite.check("the close gem puts it away", not Bar.frame:IsShown())
