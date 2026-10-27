@@ -1079,6 +1079,22 @@ and the rank-up order follow (it moves `outsideVersion`). `Value:ForMob` is
 untouched, so tooltips and the loot table still count every drop. Tested in
 `tools/test_rankingsuncommon.lua`. Not yet seen in game.
 
+## Rankings at vendor prices (Classic only)
+
+The owner said build it (2026-10-27, from a mockup): "Vendor only" on the
+Rankings tab, on a second line under the chips (the top row is full),
+counts every drop at what a vendor pays, never the auction house; coin
+stays and a drop no vendor buys leaves (`Rankings.AtVendor`,
+`VendorPriceOf`, after Skip Uncommon in `Rankings:Entry`). "Vendor Only:"
+on the UI page of Settings and `/farm rankings vendor [on|off]`; off unless
+ticked, `rankingsVendorOnly`, account wide, never rename it. It moves
+`outsideVersion`, so the rank-up order follows; `Value:ForMob` is
+untouched. The price note says "vendor prices" while ticked. Ticked from
+the tab, the board comes in fresh and mobs that climbed show a green "+N"
+after their name for `RankingsUI.CLIMB_SHOWS` seconds
+(`RankingsUI:NoteClimbs`, `ClimbOf`). Tested in
+`tools/test_rankingsvendor.lua`. Not yet seen in game.
+
 ## Your top 15 after an auction scan
 
 The owner asked (2026-10-14): an alert after an auction scan when there is
