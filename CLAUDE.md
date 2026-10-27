@@ -544,8 +544,8 @@ bite alert, 2026-10-27; `UI/FishingCheck.lua`): the game tells addons
 nothing at a bite, so for the next `CASTS` (8) Fishing casts it writes down,
 with times, every event (chat and the combat log left out, no values but a
 unit token or the game's error text) and each change to the soft interact
-target, the mouseover, the bobber's nameplate and the game's icon on it,
-until a moment after the loot window. Each cast rewrites `lastProbe`. Read
+target, the mouseover, the bobber's nameplate and the game's icon on it (a name only as
+"changed", never the name itself; the owner, 2026-10-27), until a moment after the loot window. Each cast rewrites `lastProbe`. Read
 the probe: whatever changes a little before LOOT_OPENED every time is the
 bite. Tested in `tools/test_fishingcheck.lua`.
 
