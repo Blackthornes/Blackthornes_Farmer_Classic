@@ -557,6 +557,10 @@ end
 
 function Fishing:OnLoot()
     if not self:IsCatch() then return end
+    -- A catch flashes the fishing bar's Cast plaque, once a window.
+    if not self.lootOpen and ns.FishingBar and ns.FishingBar.Caught then
+        pcall(ns.FishingBar.Caught, ns.FishingBar)
+    end
 
     -- The same pause as the harvester: recording off means nothing recorded.
     if ns.db.harvestPaused then return end

@@ -1726,6 +1726,7 @@ L["Expand this window"] = "展开这个窗口"
 -- The fishing bar (2026-10-25)
 L["Cast"] = "抛竿"
 L["Add Lure"] = "上鱼饵"
+L["%s, %d left"] = "%s，剩%d个"
 L["LURES IN YOUR BAGS"] = "背包里的鱼饵"
 L["Click one to put it on your pole."] = "点击一个鱼饵，把它装到鱼竿上。"
 L["Lure on: %d min left"] = "鱼饵：还剩%d分钟"

@@ -203,40 +203,6 @@ end
 -- Building
 --------------------------------------------------------------------------------
 
---- A secure button wearing a house button's look: the look takes no mouse,
---- and the secure button lights it as the mouse comes and goes.
-local function SecureLook(parent, name, text, opts)
-    local secure = CreateFrame("Button", name, parent, "SecureActionButtonTemplate")
-    secure:RegisterForClicks("AnyUp")
-    secure:SetAttribute("useOnKeyDown", false)
-    local look = ns.Widgets.CreateButton(secure, text, nil, opts)
-    look:SetAllPoints(secure)
-    look:EnableMouse(false)
-    secure:HookScript("OnEnter", function()
-        local fn = look:GetScript("OnEnter")
-        if fn then fn(look) end
-    end)
-    secure:HookScript("OnLeave", function()
-        local fn = look:GetScript("OnLeave")
-        if fn then fn(look) end
-    end)
-    secure.look = look
-    return secure
-end
-
---- Put an icon at the left of a button's label, the two centred together.
-local function WithIcon(button, size)
-    local look = rawget(button, "look") or button
-    local icon = look:CreateTexture(nil, "ARTWORK")
-    icon:SetSize(size, size)
-    icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
-    look.label:ClearAllPoints()
-    look.label:SetPoint("LEFT", look, "CENTER", -(look.label:GetStringWidth() / 2) + (size + 6) / 2, 0)
-    icon:SetPoint("RIGHT", look.label, "LEFT", -6, 0)
-    button.icon = icon
-    return icon
-end
-
 function FishingBar:Build()
     if self.frame then return self.frame end
     local Theme, Widgets = ns.Theme, ns.Widgets
@@ -272,23 +238,32 @@ function FishingBar:Build()
     frame:SetScript("OnShow", function() FishingBar:StartTicker() end)
     frame:SetScript("OnHide", function()
         FishingBar:StopTicker()
+        FishingBar.lureGlowing = nil
         if FishingBar.picker then FishingBar.picker:Hide() end
     end)
 
     local half = (self.WIDTH - PAD * 3) / 2
 
-    local cast = SecureLook(frame, "BlackthornesFarmerFishingCast", L["Cast"],
-        { width = half, height = self.BUTTON_HEIGHT })
-    cast:SetSize(half, self.BUTTON_HEIGHT)
+    -- The gold plaque (UI/Plaque.lua, the owner's pick, 2026-10-27): an
+    -- icon, what the click does, and a second line under it.
+    local cast = ns.Plaque.Create(frame, {
+        name = "BlackthornesFarmerFishingCast",
+        template = "SecureActionButtonTemplate",
+        width = half,
+        height = self.BUTTON_HEIGHT,
+    })
+    cast:RegisterForClicks("AnyUp")
+    cast:SetAttribute("useOnKeyDown", false)
     cast:SetPoint("TOPLEFT", PAD, -26)
-    WithIcon(cast, 30):SetTexture(self.FISHING_ICON)
+    cast:SetIcon(self.FISHING_ICON)
+    cast:SetLines(L["Cast"])
     self.cast = cast
 
-    local lure = Widgets.CreateButton(frame, L["Add Lure"], function() FishingBar:TogglePicker() end,
-        { width = half, height = self.BUTTON_HEIGHT })
-    lure:SetSize(half, self.BUTTON_HEIGHT)
+    local lure = ns.Plaque.Create(frame, { width = half, height = self.BUTTON_HEIGHT })
+    lure:SetScript("OnClick", function() FishingBar:TogglePicker() end)
     lure:SetPoint("TOPLEFT", cast, "TOPRIGHT", PAD, 0)
-    WithIcon(lure, 30):SetTexture(134400)
+    lure:SetIcon(134400)
+    lure:SetLines(L["Add Lure"])
     lure:HookScript("OnEnter", function(button)
         if #FishingBar.lures > 0 or not GameTooltip then return end
         GameTooltip:SetOwner(button, "ANCHOR_TOP")
@@ -455,6 +430,12 @@ end
 
 function FishingBar:UpdateStatus()
     if not self.status then return end
+    -- Add Lure glows while a lure in the bags waits to go on the pole.
+    local glow = self.lures[1] ~= nil and not self.LureLeft()
+    if glow ~= self.lureGlowing then
+        self.lureGlowing = glow
+        self.lureButton:SetGlowing(glow)
+    end
     local text, color = self.StatusText()
     if text ~= self.statusShown then
         self.statusShown = text
@@ -556,16 +537,25 @@ function FishingBar:Draw()
     self.cast:SetAttribute("spell", self.SpellName())
 
     local first = self.lures[1]
-    self.lureButton.icon:SetTexture(first and first.icon or 134400)
-    self.lureButton:SetAlpha(first and 1 or 0.5)
+    local lure = self.lureButton
+    lure:SetIcon(first and first.icon or 134400)
+    lure:SetLines(L["Add Lure"], first and L.Format("%s, %d left", first.name, first.count) or nil)
+    lure:SetAlpha(first and 1 or 0.5)
 
-    local skill = self.SkillText()
-    self.skill:SetText(skill or "")
+    -- The skill sits on the Cast plaque now, so its own line stays empty.
+    self.cast:SetLines(L["Cast"], self.SkillText())
+    self.skill:SetText("")
     self.statusShown = nil
     self:UpdateStatus()
 
     if self.picker and self.picker:IsShown() then self:DrawPicker() end
     frame:Show()
+end
+
+--- A catch came in: the Cast plaque flashes gold, a small cheer.
+function FishingBar:Caught()
+    local cast = rawget(self, "cast")
+    if cast and self.frame and self.frame:IsShown() then cast:Flash() end
 end
 
 --- The close gem: put away until the pole comes off and goes on again.

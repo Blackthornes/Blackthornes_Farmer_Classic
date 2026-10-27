@@ -1733,6 +1733,7 @@ L["Expand this window"] = "Развернуть это окно"
 -- The fishing bar (2026-10-25)
 L["Cast"] = "Забросить"
 L["Add Lure"] = "Насадить приманку"
+L["%s, %d left"] = "%s, осталось %d"
 L["LURES IN YOUR BAGS"] = "ПРИМАНКИ В СУМКАХ"
 L["Click one to put it on your pole."] = "Нажми на приманку, чтобы насадить её на удочку."
 L["Lure on: %d min left"] = "Приманка: осталось %d мин."
