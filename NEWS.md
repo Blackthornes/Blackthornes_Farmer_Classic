@@ -23,6 +23,10 @@ tell a friend: no hype, no questions to the reader, no exclamation marks
 outside the thanks line, no dashes as punctuation, no "now you can". The
 tool prints a note for a shipped line that reads like an advert.
 
+## 0.5.0
+
+- One minimap button now opens all your Blackthornes add-ons.
+
 ## 0.4.0
 
 - One key fishing lets you add a lure, cast and reel in with a single key.
