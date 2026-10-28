@@ -19,6 +19,9 @@ Copied over since, one at a time:
 - `82cb9cd` Share data with Blackthornes faster (2026-10-26, copied by
   hand: hellos and syncs every five minutes; Classic's own recipients
   kept, see "Sending drops to Blackthornes goes to Era characters").
+- `2c4977a` One minimap button for every Blackthornes addon (2026-10-28,
+  Forever PR #381, cherry-picked as it is; `UI/SharedMinimap.lua` and its test
+  are the same in all five Classic repos).
 
 Every catch-up reads `docs/CLASSIC_DIFFERENCES.md` first, and the PR that
 brings Forever commits over updates the line above to the newest one it took.
