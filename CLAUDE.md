@@ -973,8 +973,11 @@ again on a new place, zone change, landing or flight learned, else every
 `REPLAN` seconds; held still on a flight (`UnitOnTaxi`) and in a fight.
 `Data/Travel.lua` (flight masters, flights, docks, rides) is written by
 `tools/make_travel.py <tables> <build>` from the Forever client's game
-tables (TaxiNodes, TaxiPath, GameObjects); never by hand, and each dock
-spot is a real row (`DOCKS`). The arrow's state carries `trip`
+tables (TaxiNodes, TaxiPath, TaxiPathNode, GameObjects); never by hand,
+and each dock spot is a real row (`DOCKS`). A flight's time is its real
+length along its TaxiPathNode points (`lengths`, one a pair in `paths`'
+order, 2026-10-28) over `FLIGHT_SPEED`; only a 0 falls back to the
+straight line times `FLIGHT_DETOUR`. The arrow's state carries `trip`
 (`Arrow:TripState`: "Step 2 of 3", the step's words); TomTom gets the next
 stop (`TomTomLink.Point`). `UI/TravelCard.lua` is "Your Way There"
 (`travelCardX`, `travelCardY`, `travelCardScale`), `UI/TravelMap.lua` the
