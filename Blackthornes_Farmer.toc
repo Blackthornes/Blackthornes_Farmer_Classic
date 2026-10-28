@@ -90,6 +90,7 @@ UI\FoldWindow.lua
 UI\About.lua
 UI\WhatsNew.lua
 UI\SettingsPages.lua
+UI\SharedMinimap.lua
 UI\Main.lua
 UI\Export.lua
 UI\Import.lua

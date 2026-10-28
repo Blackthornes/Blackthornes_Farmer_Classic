@@ -1684,8 +1684,8 @@ function UI:BuildMinimapButton()
     button:SetScript("OnClick", function(_, mouseButton)
         if mouseButton == "RightButton" and ns.SettingsUI then
             ns.SettingsUI:Toggle()
-        elseif mouseButton == "MiddleButton" and ns.GoalsUI then
-            ns.GoalsUI:ToggleOrHint()
+        elseif mouseButton == "MiddleButton" then
+            UI:BringBackPanels()
         else
             UI:Toggle()
         end
@@ -1699,7 +1699,7 @@ function UI:BuildMinimapButton()
         GameTooltip:AddLine(ns.VersionLabel(), 0.5, 0.5, 0.5)
         GameTooltip:AddLine(L["Click to open"], 0.7, 0.7, 0.7)
         GameTooltip:AddLine(L["Right-click for settings"], 0.7, 0.7, 0.7)
-        GameTooltip:AddLine(L["Middle-click to show or hide your goals"], 0.7, 0.7, 0.7)
+        GameTooltip:AddLine(L["Middle-click to bring back your panels"], 0.7, 0.7, 0.7)
         GameTooltip:AddLine(L["Drag to move it round the minimap"], 0.5, 0.5, 0.5)
         GameTooltip:Show()
     end)
@@ -1713,6 +1713,40 @@ function UI:BuildMinimapButton()
     self.lastMinimapWidth = Minimap:GetWidth()
 
     self:ApplyMinimapVisibility()
+    self:JoinSharedMinimap()
+end
+
+--- Middle-click: bring back the Kills & Loot panel when it was closed, and
+--- the goals when they were closed. With neither closed, the goals toggle as
+--- before, which also says how to make one when there are none.
+function UI:BringBackPanels()
+    local brought = false
+    if ns.db and ns.db.trackerHidden and ns.SettingsUI and ns.SettingsUI.SetTrackerShown then
+        ns.SettingsUI:SetTrackerShown(true)
+        brought = true
+    end
+    local GoalsUI = ns.GoalsUI
+    if GoalsUI and #GoalsUI:List() > 0 and not (GoalsUI.frame and GoalsUI.frame:IsShown()) then
+        GoalsUI:Show()
+        brought = true
+    end
+    if not brought and GoalsUI then GoalsUI:ToggleOrHint() end
+end
+
+--- Sign up for the shared Blackthornes button (UI/SharedMinimap.lua).
+function UI:JoinSharedMinimap()
+    if not ns.SharedMinimap or not self.minimapButton then return end
+    ns.SharedMinimap:Join({
+        key = "farmer", order = 1, name = "Blackthornes Farmer",
+        icon = [[Interface\Icons\Trade_Mining]],
+        blurb = L["Where to farm and what it's worth"],
+        button = self.minimapButton,
+        angle = function() return (ns.db and ns.db.minimapAngle) or DEFAULT_ANGLE end,
+        open = function() UI:Toggle() end,
+        settings = function() if ns.SettingsUI then ns.SettingsUI:Toggle() end end,
+        middle = function() UI:BringBackPanels() end,
+        db = function() return ns.db end,
+    })
 end
 
 --- Re-seat the button at its stored angle, using the current radius.
@@ -1724,11 +1758,16 @@ function UI:RepositionMinimapButton()
     self.lastMinimapWidth = Minimap and Minimap:GetWidth()
 end
 
---- The button always shows (the owner, 2026-10-15). A saved minimapHidden
---- from before is kept in the save but no longer read.
+--- The button always shows (the owner, 2026-10-15), unless it is folded
+--- into the shared Blackthornes button. A saved minimapHidden from before
+--- is kept in the save but no longer read.
 function UI:ApplyMinimapVisibility()
     local button = self.minimapButton
     if not button then return end
 
-    button:Show()
+    if ns.SharedMinimap and ns.SharedMinimap.Hides("farmer") then
+        button:Hide()
+    else
+        button:Show()
+    end
 end
