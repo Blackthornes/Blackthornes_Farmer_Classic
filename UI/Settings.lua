@@ -593,6 +593,14 @@ function SettingsUI:BuildWindowsPage()
     local styleRow = pages:Row("windows", 2, L["Window Style:"], nil)
     controls.windowStyle = SettingsUI:WindowStyleControl(styleRow)
 
+    -- A player asked (2026-10-28): one minimap button for every Blackthornes
+    -- addon loaded. Ticked unless unticked; see UI/SharedMinimap.lua.
+    local combineRow = pages:Row("windows", 2, L["Combine Addon Buttons:"], nil)
+    controls.combineButtons = Widgets.CreateCheckbox(combineRow, L["On"], function(checked)
+        if ns.SharedMinimap then ns.SharedMinimap.SetCombined(checked) end
+    end, true)
+    controls.combineButtons:SetPoint("TOPLEFT", CONTROL_X, -2)
+
     pages:Section("windows", 2, L["FARMER UI"])
 
     local _, searchButton = CommandRow(pages, "windows", 2, L["Farmer:"], nil, L["Open"], function()
@@ -1570,6 +1578,7 @@ function SettingsUI:Refresh()
     end
     controls.textSize:Sync()
     controls.windowStyle:Sync()
+    controls.combineButtons:SetChecked(not ns.SharedMinimap or ns.SharedMinimap.Combined())
 
     local usable = ns.Harvest:Capabilities().usable
 

@@ -199,29 +199,45 @@ suite.check("one draw on opening", draws == 1, draws)
 UI.Render = baseDraw
 UI:Hide()
 
--- 13. A middle-click on the minimap button shows or hides the goals; with
--- none it says how to make one. Left and right clicks are unchanged.
+-- 13. A middle-click on the minimap button brings back the Kills & Loot
+-- panel and the goals when they were closed (the owner, 2026-10-28); with
+-- both up it toggles the goals, and with none it says how to make one.
+-- Left and right clicks are unchanged.
 UI:BuildMinimapButton()
 local mini = UI.minimapButton
 local miniClick = mini and mini:GetScript("OnClick")
-local toggles, hints, opened, settings = 0, 0, 0, 0
+local toggles, hints, opened, settings, shows, trackerShown = 0, 0, 0, 0, 0, 0
 local baseGoalsToggle, basePrint, baseOpen = GoalsUI.Toggle, ns.Print, UI.Toggle
+local baseGoalsShow, baseTracker = GoalsUI.Show, ns.SettingsUI.SetTrackerShown
 local baseSettings = ns.SettingsUI.Toggle
 local baseList = ns.Goals.List
+local baseHidden = ns.db.trackerHidden
 GoalsUI.Toggle = function() toggles = toggles + 1 end
+GoalsUI.Show = function() shows = shows + 1 end
+ns.SettingsUI.SetTrackerShown = function(_, on) if on then trackerShown = trackerShown + 1 end ns.db.trackerHidden = not on end
 ns.Print = function(text) if tostring(text):find("no goals yet", 1, true) then hints = hints + 1 end end
 UI.Toggle = function() opened = opened + 1 end
 ns.SettingsUI.Toggle = function() settings = settings + 1 end
+ns.db.trackerHidden = false
 ns.Goals.List = function() return {} end
 if miniClick then miniClick(mini, "MiddleButton") end
 suite.check("no goals: a hint, nothing toggled", hints == 1 and toggles == 0, hints .. "/" .. toggles)
 ns.Goals.List = function() return { { item = "Copper Ore" } } end
+if GoalsUI.frame then GoalsUI.frame:Hide() end
+ns.db.trackerHidden = true
 if miniClick then miniClick(mini, "MiddleButton") end
-suite.check("with a goal it toggles the panel", toggles == 1, toggles)
+suite.check("closed panels come back", trackerShown == 1 and shows == 1 and toggles == 0,
+    trackerShown .. "/" .. shows .. "/" .. toggles)
+if GoalsUI.frame then GoalsUI.frame:Show() end
+if miniClick then miniClick(mini, "MiddleButton") end
+suite.check("with both up it toggles the goals", toggles == 1 and trackerShown == 1, toggles)
+if GoalsUI.frame then GoalsUI.frame:Hide() end
 if miniClick then miniClick(mini, "LeftButton") miniClick(mini, "RightButton") end
 suite.check("left opens the window, right the settings", opened == 1 and settings == 1,
     opened .. "/" .. settings)
 GoalsUI.Toggle, ns.Print, UI.Toggle = baseGoalsToggle, basePrint, baseOpen
+GoalsUI.Show, ns.SettingsUI.SetTrackerShown = baseGoalsShow, baseTracker
 ns.SettingsUI.Toggle, ns.Goals.List = baseSettings, baseList
+ns.db.trackerHidden = baseHidden
 
 suite.done()
