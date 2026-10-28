@@ -5,6 +5,9 @@
 local _, ns = ...
 
 ns.WHATS_NEW = {
+    { version = "0.5.0", lines = {
+        "One minimap button now opens all your Blackthornes add-ons.",
+    } },
     { version = "0.4.0", lines = {
         "One key fishing lets you add a lure, cast and reel in with a single key.",
         "Rankings has a new Vendor Only box that counts drops at what a vendor pays.",
@@ -14,12 +17,5 @@ ns.WHATS_NEW = {
         "A fishing bar with Cast and Add Lure shows while you hold a fishing pole.",
         "A Node Pointer shows the way to herbs, ore and chests near you, with an arrow, a beam of light or sparkles.",
         "Node Sound plays a ping or a spoken line when it finds one.",
-    } },
-    { version = "0.1.0", lines = {
-        "Farmer is here for Classic Era. Search any material, mob or zone to see where to farm it.",
-        "Rankings sort mobs by what one kill is worth, and the Grind tab lists the best camps for your level.",
-        "Set a goal and an arrow points you to the nearest place to get it.",
-        "Your herb, ore and fishing spots show on the map.",
-        "Kills and Loot shows your kills, your loot and gold an hour.",
     } },
 }
