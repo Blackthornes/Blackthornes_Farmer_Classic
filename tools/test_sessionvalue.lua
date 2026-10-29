@@ -40,7 +40,17 @@ suite.check("nothing gathered has no total", Value:Session() == nil)
 suite.check("and the empty panel shows none", TUI.titleLine == nil)
 suite.check("so the title bar's second line reads 0c",
     TUI.titleRow.right:GetText() == Value.Coins(0), TUI.titleRow.right:GetText())
-suite.check("under the title", TUI.titleRow.left:GetText() == "Gathered value")
+suite.check("no line of words under the title", (TUI.titleRow.left:GetText() or "") == "")
+do
+    local said
+    local tip = _G.GameTooltip
+    local old = tip.AddLine
+    tip.AddLine = function(self, text, ...) said = said or text if old then return old(self, text, ...) end end
+    local enter = TUI.titleRow:GetScript("OnEnter")
+    if enter then enter(TUI.titleRow) end
+    tip.AddLine = old
+    suite.check("what the number is shows on hover", said == "Gathered value", said)
+end
 
 local serial = 0
 local function Loot(mob, items, guid)

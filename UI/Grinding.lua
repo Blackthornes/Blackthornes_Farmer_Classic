@@ -300,7 +300,7 @@ function GrindingUI:Build(frame)
     footer:SetHeight(26)
     footer:SetWordWrap(true)
     footer:SetJustifyV("MIDDLE")
-    footer:SetText(L["Click a camp to point the arrow there. A camp's worth comes from your own kills and picks there."])
+    footer:SetText("")
     self.footer = footer
 
     view:Hide()
@@ -889,34 +889,41 @@ function GrindingUI.ZoneText(zone)
         Util.Colored("muted", ("(%s)"):format(table.concat(parts, ", "))))
 end
 
---- The footer: your skill for the view, then what a click does.
+--- The footer: your skill for the view, nothing else (2026-10-29: what a
+--- click does is the last line of each row's hover, GrindingUI.RowHint).
 function GrindingUI.FooterText(layout)
-    local hint
-    if layout == "fish" then
-        hint = L["Click a spot to point the arrow where you fished it. Mouse over a pool before you cast so your catch counts there."]
-    elseif layout == "nodes" then
-        hint = L["Click a node to point the arrow at the spots you marked for it. Levels are the zone's levels."]
-    elseif layout == "leather" then
-        hint = L["Click a camp to point the arrow there. A camp's worth comes from your own kills and picks there."]
-    else
-        return L["Click a camp to point the arrow there. A camp's worth comes from your own kills and picks there."]
-    end
     -- Fishing is read the way the kills panel reads it, not from the
     -- gathering skills, so "Angeln" on a German client counts too.
     if layout == "fish" then
         local skill = ns.Fishing and ns.Fishing:Skill()
-        if skill then return L.Format("Your %s: %d.", L["Fishing"], skill) .. " " .. hint end
-        return hint
+        if skill then return L.Format("Your %s: %d.", L["Fishing"], skill) end
+        return ""
     end
+    if layout ~= "nodes" and layout ~= "leather" then return "" end
 
     local skillName = layout == "leather" and "Skinning"
         or (ns.GrindGather.VIEWS[ns.Grinding:Gives()] or {}).skill
     local have, read = ns.GrindGather.PlayerSkill(skillName)
     local label = ({ Skinning = L["Skinning"], Mining = L["Mining"], Herbalism = L["Herbalism"] })[skillName]
         or skillName
-    if have then return L.Format("Your %s: %d.", label, have) .. " " .. hint end
-    if read then return L.Format("You don't know %s.", label) .. " " .. hint end
-    return hint
+    if have then return L.Format("Your %s: %d.", label, have) end
+    if read then return L.Format("You don't know %s.", label) end
+    return ""
+end
+
+--- The view's hint, the last line of a row's hover, dim.
+function GrindingUI.RowHint(layout)
+    if layout == "fish" then
+        return L["Mouse over a pool before you cast so your catch counts there."]
+    elseif layout == "nodes" then
+        return L["Levels are the zone's levels."]
+    end
+    return L["A camp's worth comes from your own kills and picks there."]
+end
+
+local function AddHint()
+    local hint = GrindingUI.RowHint(GrindingUI.Layout())
+    if hint and hint ~= "" then GameTooltip:AddLine(hint, Theme.Unpack("dim")) end
 end
 
 --- A camp's band: "The Barrens, The Dry Hills  14-18, 4 mobs, next zone over".
@@ -1104,6 +1111,7 @@ function GrindingUI:ShowRowTooltip(row, data)
         if spot.coords then
             GameTooltip:AddLine(L["Click to point the arrow here."], Theme.Unpack("good"))
         end
+        AddHint()
         GameTooltip:Show()
         return
     end
@@ -1136,6 +1144,7 @@ function GrindingUI:ShowRowTooltip(row, data)
         if node.spots > 0 then
             GameTooltip:AddLine(L["Click to point the arrow at your spots."], Theme.Unpack("good"))
         end
+        AddHint()
         GameTooltip:Show()
         return
     end
@@ -1165,6 +1174,7 @@ function GrindingUI:ShowRowTooltip(row, data)
     end
     GrindingUI.AddHourCard(GrindingUI.CampResult(camp))
     GameTooltip:AddLine(L["Click to point the arrow here."], Theme.Unpack("good"))
+    AddHint()
     GameTooltip:Show()
 end
 
@@ -1234,12 +1244,17 @@ end
 function GrindingUI:OnRowClick(data, button)
     -- Right-click on a mob offers to hide it (HideMenu).
     if button == "RightButton" then
+        -- What a click does comes first (2026-10-29).
+        local function Do() GrindingUI:OnRowClick(data, "LeftButton") end
         if data.type == "mob" then
-            ns.HideMenu:Open({ { kind = "source", name = data.mob.name } })
+            ns.HideMenu:Open({ { kind = "action", text = L["Open Loot Table"], run = Do },
+                { kind = "source", name = data.mob.name } })
         elseif data.type == "node" then
-            ns.HideMenu:Open({ { kind = "source", name = data.node.name } })
+            ns.HideMenu:Open({ { kind = "action", text = L["Show the Way"], run = Do },
+                { kind = "source", name = data.node.name } })
         elseif data.type == "spot" then
-            ns.HideMenu:Open({ { kind = "source", name = data.spot.name } })
+            ns.HideMenu:Open({ { kind = "action", text = L["Show the Way"], run = Do },
+                { kind = "source", name = data.spot.name } })
         end
         return
     end

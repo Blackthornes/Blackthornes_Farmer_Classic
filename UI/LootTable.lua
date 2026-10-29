@@ -581,8 +581,9 @@ function LootTableUI:Build()
     })
     list:SetPoint("BOTTOMRIGHT", -PADDING, BOTTOM)
 
-    local empty = Theme.CreateLabel(frame, "small", "muted")
-    empty:SetPoint("TOPLEFT", list, "TOPLEFT", 4, -6)
+    -- The house empty block (Widgets.CreateEmpty, 2026-10-29).
+    local empty = Widgets.CreateEmpty(frame, { width = 280 })
+    empty:SetPoint("TOP", list, "TOP", 0, -24)
     empty:SetText(L["Nothing has dropped from it yet."])
 
     local footer = Theme.CreateLabel(frame, "tiny", "dim")

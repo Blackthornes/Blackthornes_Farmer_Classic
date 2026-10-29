@@ -45,6 +45,7 @@ end
 
 function TomTomLink:SetOn(on)
     ns.db.useTomTom = on and true or false
+    if ns.SharedChoices then ns.SharedChoices:Changed("useTomTom", ns.db.useTomTom) end
     if not on then self:Clear() end
     if ns.Arrow then ns.Arrow:Changed() end
 end

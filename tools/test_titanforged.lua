@@ -317,7 +317,7 @@ end
 
 farmer.SettingsUI:Build()
 check("settings has a plate and a close gem", Plated(Raw(farmer.SettingsUI.frame, "titan"),
-    "Farmer Settings"), true)
+    "Blackthornes Farmer"), true)
 
 UI:ShowExport("a line", "Export -- test")
 check("export names what it hands over on its plate",

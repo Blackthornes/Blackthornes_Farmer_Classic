@@ -104,14 +104,14 @@ end
 
 -- The window's tabs, left to right.
 local TABS = {
-    { key = "search", text = L["SEARCH"] },
-    { key = "rankings", text = L["RANKINGS"] },
-    { key = "grind", text = L["GRIND"] },
-    { key = "stats", text = L["STATS"] },
+    { key = "search", text = L["Search"] },
+    { key = "rankings", text = L["Rankings"] },
+    { key = "grind", text = L["Grind"] },
+    { key = "stats", text = L["Stats"] },
     -- Always last, on the right (the owner, 2026-10-27: "Last tab on bottom
     -- right will always be settings"). It opens Settings in the window's
     -- place, at the same size (UI/Settings.lua).
-    { key = "settings", text = L["SETTINGS"], right = true },
+    { key = "settings", text = L["Settings"], right = true },
 }
 
 --- The tabs, for Settings to hang the same ones under itself.
@@ -438,7 +438,10 @@ function UI:BuildBody()
         createRow = function(row) UI:CreateRow(row) end,
         updateRow = function(row, data, index) UI:UpdateRow(row, data, index) end,
         onClick = function(data, button) UI:OnRowClick(data, button) end,
-        onEnter = function(row) UI:ShowValueTooltip(row) end,
+        onEnter = function(row)
+            UI:ShowValueTooltip(row)
+            UI:AddRowHint(row)
+        end,
         onLeave = function() if GameTooltip then GameTooltip:Hide() end end,
         -- The colour of the well the rows sit in.
         fadeKey = "well",
@@ -470,7 +473,8 @@ function UI:BuildBody()
     footer:SetHeight(26)
     footer:SetWordWrap(true)
     footer:SetJustifyV("MIDDLE")
-    footer:SetText(L["Click a row to put it in chat."])
+    -- No help line here (2026-10-29): it is the last line of a spot's hover.
+    footer:SetText("")
     self.footer = footer
 
     self:BuildEmpty()
@@ -787,6 +791,20 @@ function UI:ShowValueTooltip(row)
     local key = data.source.name
     if ns.Tracker then key = ns.Tracker:KeyFor(key, data.source.zone) end
     self:ShowMobTooltip(row, key)
+end
+
+--- A spot's hover ends with what a click does, dim (2026-10-29; it was
+--- the search footer).
+function UI:AddRowHint(row)
+    local data = row and row.data
+    if not (GameTooltip and data and data.type == "source") then return end
+    if not (GameTooltip.IsOwned and GameTooltip:IsOwned(row)) then
+        GameTooltip:SetOwner(row, "ANCHOR_RIGHT")
+        GameTooltip:AddLine(data.source.name or data.item.name, Theme.Unpack("accent"))
+    end
+    GameTooltip:AddLine(L["Click a row to put it in chat."],
+        Theme.Unpack("dim"), true)
+    GameTooltip:Show()
 end
 
 --- What a kill of `mobName` is worth and what makes it up, beside `owner`.
@@ -1260,11 +1278,13 @@ function UI:Render()
         self.summary:SetText(("%s, %s"):format(
             Util.Plural(ns.DB:CountItems(), L["item"], L["items"]),
             Util.Plural(ns.DB:CountSources(), L["spot"], L["spots"])))
+        if self.noResults then self.noResults:Hide() end
         self:ShowEmpty()
         return
     end
 
     if self.empty then self.empty:Hide() end
+    if self.noResults then self.noResults:Hide() end
 
     -- Worth is asked once a mob per draw: it walks the whole database.
     self.worthCache = {}
@@ -1314,6 +1334,15 @@ function UI:Render()
         -- Said when hiding (skinning, the hide list) is what emptied it.
         self.summary:SetText(Util.Colored("muted", ns.Search.hidHit
             and L["nothing found, because the matches are hidden"] or L["nothing found"]))
+        -- The house empty block, with a way out (2026-10-29).
+        if not self.noResults and Widgets.CreateEmpty then
+            self.noResults = Widgets.CreateEmpty(self.panel, { width = 300 })
+            self.noResults:SetPoint("TOP", self.panel, "TOP", 0, -60)
+        end
+        if self.noResults then
+            self.noResults:Set(L["Nothing found."], L["Clear Search"], function() UI:Search("") end)
+            self.noResults:Show()
+        end
     else
         self.summary:SetText(L.Format("%s matching", Util.Plural(total, L["item"], L["items"])))
     end

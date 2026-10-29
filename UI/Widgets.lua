@@ -2119,8 +2119,10 @@ end
 -- Sortable column headings
 --------------------------------------------------------------------------------
 
--- Blizzard's own list sort arrow, pointing down; flipped for smallest first.
-local SORT_ARROW = [[Interface\Buttons\UI-SortArrow]]
+-- The house's gold sort arrow (Media/Frame/SortArrow.tga, drawn by
+-- tools/make_frame_art.py, the same in every addon), pointing down; flipped
+-- for smallest first.
+local SORT_ARROW = [[Interface\AddOns\Blackthornes_Farmer\Media\Frame\SortArrow]]
 
 --- Make a list's column headings sort it when clicked, as Tradeskills' do.
 --
@@ -2160,9 +2162,9 @@ function Widgets.SortableHeadings(labels, tips, onChange, opts)
             arrow:SetShown(active)
             if active then
                 if sorter.ascending then
-                    arrow:SetTexCoord(0, 0.5625, 1, 0)
+                    arrow:SetTexCoord(0, 1, 1, 0)
                 else
-                    arrow:SetTexCoord(0, 0.5625, 0, 1)
+                    arrow:SetTexCoord(0, 1, 0, 1)
                 end
                 local width = Theme.TextWidth("tiny", label:GetText())
                 if type(width) ~= "number" then width = 0 end
@@ -2204,8 +2206,9 @@ function Widgets.SortableHeadings(labels, tips, onChange, opts)
             button.glow = glow
 
             local arrow = button:CreateTexture(nil, "OVERLAY")
-            arrow:SetSize(9, 8)
+            arrow:SetSize(10, 10)
             pcall(arrow.SetTexture, arrow, SORT_ARROW)
+            arrow:SetVertexColor(Theme.Unpack("accent"))
             arrow:Hide()
             button.arrow = arrow
 

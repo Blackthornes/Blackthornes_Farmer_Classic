@@ -219,19 +219,16 @@ function StatsUI:Build(frame)
 
     local left, top = ns.UI.HEAD_LEFT or PADDING, ns.UI.HEAD_TOP or 26
 
-    local intro = Theme.CreateLabel(view, "small", "muted")
-    intro:SetPoint("TOPLEFT", left, -(top + 5))
-    intro:SetText(L["How your farming is going."])
-    self.intro = intro
-
-    -- This session or Overall (the owner, 2026-10-13), beside Settings.
-    local switch = ns.Widgets.CreateTabStrip(view, {
-        { key = "session", text = L["This session"] },
+    -- This Session or Overall (the owner, 2026-10-13) as the house's small
+    -- view tabs on top of the charts (2026-10-29), where a line of words sat.
+    local switch = ns.Widgets.CreateViewTabs(view, {
+        { key = "session", text = L["This Session"] },
         { key = "overall", text = L["Overall"] },
     }, function(key)
         ns.Stats:SetView(key)
         StatsUI:ViewChanged()
     end)
+    switch:SetPoint("TOPLEFT", left, -(top + 2))
     self.switch = switch
 
     -- The last kill goal's summary (UI/KillGoal.lua), left of the switch,
@@ -324,24 +321,14 @@ function StatsUI:Build(frame)
     return view
 end
 
---- Put the switch left of the window's Settings button (its width grows
---- with the language), on the line of the words under the plate.
+--- The view tabs sit top left over the charts; the last kill goal's
+--- button on the same line, at the right.
 function StatsUI:PlaceSwitch()
-    local switch = self.switch
-    if not switch then return end
-    local settings = ns.UI and ns.UI.settingsButton
-    switch:ClearAllPoints()
-    if settings then
-        switch:SetPoint("RIGHT", settings, "LEFT", -12, 0)
-        self.switchPlaced = true
-    else
-        switch:SetPoint("TOPRIGHT", self.view, "TOPRIGHT", -PADDING, -(ns.UI.HEAD_TOP or 26))
-    end
     local killGoal = self.killGoalButton
-    if killGoal then
-        killGoal:ClearAllPoints()
-        killGoal:SetPoint("RIGHT", switch, "LEFT", -12, 0)
-    end
+    if not killGoal then return end
+    killGoal:ClearAllPoints()
+    killGoal:SetPoint("TOPRIGHT", self.view, "TOPRIGHT", -PADDING, -(ns.UI.HEAD_TOP or 26))
+    self.switchPlaced = true
 end
 
 --- A dim tag on a card's header, shown in the This session view, whose

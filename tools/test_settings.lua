@@ -142,16 +142,20 @@ suite.check("and back", ns.Goals:CountsBank() == false)
 --------------------------------------------------------------------------------
 
 local pages = SettingsUI.pages
-suite.check("it opens on the first page", pages.shown == "windows", pages.shown)
-suite.check("with the window rows showing", pages.pages.windows.content:IsShown()
-    and not pages.pages.tally.content:IsShown())
-local tallyPart
+suite.check("it opens on the first page", pages.shown == "tally", pages.shown)
+suite.check("with the kill rows showing", pages.pages.tally.content:IsShown()
+    and not pages.pages.general.content:IsShown())
+suite.check("General sits just before About, six pages in all",
+    #pages.defs == 6 and pages.defs[5].key == "general" and pages.defs[6].key == "about")
+local tallyPart, generalPart
 for _, part in ipairs(pages.switch) do
     if part.key == "tally" then tallyPart = part end
+    if part.key == "general" then generalPart = part end
 end
+generalPart.button:GetScript("OnClick")(generalPart.button)
+suite.check("a click on the switch shows that page", pages.pages.general.content:IsShown()
+    and not pages.pages.tally.content:IsShown())
 tallyPart.button:GetScript("OnClick")(tallyPart.button)
-suite.check("a click on the switch shows that page", pages.pages.tally.content:IsShown()
-    and not pages.pages.windows.content:IsShown())
 suite.check("and the page is remembered", ns.db.settingsPage == "tally")
 suite.check("the page picked is gold", tallyPart.label._color[1] == ns.Theme.colors.accent[1])
 SettingsUI:Hide()

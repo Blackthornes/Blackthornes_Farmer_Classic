@@ -216,6 +216,15 @@ suite.check("left alone, it goes", not menu:IsShown())
 suite.check("having hidden nothing", not DB:IsHiddenItem("Linen Cloth") and not DB:IsHiddenItem("Wool Cloth"))
 C_Timer.After = realAfter
 
+-- A row's own action goes first and runs on a click (2026-10-29).
+local ran = false
+ns.HideMenu:Open({ { kind = "action", text = "Open Loot Table", run = function() ran = true end },
+    { kind = "item", name = "Wool Cloth" } })
+suite.check("the row's action is the first line", menu.lines[1].label:GetText() == "Open Loot Table"
+    and menu.lines[2].label:GetText():find("Wool Cloth", 1, true) ~= nil)
+menu.lines[1]:GetScript("OnClick")(menu.lines[1])
+suite.check("and does what a click does", ran and not DB:IsHiddenItem("Wool Cloth") and not menu:IsShown())
+
 suite.check("one already hidden is not offered",
     not ns.HideMenu:Open({ { kind = "source", name = "Kobold Vermin" } }))
 

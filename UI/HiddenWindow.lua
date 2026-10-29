@@ -90,10 +90,9 @@ function HiddenUI:Build()
     list:SetPoint("BOTTOMRIGHT", -6, 6)
     self.list = list
 
-    local empty = Theme.CreateLabel(panel, "small", "dim", "CENTER")
-    empty:SetPoint("TOPLEFT", 12, -24)
-    empty:SetPoint("TOPRIGHT", -12, -24)
-    empty:SetWordWrap(true)
+    -- The house empty block (Widgets.CreateEmpty, 2026-10-29).
+    local empty = Widgets.CreateEmpty(panel, { width = 260 })
+    empty:SetPoint("TOP", 0, -24)
     empty:SetText(L["Nothing hidden. Right-click a mob or an item in the search, Rankings, Grind or the kills panel to hide it, or type /farm hide and its name."])
     self.empty = empty
 

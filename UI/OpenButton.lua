@@ -427,7 +427,7 @@ function OpenButton:Draw()
     if self.fighting or InCombat() then return end
     local Tracker = ns.TrackerUI
     local header = Tracker and Tracker.header
-    local close = Tracker and Tracker.closeButton
+    local close = Tracker and (Tracker.openAnchor or Tracker.closeButton)
     local show = self:Enabled() and self.total > 0 and header ~= nil and not OpenButton.Busy()
     local button = self.button
     if not show then

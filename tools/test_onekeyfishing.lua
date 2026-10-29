@@ -126,9 +126,10 @@ Fire("UNIT_SPELLCAST_CHANNEL_START", "player", "guid", 7620)
 suite.check("facing a mailbox: the key opens nothing", overrides.F == NOTE, tostring(overrides.F))
 local note = _G.BlackthornesFarmerFishNote
 note:GetScript("OnClick")(note, "LeftButton")
-local shown = ns.OpenNote.frame
+-- The note goes in the shared note slot (UI/Notice.lua).
+local shown = ns.OpenNote.card
 suite.check("and shows the note", shown and shown:IsShown()
-    and shown.label:GetText() == "Face your bobber to reel in.", shown and tostring(shown.label:GetText()))
+    and shown.text:GetText() == "Face your bobber to reel in.", shown and tostring(shown.text:GetText()))
 facing, facingName = BOBBER, "Fishing Bobber"
 Fire("PLAYER_SOFT_INTERACT_CHANGED")
 suite.check("facing the bobber: the key reels in", overrides.F == "INTERACTTARGET")

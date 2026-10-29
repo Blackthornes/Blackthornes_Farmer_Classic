@@ -52,7 +52,9 @@ BagsFull.Show = function(self, ...)
     shows = shows + 1
     return realShow(self, ...)
 end
-local function Showing() return BagsFull.frame ~= nil and BagsFull.frame:IsShown() end
+-- It goes in the shared note slot (UI/Notice.lua), with every addon's notes.
+local function Note() return BagsFull.card or BagsFull.frame end
+local function Showing() return Note() ~= nil and Note():IsShown() end
 
 -- Fires the event and lets the settle timer run, not the fade.
 local function Bags(free)
@@ -74,7 +76,7 @@ suite.check("nothing while the bags have room", shows == 0)
 -- 2.
 Bags(0)
 suite.check("bags that fill show the notice", shows == 1 and Showing())
-suite.check("it says so", BagsFull.frame.text:GetText() == "Your bags are full.", BagsFull.frame.text:GetText())
+suite.check("it says so", Note().text:GetText() == "Your bags are full.", Note().text:GetText())
 Bags(0)
 Bags(0)
 suite.check("not again on every loot after", shows == 1)

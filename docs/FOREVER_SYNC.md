@@ -35,6 +35,19 @@ Copied over since, one at a time:
   Tradeskills and Pets Classic).
 - `dea75f5` (Butler's) the way there card's rows grow when a step wraps
   (2026-10-29, `UI/TravelCard.lua` only; the rest of `a246e8c` is not taken yet).
+- `af3d6fd` Settings as the window's last tab (2026-10-29, Forever PR
+  #373, as it is).
+- `a2c2aa4` House look for the right-click menu and close gems (2026-10-29,
+  Forever PR #374, as it is, with the menu's rows kept at Classic's height).
+- `3154560` One look across the five addons (2026-10-29, Forever PR #388):
+  `UI/HouseKit.lua`, `UI/RowMenu.lua`, `UI/Notice.lua` and
+  `UI/SharedChoices.lua` as they are (the same in all five Classic repos),
+  `UI/PanelSnap.lua`, and the footers, hovers, Title Case tabs and General
+  page. Left out: Arrow Size (Farmer Classic has none, so an arrowSize from
+  a sister is ignored). The Grind tab's hover hint keeps Classic's camp
+  worth line, and the search hover hint has no "not yet seen" part.
+  `UI/Plaque.lua` keeps Classic's own copy with the new `Plaque.TextWidth`,
+  the same in Farmer, Pets, Equipment and Tradeskills Classic.
 
 Every catch-up reads `docs/CLASSIC_DIFFERENCES.md` first, and the PR that
 brings Forever commits over updates the line above to the newest one it took.

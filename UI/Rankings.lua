@@ -279,7 +279,13 @@ function RankingsUI:Build(frame)
         updateRow = function(row, data, index) RankingsUI:UpdateRow(row, data, index) end,
         onClick = function(data, button) RankingsUI:OnRowClick(data, button) end,
         onEnter = function(row, data)
-            if data.entry then ns.UI:ShowMobTooltip(row, data.entry.mob, true, data.entry) end
+            if data.entry then
+                ns.UI:ShowMobTooltip(row, data.entry.mob, true, data.entry)
+                if GameTooltip and GameTooltip.IsOwned and GameTooltip:IsOwned(row) then
+                    GameTooltip:AddLine(L["Click for its loot."], Theme.Unpack("dim"))
+                    GameTooltip:Show()
+                end
+            end
         end,
         onLeave = function() if GameTooltip then GameTooltip:Hide() end end,
         -- The colour of the well the rows sit in.
@@ -296,8 +302,8 @@ function RankingsUI:Build(frame)
     footer:SetHeight(26)
     footer:SetWordWrap(true)
     footer:SetJustifyV("MIDDLE")
-    footer:SetText(L.Format("Ranked after %d kills. Hover a mob to see its worth, click it for its loot.",
-        ns.Tracker.MIN_KILLS))
+    -- The count only; what a click does is on each row's hover (2026-10-29).
+    footer:SetText(L.Format("Ranked after %d kills.", ns.Tracker.MIN_KILLS))
     self.footer = footer
 
     view:Hide()
@@ -1116,7 +1122,11 @@ function RankingsUI:OnRowClick(data, button)
 
     -- Right-click offers to hide the mob (HideMenu).
     if button == "RightButton" then
-        ns.HideMenu:Open({ { kind = "source", name = ns.Tracker.NameOf(data.entry.mob) } })
+        -- What a click does comes first (2026-10-29).
+        ns.HideMenu:Open({
+            { kind = "action", text = L["Open Loot Table"],
+                run = function() RankingsUI:OnRowClick(data, "LeftButton") end },
+            { kind = "source", name = ns.Tracker.NameOf(data.entry.mob) } })
         return
     end
 

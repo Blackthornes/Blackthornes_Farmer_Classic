@@ -543,6 +543,21 @@ function SettingsPages.ReloadUnder(row, control, reload)
     if row.Grow then row:Grow(24) end
 end
 
+--- A "Window Size:" stepper on `row`, at `x`: 50% to 150% in steps of 10,
+--- the size the window's grip saves (the owner, 2026-10-29: the same row in
+--- every addon's WINDOWS section). `get()` reads the saved percent (nil for
+--- 100); `set(percent)` keeps it and draws the window at it.
+function SettingsPages.WindowSizeControl(row, x, get, set)
+    local stepper = Widgets.CreateStepper(row, {
+        min = Widgets.SIZE_MIN or 50, max = Widgets.SIZE_MAX or 150, step = 10, value = 100,
+        format = function(value) return ("%d%%"):format(value) end,
+        onChange = function(value) set(value) end,
+    })
+    stepper:SetPoint("TOPLEFT", x, 0)
+    function stepper:Sync() self:SetValue(tonumber(get()) or 100, true) end
+    return stepper
+end
+
 --- A "Text size" stepper and its "Reload" button on `row`, at `x`.
 -- Returns the stepper; stepper:Sync() puts it back in step with the save.
 function SettingsPages.TextSizeControl(row, x, db)
@@ -554,6 +569,7 @@ function SettingsPages.TextSizeControl(row, x, db)
         format = function(value) return SettingsPages.TEXT_LABELS[sizes[value]] end,
         onChange = function(value)
             db().textSize = sizes[value]
+            if ns.SharedChoices then ns.SharedChoices:Changed("textSize", sizes[value]) end
             reload:SetShown((Theme.TEXT_STEPS[sizes[value]] or 0) ~= Theme.TextStep())
         end,
     })

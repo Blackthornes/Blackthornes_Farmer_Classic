@@ -17,7 +17,9 @@ local Widgets = ns.Widgets
 local Util = ns.Util
 
 local ROW = 26
-local MOST = 3
+-- A row's own action first (2026-10-29: right-click opens the row's menu,
+-- what a click does at the top), then up to three hide lines.
+local MOST = 4
 -- How far in from the rim the rows sit, and the words from a row's left.
 local INSET = 4
 local PAD = 10
@@ -113,7 +115,11 @@ function HideMenu:Open(choices)
     local kept = {}
     for _, choice in ipairs(choices or {}) do
         local name = choice and choice.name
-        if type(name) == "string" and name ~= "" and #kept < MOST then
+        if choice and choice.kind == "action" then
+            if type(choice.run) == "function" and type(choice.text) == "string" and #kept < MOST then
+                kept[#kept + 1] = choice
+            end
+        elseif type(name) == "string" and name ~= "" and #kept < MOST then
             local hidden = choice.kind == "item" and ns.DB:IsHiddenItem(name)
                 or choice.kind == "source" and ns.DB:IsHiddenSource(name)
             if not hidden then kept[#kept + 1] = choice end
@@ -127,7 +133,9 @@ function HideMenu:Open(choices)
         local choice = kept[index]
         if choice then
             line.choice = choice
-            if choice.kind == "name" then
+            if choice.kind == "action" then
+                line.label:SetText(choice.text)
+            elseif choice.kind == "name" then
                 line.label:SetText(L["Name this mob"])
             else
                 -- An item's name in its rarity colour; a mob's as it is.
@@ -182,6 +190,11 @@ end
 function HideMenu:Pick(choice)
     if self.frame then self.frame:Hide() end
     if not choice then return end
+    if choice.kind == "action" then
+        local ok, err = pcall(choice.run)
+        if not ok and ns.Debug then ns.Debug("row menu:", tostring(err)) end
+        return
+    end
     if choice.kind == "name" then
         if ns.NamePrompt then ns.NamePrompt:Open(choice.npcID) end
         return

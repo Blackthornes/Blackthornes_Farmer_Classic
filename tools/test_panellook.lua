@@ -237,12 +237,12 @@ suite.check("its line glows softly upward", underGlow ~= nil and underGlow.key =
 loot:GetScript("OnEnter")(loot)
 suite.check("the other tab eases in under the mouse", Motion:Running(loot, "hover"))
 Motion:FinishAll()
-suite.check("lit, its name white", loot.hover._alpha == 1 and Coloured(loot.label, "text"))
+suite.check("lit, its name bright gold", loot.hover._alpha == 1 and Coloured(loot.label, "accentHi"))
 Loot("Gnoll", { FANG })
-suite.check("and still so after a kill", loot.hover._alpha == 1 and Coloured(loot.label, "text"))
+suite.check("and still so after a kill", loot.hover._alpha == 1 and Coloured(loot.label, "accentHi"))
 loot:GetScript("OnLeave")(loot)
 Motion:FinishAll()
-suite.check("leaving, it settles back to muted", loot.hover._alpha == 0 and Coloured(loot.label, "muted"))
+suite.check("leaving, it settles back to gold", loot.hover._alpha == 0 and Coloured(loot.label, "accent"))
 
 local function LineX() return TUI.tabLine._point and TUI.tabLine._point[4] end
 local farmX = LineX()
@@ -439,10 +439,21 @@ gem:GetScript("OnClick")(gem)
 suite.check("the gem hides the panel", ns.db.trackerHidden == true)
 suite.check("and says how to bring it back", printed and printed:find("/farm tracker", 1, true) ~= nil, printed)
 ns.db.trackerHidden = nil
+
+-- The gold gem left of the red one folds Kills & Loot to its title bar.
+TUI.frame:Show()
+suite.check("Kills & Loot has a fold gem", TUI.gems and TUI.gems.fold ~= nil)
+TUI:SetFolded(true)
+suite.check("folded, its tabs and lines hide",
+    not TUI.tabStrip:IsShown() and not TUI.toolbar:IsShown())
+TUI:SetFolded(false)
+suite.check("opened, they come back", TUI.tabStrip:IsShown() and TUI.toolbar:IsShown())
 if ns.GoalsUI and ns.GoalsUI.Build then
     ns.GoalsUI:Build()
     local goalsGem = ns.GoalsUI.closeButton
     suite.check("Goals closes with the red gem too", goalsGem and goalsGem.glow ~= nil)
+    suite.check("Goals has a fold gem and a count chip",
+        ns.GoalsUI.gems and ns.GoalsUI.gems.fold ~= nil and ns.GoalsUI.countChip ~= nil)
     printed = nil
     goalsGem:GetScript("OnClick")(goalsGem)
     suite.check("the gem hides the goals panel", ns.db.goalsHidden == true)

@@ -46,8 +46,6 @@ local TITLE = "Blackthornes Farmer"
 -- The pages along the top (UI/SettingsPages.lua), as Tradeskills' Settings
 -- tab has them. Every setting kept its saved name; only its place moved.
 local PAGES = {
-    { key = "windows", text = L["UI"],
-      tip = L["Window sizes and places, effects, text size and Farmer's windows"] },
     { key = "tally", text = L["KILLS"],
       tip = L["The kills and loot panel, its sounds, your top 15 and the XP bar"] },
     { key = "loot", text = L["LOOT"],
@@ -56,11 +54,15 @@ local PAGES = {
       tip = L["Node markers, grinding camps, goals and the goal arrow"] },
     { key = "sharing", text = L["SHARING"],
       tip = L["Share kills, drop rates and gathering with your other account"] },
-    { key = "advanced", text = L["ADVANCED"],
-      tip = L["The sister addons and What's New"] },
+    { key = "general", text = L["GENERAL"],
+      tip = L["Window sizes and places, effects, text size and Farmer's windows"] },
     { key = "about", text = L["ABOUT"],
       tip = L["How these addons are made, the version, the Discord and the other Blackthornes addons"] },
 }
+
+-- Pages that were folded into General (the owner, 2026-10-29): a saved one
+-- opens General.
+SettingsUI.OLD_PAGES = { windows = "general", advanced = "general" }
 
 --------------------------------------------------------------------------------
 -- Layout helpers
@@ -375,7 +377,8 @@ function SettingsUI:Build()
     -- the name on a plate across the top and a red close gem.
     if ns.Titanforged then
         self.trim = ns.Titanforged:Dress(frame, {
-            title = L["Farmer Settings"],
+            -- The plate reads the addon's name on every tab.
+            title = "Blackthornes Farmer",
             close = function() SettingsUI:Hide() end,
         })
         local left, right, top, bottom = ns.Titanforged.Reach(self.trim)
@@ -386,6 +389,14 @@ function SettingsUI:Build()
         Theme.Border(frame, "borderLit")
     end
     Theme.Halo(frame, 8, 0.10)
+
+    -- The fold gem beside the close gem, as on every other tab
+    -- (UI/FoldWindow.lua), so the corner never changes between tabs.
+    if ns.FoldWindow then
+        ns.FoldWindow:Add(frame, { onToggle = function(folded)
+            if not folded then SettingsUI:Refresh() end
+        end })
+    end
 
     frame:SetScript("OnDragStart", function(self)
         -- Land an opening still running, or it would pull the window back.
@@ -440,12 +451,14 @@ function SettingsUI:Build()
         return choice
     end
     local built, problem = pcall(function()
+        local old = ns.db and SettingsUI.OLD_PAGES[ns.db.settingsPage or ""]
+        if old then ns.db.settingsPage = old end
         self:BuildWindowsPage()
+        self:BuildAdvancedPage()
         self:BuildTallyPage()
         self:BuildLootPage()
         self:BuildMapPage()
         self:BuildSharingPage()
-        self:BuildAdvancedPage()
         self:BuildAboutPage()
     end)
     Widgets.CreateStepper, Widgets.CreateChoice = makeStepper, makeChoice
@@ -491,12 +504,12 @@ function SettingsUI:Build()
 
     local footer = Theme.CreateLabel(frame, "tiny", "dim")
     footer:SetPoint("BOTTOMLEFT", PADDING, 10)
-    footer:SetPoint("BOTTOMRIGHT", -PADDING, 10)
+    footer:SetPoint("BOTTOMRIGHT", -PADDING - 90, 10)
     -- Two lines if it needs them, rather than cut off.
     footer:SetHeight(26)
     footer:SetWordWrap(true)
     footer:SetJustifyV("BOTTOM")
-    footer:SetText(L["Changes save as you make them. Nothing here can delete your data. Clearing tallies or recorded loot takes a typed command."])
+    footer:SetText(L["Changes save as you make them."])
     self.footer = footer
 
     frame:Hide()
@@ -515,8 +528,9 @@ function SettingsUI:BuildHeader()
     header:SetPoint("TOPRIGHT", -8, -8)
     header:SetHeight(HEADER - 8)
 
-    local version = Theme.CreateLabel(header, "tiny", "dim", "RIGHT")
-    version:SetPoint("BOTTOMRIGHT", -PADDING + 8, 6)
+    -- The version sits at the foot, right, as in every addon (2026-10-29).
+    local version = Theme.CreateLabel(frame, "tiny", "dim", "RIGHT")
+    version:SetPoint("BOTTOMRIGHT", -PADDING, 12)
     version:SetText(ns.VersionLabel())
 
     local rule = header:CreateTexture(nil, "ARTWORK")
@@ -531,11 +545,22 @@ function SettingsUI:BuildWindowsPage()
     local controls = self.controls
     local pages = self.pages
 
-    pages:Section("windows", 1, L["WINDOWS"])
+    pages:Section("general", 1, L["WINDOWS"])
+
+    -- Asked 2026-10-10: the game's own look for players who would rather
+    -- the windows matched the rest of their screen. Read at login, so it
+    -- waits for /reload as Text size does. See UI/BlizzardLook.lua.
+    local styleRow = pages:Row("general", 1, L["Window Style:"], nil)
+    controls.windowStyle = SettingsUI:WindowStyleControl(styleRow)
+
+    -- Bigger letters in the same windows, as Tradeskills has. Every size
+    -- is read as text is drawn, so it waits for /reload.
+    local textRow = pages:Row("general", 1, L["Text Size:"], nil)
+    controls.textSize = ns.SettingsPages.TextSizeControl(textRow, CONTROL_X, function() return ns.db end)
 
     -- The minimap button always shows (the owner, 2026-10-15), so it has no
     -- row here any more.
-    local windowScaleRow = pages:Row("windows", 1, L["Window Size:"], nil)
+    local windowScaleRow = pages:Row("general", 1, L["Window Size:"], nil)
 
     -- Any percent the window's grip can drag to, one dragged to shown as it is.
     controls.windowScale = Widgets.CreateStepper(windowScaleRow, {
@@ -550,12 +575,32 @@ function SettingsUI:BuildWindowsPage()
     })
     controls.windowScale:SetPoint("TOPLEFT", CONTROL_X, 0)
 
+    -- Every window and both panels follow it, so it sits with the windows
+    -- rather than under the kill tally. The saved key keeps its old name.
+    local effectsRow = pages:Row("general", 1, L["Effects:"], nil)
+
+    local FX = ns.TrackerFX
+    controls.effects = Widgets.CreateChoice(effectsRow, {
+        min = 1, max = #FX.LEVELS, step = 1, value = #FX.LEVELS,
+        format = function(index) return FX.LEVEL_NAMES[FX.LEVELS[index]] end,
+        onChange = function(index) FX:SetLevel(FX.LEVELS[index]) end,
+    })
+    controls.effects:SetPoint("TOPLEFT", CONTROL_X, 0)
+
+    -- A player asked (2026-10-28): one minimap button for every Blackthornes
+    -- addon loaded. Ticked unless unticked; see UI/SharedMinimap.lua.
+    local combineRow = pages:Row("general", 1, L["Combine Addon Buttons:"], nil)
+    controls.combineButtons = Widgets.CreateCheckbox(combineRow, L["On"], function(checked)
+        if ns.SharedMinimap then ns.SharedMinimap.SetCombined(checked) end
+    end, true)
+    controls.combineButtons:SetPoint("TOPLEFT", CONTROL_X, -2)
+
     -- The kills and loot panel's size, which its gold corner grip and
     -- /farm tracker size set too (the owner asked 2026-10-07): any percent
     -- from 50 to 150 on the stepper, one dragged to shown as it is, and
     -- Small, Normal and Large under it, the one in use lit green.
     local TrackerUI = ns.TrackerUI
-    local trackerScaleRow = pages:Row("windows", 1, L["Kills and Loot Size:"], nil)
+    local trackerScaleRow = pages:Row("general", 1, L["Kills and Loot Size:"], nil)
 
     controls.trackerScale = Widgets.CreateStepper(trackerScaleRow, {
         min = TrackerUI and TrackerUI.SCALE_MIN or SCALE_MIN,
@@ -595,7 +640,7 @@ function SettingsUI:BuildWindowsPage()
     end
     if after then GrowRow(trackerScaleRow, 24) end
 
-    local positionRow = pages:Row("windows", 1, L["Window Positions:"],
+    local positionRow = pages:Row("general", 1, L["Window Positions:"],
         L["Reset the UI windows to their defaults."])
 
     local reset = Widgets.CreateButton(positionRow, L["Set Default"], function()
@@ -605,12 +650,21 @@ function SettingsUI:BuildWindowsPage()
     reset:SetPoint("TOPLEFT", CONTROL_X, 0)
     controls.resetPositions = reset
 
+
+    -- The owner, 2026-10-29: Kills & Loot, Goals and Where to Farm snap
+    -- under each other into one column. On unless unticked (his call).
+    local snapRow = pages:Row("general", 1, L["Snap Panels:"], nil)
+    controls.snapPanels = Widgets.CreateCheckbox(snapRow, L["On"], function(checked)
+        if ns.PanelSnap then ns.PanelSnap:SetOn(checked) end
+    end, true)
+    controls.snapPanels:SetPoint("TOPLEFT", CONTROL_X, -2)
+
     -- Every panel that stays on screen can let the world show through, all
     -- in one place (the owner, 2026-10-17). The glass comes back while the
     -- mouse is on a panel. The saved keys keep their see-through names.
-    pages:Section("windows", 1, L["TRANSPARENT"])
+    pages:Section("general", 2, L["TRANSPARENT"])
 
-    local trackerRow = pages:Row("windows", 1, L["Kills & Loot:"],
+    local trackerRow = pages:Row("general", 2, L["Kills & Loot:"],
         L["Lets the world show through the panel. It goes dark again while your mouse is on it."])
     local names = ns.SeeThrough.Names()
     controls.seeThrough = Widgets.CreateChoice(trackerRow, {
@@ -624,49 +678,17 @@ function SettingsUI:BuildWindowsPage()
     ns.SettingsPages.FitStepper(controls.seeThrough, { names[0], names[1], names[2], names[3] })
     controls.seeThrough:SetPoint("TOPLEFT", CONTROL_X, -2)
 
-    controls.goalsSeeThrough = SeeThroughRow(pages, "windows", 1, "goals", L["Goals:"], nil)
-    controls.goalSpotsSeeThrough = SeeThroughRow(pages, "windows", 1, "places", L["Where to Farm:"], nil)
-    controls.rankUpSeeThrough = SeeThroughRow(pages, "windows", 1, "rankup", L["Top 15:"], nil)
-    controls.recapSeeThrough = SeeThroughRow(pages, "windows", 1, "recap", L["Run Recap:"], nil)
-    controls.xpBarSeeThrough = SeeThroughRow(pages, "windows", 1, "xpbar", L["XP Bar:"], nil)
-    controls.lootFeedSeeThrough = SeeThroughRow(pages, "windows", 1, "lootfeed", L["Loot Feed:"], nil)
+    controls.goalsSeeThrough = SeeThroughRow(pages, "general", 2, "goals", L["Goals:"], nil)
+    controls.goalSpotsSeeThrough = SeeThroughRow(pages, "general", 2, "places", L["Where to Farm:"], nil)
+    controls.rankUpSeeThrough = SeeThroughRow(pages, "general", 2, "rankup", L["Top 15:"], nil)
+    controls.recapSeeThrough = SeeThroughRow(pages, "general", 2, "recap", L["Run Recap:"], nil)
+    controls.xpBarSeeThrough = SeeThroughRow(pages, "general", 2, "xpbar", L["XP Bar:"], nil)
+    controls.lootFeedSeeThrough = SeeThroughRow(pages, "general", 2, "lootfeed", L["Loot Feed:"], nil)
 
-    pages:Section("windows", 2, L["EFFECTS"])
 
-    -- Every window and both panels follow it, so it sits with the windows
-    -- rather than under the kill tally. The saved key keeps its old name.
-    local effectsRow = pages:Row("windows", 2, L["Effects:"], nil)
+    pages:Section("general", 2, L["FARMER UI"])
 
-    local FX = ns.TrackerFX
-    controls.effects = Widgets.CreateChoice(effectsRow, {
-        min = 1, max = #FX.LEVELS, step = 1, value = #FX.LEVELS,
-        format = function(index) return FX.LEVEL_NAMES[FX.LEVELS[index]] end,
-        onChange = function(index) FX:SetLevel(FX.LEVELS[index]) end,
-    })
-    controls.effects:SetPoint("TOPLEFT", CONTROL_X, 0)
-
-    -- Bigger letters in the same windows, as Tradeskills has. Every size
-    -- is read as text is drawn, so it waits for /reload.
-    local textRow = pages:Row("windows", 2, L["Text Size:"], nil)
-    controls.textSize = ns.SettingsPages.TextSizeControl(textRow, CONTROL_X, function() return ns.db end)
-
-    -- Asked 2026-10-10: the game's own look for players who would rather
-    -- the windows matched the rest of their screen. Read at login, so it
-    -- waits for /reload as Text size does. See UI/BlizzardLook.lua.
-    local styleRow = pages:Row("windows", 2, L["Window Style:"], nil)
-    controls.windowStyle = SettingsUI:WindowStyleControl(styleRow)
-
-    -- A player asked (2026-10-28): one minimap button for every Blackthornes
-    -- addon loaded. Ticked unless unticked; see UI/SharedMinimap.lua.
-    local combineRow = pages:Row("windows", 2, L["Combine Addon Buttons:"], nil)
-    controls.combineButtons = Widgets.CreateCheckbox(combineRow, L["On"], function(checked)
-        if ns.SharedMinimap then ns.SharedMinimap.SetCombined(checked) end
-    end, true)
-    controls.combineButtons:SetPoint("TOPLEFT", CONTROL_X, -2)
-
-    pages:Section("windows", 2, L["FARMER UI"])
-
-    local _, searchButton = CommandRow(pages, "windows", 2, L["Farmer:"], nil, L["Open"], function()
+    local _, searchButton = CommandRow(pages, "general", 2, L["Farmer:"], nil, L["Open"], function()
             -- /farm on its own toggles the window, so with it already open
             -- this closed it. It opens it, on the Search tab.
             ns.UI:Show()
@@ -674,11 +696,11 @@ function SettingsUI:BuildWindowsPage()
         end)
     controls.openSearch = searchButton
 
-    local _, rankingsButton = CommandRow(pages, "windows", 2, L["Rankings:"], nil, L["Open"], "rankings")
+    local _, rankingsButton = CommandRow(pages, "general", 2, L["Rankings:"], nil, L["Open"], "rankings")
     controls.rankings = rankingsButton
 
     -- The owner, 2026-10-14: Rankings without the mobs found only in dungeons.
-    local outsideRow = pages:Row("windows", 2, L["Skip Dungeon Mobs:"],
+    local outsideRow = pages:Row("general", 2, L["Skip Dungeon Mobs:"],
         L["Rankings leave out mobs you only found in dungeons and raids."])
     controls.rankingsOutside = Widgets.CreateCheckbox(outsideRow, L["On"], function(checked)
         ns.Rankings:SetOutsideOnly(checked)
@@ -686,7 +708,7 @@ function SettingsUI:BuildWindowsPage()
     controls.rankingsOutside:SetPoint("TOPLEFT", CONTROL_X, -2)
 
     -- The owner, 2026-10-18: worth per kill without Uncommon and better drops.
-    local uncommonRow = pages:Row("windows", 2, L["Skip Uncommon Drops:"],
+    local uncommonRow = pages:Row("general", 2, L["Skip Uncommon Drops:"],
         L["Worth per kill leaves out Uncommon, Rare and Epic drops."])
     controls.rankingsSkipUncommon = Widgets.CreateCheckbox(uncommonRow, L["On"], function(checked)
         ns.Rankings:SetSkipUncommon(checked)
@@ -694,14 +716,14 @@ function SettingsUI:BuildWindowsPage()
     controls.rankingsSkipUncommon:SetPoint("TOPLEFT", CONTROL_X, -2)
 
     -- The owner, 2026-10-27: worth per kill at what a vendor pays.
-    local vendorRow = pages:Row("windows", 2, L["Vendor Only:"],
+    local vendorRow = pages:Row("general", 2, L["Vendor Only:"],
         L["Worth per kill uses what a vendor pays, not the auction house."])
     controls.rankingsVendorOnly = Widgets.CreateCheckbox(vendorRow, L["On"], function(checked)
         ns.Rankings:SetVendorOnly(checked)
     end, false)
     controls.rankingsVendorOnly:SetPoint("TOPLEFT", CONTROL_X, -2)
 
-    local _, statsButton = CommandRow(pages, "windows", 2, L["Stats:"], nil, L["Open"], "charts")
+    local _, statsButton = CommandRow(pages, "general", 2, L["Stats:"], nil, L["Open"], "charts")
     controls.statsTab = statsButton
 end
 
@@ -722,6 +744,7 @@ function SettingsUI:WindowStyleControl(row)
         format = function(value) return WINDOW_STYLE_NAMES[WINDOW_STYLES[value]] end,
         onChange = function(value)
             ns.db.windowStyle = WINDOW_STYLES[value]
+            if ns.SharedChoices then ns.SharedChoices:Changed("windowStyle", WINDOW_STYLES[value]) end
             reload:SetShown(WINDOW_STYLES[value] ~= Drawn())
         end,
     })
@@ -1286,7 +1309,7 @@ function SettingsUI:BuildMapPage()
     end, false)
     controls.goalsBank:SetPoint("TOPLEFT", CONTROL_X, -2)
 
-    pages:Section("map", 2, L["GOAL ARROW"])
+    pages:Section("map", 2, L["ARROW"])
 
     local arrowRow = pages:Row("map", 2, L["Goal Arrow:"],
         L["Points to the nearest place to gather a goal."])
@@ -1468,14 +1491,14 @@ function SettingsUI:BuildAdvancedPage()
     local controls = self.controls
     local pages = self.pages
 
-    pages:Section("advanced", 1, L["ADVANCED"])
+    pages:Section("general", 1, L["ADDONS"])
 
     -- Debug and the checks are typed only (/farm debug, the owner,
     -- 2026-10-23): players don't need them.
 
     -- Core/SisterNote.lua: one chat line, once, naming the Blackthornes
     -- addons the player does not have. Off here is off in all of them.
-    local sistersRow = pages:Row("advanced", 1, L["Sister Addons:"],
+    local sistersRow = pages:Row("general", 1, L["Sister Addons:"],
         L["Says once in chat which Blackthornes addons you don't have."])
 
     controls.sisters = Widgets.CreateCheckbox(sistersRow, L["On"], function(checked)
@@ -1485,18 +1508,18 @@ function SettingsUI:BuildAdvancedPage()
 
     -- UI/WhatsNew.lua: one window after an update for every Blackthornes
     -- addon. Off here is off in all of them, as the sister note is.
-    local _, whatsNewButton = CommandRow(pages, "advanced", 1, L["What's New:"], nil,
+    local _, whatsNewButton = CommandRow(pages, "general", 1, L["What's New:"], nil,
         L["Open"], "whatsnew")
     controls.whatsnew = whatsNewButton
 
-    local whatsNewRow = pages:Row("advanced", 1, L["What's New After Updates:"],
+    local whatsNewRow = pages:Row("general", 1, L["What's New After Updates:"],
         L["Opens What's New the first time you play after an update."])
     controls.whatsNewPopup = Widgets.CreateCheckbox(whatsNewRow, L["On"], function(checked)
         ns.WhatsNew:SetOn(checked)
     end, true)
     controls.whatsNewPopup:SetPoint("TOPLEFT", CONTROL_X, -2)
 
-    local whatsNewMotionRow = pages:Row("advanced", 1, L["What's New Motion:"], nil)
+    local whatsNewMotionRow = pages:Row("general", 1, L["What's New Motion:"], nil)
     controls.whatsNewMotion = Widgets.CreateCheckbox(whatsNewMotionRow, L["On"], function(checked)
         ns.WhatsNew:SetMotionOn(checked)
     end, true)
@@ -1642,6 +1665,7 @@ function SettingsUI:Refresh()
     controls.textSize:Sync()
     controls.windowStyle:Sync()
     controls.combineButtons:SetChecked(not ns.SharedMinimap or ns.SharedMinimap.Combined())
+    if controls.snapPanels then controls.snapPanels:SetChecked(not ns.PanelSnap or ns.PanelSnap:IsOn()) end
 
     local usable = ns.Harvest:Capabilities().usable
 
@@ -1836,3 +1860,27 @@ end)
 -- list, which would otherwise print the same line three times.
 ns.commands.options = ns.commands.settings
 ns.commands.config = ns.commands.settings
+
+--------------------------------------------------------------------------------
+-- Choices every Blackthornes addon shares (UI/SharedChoices.lua): a change
+-- made in a sister is written here the way this addon writes it itself.
+--------------------------------------------------------------------------------
+
+if ns.SharedChoices then
+    ns.SharedChoices:Join("Farmer", function(choice, value)
+        if not ns.db then return end
+        if choice == "textSize" then
+            if ns.Theme.TEXT_STEPS and ns.Theme.TEXT_STEPS[value] then ns.db.textSize = value end
+        elseif choice == "windowStyle" then
+            if value == "titanforged" or value == "blizzard" then ns.db.windowStyle = value end
+        elseif choice == "effects" then
+            if value == "full" or value == "subtle" or value == "off" then if ns.TrackerFX then ns.TrackerFX:SetLevel(value) end end
+        elseif choice == "useTomTom" then
+            if ns.TomTom then ns.TomTom:SetOn(value and true or false) end
+        elseif choice == "arrowRoute" then
+            if ns.Travel then ns.Travel:SetOn(value and true or false) end
+        end
+        -- Era's Farmer has no Arrow Size: an arrowSize from a sister is left alone.
+        if ns.SettingsUI and ns.SettingsUI.Refresh and ns.SettingsUI.frame and ns.SettingsUI.frame:IsShown() then pcall(ns.SettingsUI.Refresh, ns.SettingsUI) end
+    end)
+end

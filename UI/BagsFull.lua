@@ -111,6 +111,13 @@ function BagsFull:Frame()
 end
 
 function BagsFull:Hide()
+    if self.card then
+        if self.card.key == "farmer:bagsfull" and ns.Notice and ns.Notice.Remove then
+            ns.Notice.Remove(self.card)
+        end
+        self.card = nil
+        self.shownAt = nil
+    end
     if not self.frame then return end
     if ns.Motion then ns.Motion:Stop(self.frame, "fade") end
     self.shownAt = nil
@@ -119,8 +126,23 @@ end
 
 --- Put the notice up, then let it fade after HOLD seconds.
 function BagsFull:Show()
-    local frame = self:Frame()
     local words = L["Your bags are full."]
+    -- The shared note slot (UI/Notice.lua), so it never lands on another
+    -- addon's note; the old card only when the shared one is missing.
+    if ns.Notice and ns.Notice.Show then
+        local ok, card = pcall(ns.Notice.Show, ns.Notice, words,
+            { icon = self.ICON, hold = self.HOLD, key = "farmer:bagsfull" })
+        if ok and card then
+            local shownAt = (rawget(_G, "GetTime") or os.time)()
+            self.shownAt = shownAt
+            self.card = card
+            C_Timer.After(self.HOLD + self.FADE_IN + self.FADE_OUT, function()
+                if BagsFull.shownAt == shownAt then BagsFull:Hide() end
+            end)
+            return
+        end
+    end
+    local frame = self:Frame()
     frame.text:SetText(words)
     -- Sized from the measured words, so they never end in "...".
     local width = Theme.TextWidth("normal", words)
