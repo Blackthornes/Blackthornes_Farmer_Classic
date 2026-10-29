@@ -325,6 +325,7 @@ Grinding.SORTS = {
     { key = "level", label = L["Level"], tip = L["The lowest level camps first."] },
     { key = "levelnear", label = L["Level, then nearest"],
       tip = L["The lowest level camps first, and the nearest first when levels match."] },
+    { key = "worth", label = L["Best Worth"], tip = L["Camps that earn the most an hour first."] },
 }
 
 local function KnownSort(key)
@@ -676,8 +677,22 @@ function Grinding:Camps(filter)
     local order = Grinding.Sort()
     local FAR = 99
 
+    -- Best Worth: what each camp earned you an hour (CampWorth), read once
+    -- before the sort; camps with too few of your kills go last.
+    local worth = {}
+    if order == "worth" and ns.CampWorth then
+        for _, camp in ipairs(shown) do
+            local ok, perHour = pcall(ns.CampWorth.Known, ns.CampWorth, camp)
+            worth[camp] = ok and perHour or nil
+        end
+    end
+
     table.sort(shown, function(a, b)
         local hopsA, hopsB = a.hops or FAR, b.hops or FAR
+        if order == "worth" and worth[a] ~= worth[b] then
+            if worth[a] and worth[b] then return worth[a] > worth[b] end
+            return worth[a] ~= nil
+        end
         if order == "nearest" and hopsA ~= hopsB then return hopsA < hopsB end
         if order == "level" or order == "levelnear" then
             if a.minLevel ~= b.minLevel then return a.minLevel < b.minLevel end
@@ -721,7 +736,7 @@ function Grinding:Command(rest)
 
     if words[1] == "sort" then
         local wanted = { busiest = "busiest", busy = "busiest", nearest = "nearest", near = "nearest",
-            level = "level", levelnear = "levelnear", both = "levelnear" }
+            level = "level", levelnear = "levelnear", both = "levelnear", worth = "worth", best = "worth" }
         local key = wanted[words[2] or ""]
         -- "level then nearest", "level nearest"
         if key == "level" and (words[#words] == "nearest" or words[#words] == "near") then key = "levelnear" end
@@ -730,7 +745,7 @@ function Grinding:Command(rest)
             ns.Print(L.Format("grinding camps sorted by: %s.", Util.Colored("accent", Grinding.SortLabel(key))))
             Open()
         else
-            ns.Print(L["sort by busiest, nearest, level, or level nearest."])
+            ns.Print(L["sort by busiest, nearest, level, level nearest, or worth."])
         end
         return
     end

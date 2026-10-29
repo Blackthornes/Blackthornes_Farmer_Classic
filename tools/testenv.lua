@@ -363,6 +363,7 @@ local FILES = {
     "Logic/Travel.lua",
     "Logic/Grinding.lua",
     "Logic/GrindGather.lua",
+    "Logic/CampWorth.lua",
     "Logic/GatherToCap.lua",
     "Logic/Share.lua",
     "Logic/Transfer.lua",
