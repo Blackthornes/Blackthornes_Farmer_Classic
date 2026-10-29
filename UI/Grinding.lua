@@ -42,17 +42,18 @@ local CHROME = 74
 
 -- The columns each view shows, left to right.
 GrindingUI.LAYOUTS = {
-    mobs = { "type", "mob", "level", "gives", "worth", "badge" },
-    leather = { "type", "mob", "level", "skill", "gives", "worth", "count", "badge" },
+    mobs = { "type", "mob", "level", "gives", "worth", "kills", "badge" },
+    leather = { "type", "mob", "level", "skill", "gives", "worth", "count", "kills", "badge" },
     nodes = { "mob", "skill", "gives", "count", "spots", "respawn", "worth", "hour" },
     fish = { "mob", "count", "gives", "worth", "hour" },
 }
 -- Every column any view has.
-local ALL_KEYS = { "type", "mob", "level", "skill", "gives", "worth", "count", "spots", "respawn", "hour", "badge" }
+local ALL_KEYS = { "type", "mob", "level", "skill", "gives", "worth", "count", "kills", "spots", "respawn", "hour",
+    "badge" }
 
 local BASE_WIDTH = { type = 74, mob = 190, level = 46, gives = 110, worth = 90, badge = 50,
-    skill = 50, count = 60, spots = 44, respawn = 70, hour = 76 }
-local MAX_WIDTH = { type = 110, mob = 320, gives = 240, worth = 160, skill = 160, count = 90,
+    skill = 50, count = 60, kills = 76, spots = 44, respawn = 70, hour = 76 }
+local MAX_WIDTH = { type = 110, mob = 320, gives = 240, worth = 160, skill = 160, count = 90, kills = 110,
     respawn = 110, hour = 120 }
 
 -- One window width for every view (Cloth, Leather, Ore, Herbs, Fish), so a
@@ -299,7 +300,7 @@ function GrindingUI:Build(frame)
     footer:SetHeight(26)
     footer:SetWordWrap(true)
     footer:SetJustifyV("MIDDLE")
-    footer:SetText(L["Click a camp to point the arrow there. Camps show on your world map too. Target or hover a mob to learn its type."])
+    footer:SetText(L["Click a camp to point the arrow there. A camp's worth comes from your own kills and picks there."])
     self.footer = footer
 
     view:Hide()
@@ -555,7 +556,7 @@ function GrindingUI.HeadingText(layout, key)
         return L["GATHERED"]
     end
     local words = { type = L["TYPE"], level = L["LEVEL"], skill = L["SKILL"], spots = L["SPOTS"],
-        respawn = L["GROWS BACK"], hour = L["AN HOUR"] }
+        respawn = L["GROWS BACK"], hour = L["AN HOUR"], kills = L["YOUR KILLS"] }
     return words[key] or ""
 end
 
@@ -585,6 +586,7 @@ function GrindingUI.FillTips(tips, layout)
     tips.mob = L["Sort each camp's mobs by name."]
     tips.level = L["Sort each camp's mobs by level."]
     tips.gives = L["Sort each camp's mobs by what they give."]
+    tips.kills = L["Sort each camp's mobs by how many you killed there."]
     if layout == "leather" then
         tips.skill = L["Sort each camp's mobs by the Skinning they need."]
         tips.worth = L["Sort each camp's mobs by what a skin is worth."]
@@ -634,6 +636,10 @@ function GrindingUI:CreateRow(row)
     row.heading:SetPoint("LEFT", 8, 0)
     row.heading:SetPoint("RIGHT", -2, 0)
 
+    -- A camp band's "This camp: 1g 20s an hour", on its right.
+    row.campWorth = Theme.CreateLabel(row, "small", "muted", "RIGHT")
+    row.campWorth:SetPoint("RIGHT", -10, 0)
+
     row.type = Theme.CreateLabel(row, "small", "muted")
     row.mob = Theme.CreateLabel(row, "small", "text")
     row.level = Theme.CreateLabel(row, "small", "text", "CENTER")
@@ -642,6 +648,7 @@ function GrindingUI:CreateRow(row)
     row.badge = Theme.CreateLabel(row, "tiny", "good", "RIGHT")
     row.skill = Theme.CreateLabel(row, "small", "text", "CENTER")
     row.count = Theme.CreateLabel(row, "small", "text", "CENTER")
+    row.kills = Theme.CreateLabel(row, "small", "text", "CENTER")
     row.spots = Theme.CreateLabel(row, "small", "text", "CENTER")
     row.respawn = Theme.CreateLabel(row, "small", "muted")
     row.hour = Theme.CreateLabel(row, "small", "good")
@@ -744,8 +751,18 @@ function GrindingUI:SkinText(mob)
     return kept.text, kept.copper, kept.skins
 end
 
+--- What CampWorth says of `camp` (nil while it works it out; always nil
+--- in the views without camps).
+function GrindingUI.CampResult(camp)
+    if type(camp) ~= "table" or not ns.CampWorth then return nil end
+    local ok, result = pcall(ns.CampWorth.For, ns.CampWorth, camp)
+    return ok and result or nil
+end
+
 --- The texts a mob's row shows, by column; shared by drawing and fitting.
-function GrindingUI:MobTexts(mob)
+--- With its `camp`, YOUR KILLS is its kills there, and its worth is "--"
+--- until the camp has enough of your kills to say.
+function GrindingUI:MobTexts(mob, camp)
     local texts = {
         type = mob.type and ns.Grinding.TypeLabel(mob.type) or "?",
         mob = mob.name,
@@ -759,7 +776,53 @@ function GrindingUI:MobTexts(mob)
         texts.count = skins > 0 and tostring(skins) or ""
         texts.skill, texts.short = GrindingUI.SkillText(GrindingUI.SkinNeed(mob), ns.Grinding.SkinningSkill())
     end
+    if camp and ns.CampWorth then
+        local entry = ns.CampWorth:Kills(camp)
+        texts.kills, texts.killsShort = ns.CampWorth.KillsText(entry.mobs[mob.name], entry.total)
+        local result = GrindingUI.CampResult(camp)
+        if result and not result.ready then texts.worth = "--" end
+    end
     return texts
+end
+
+--- The texts a herb or ore row inside a camp shows: "Kingsblood (herb)",
+--- its skill, "19 picked", and its share of the camp's hour.
+function GrindingUI:HerbTexts(herb, camp)
+    local name = herb.kind == "ore" and L.Format("%s (ore)", herb.node) or L.Format("%s (herb)", herb.node)
+    local result = GrindingUI.CampResult(camp)
+    local worth = ""
+    if result and result.ready then
+        worth = "--"
+        for _, each in ipairs(result.herbs or {}) do
+            if each.node == herb.node and each.perHour then worth = ns.Value.Coins(math.floor(each.perHour + 0.5)) end
+        end
+    elseif result then
+        worth = "--"
+    end
+    local view = ns.GrindGather.VIEWS[herb.kind == "ore" and "ore" or "herbs"]
+    local have = view and ns.GrindGather.PlayerSkill(view.skill)
+    local skill, short = GrindingUI.SkillText(GrindingUI.HerbSkill(herb, camp), have)
+    return {
+        mob = name,
+        level = skill,
+        short = short,
+        kills = herb.kind == "ore" and L.Format("%d mined", herb.picks) or L.Format("%d picked", herb.picks),
+        worth = worth,
+    }
+end
+
+--- The skill a herb or vein needs, from the data's rows for its zone (the
+--- least any of them asks), else anywhere; nil when the data doesn't say.
+function GrindingUI.HerbSkill(herb, camp)
+    local rows = ns.GrindGather:DataRows(herb.kind == "ore" and "ore" or "herbs")
+    local here, anywhere
+    for _, row in ipairs(rows) do
+        if row.node == herb.node and row.skill then
+            anywhere = math.min(anywhere or row.skill, row.skill)
+            if camp and row.zone == camp.zone then here = math.min(here or row.skill, row.skill) end
+        end
+    end
+    return here or anywhere
 end
 
 --- The texts a node's row shows, by column.
@@ -834,9 +897,9 @@ function GrindingUI.FooterText(layout)
     elseif layout == "nodes" then
         hint = L["Click a node to point the arrow at the spots you marked for it. Levels are the zone's levels."]
     elseif layout == "leather" then
-        hint = L["Click a camp to point the arrow there. The Skinning a mob needs comes from its level."]
+        hint = L["Click a camp to point the arrow there. A camp's worth comes from your own kills and picks there."]
     else
-        return L["Click a camp to point the arrow there. Camps show on your world map too. Target or hover a mob to learn its type."]
+        return L["Click a camp to point the arrow there. A camp's worth comes from your own kills and picks there."]
     end
     -- Fishing is read the way the kills panel reads it, not from the
     -- gathering skills, so "Angeln" on a German client counts too.
@@ -869,6 +932,8 @@ function GrindingUI:UpdateRow(row, data)
     self:PlaceRow(row)
 
     row.heading:Hide()
+    row.campWorth:Hide()
+    row.heading:SetPoint("RIGHT", -2, 0)
     row.band:Hide()
     row.bandGlow:Hide()
     row.bandStripe:Hide()
@@ -886,6 +951,14 @@ function GrindingUI:UpdateRow(row, data)
             text = GrindingUI.FishZoneText(data.zone)
         else
             text = GrindingUI.CampText(data.camp)
+            local worth, color = ns.CampWorth.BandText(GrindingUI.CampResult(data.camp))
+            if worth ~= "" then
+                row.campWorth:SetText(worth)
+                row.campWorth:SetTextColor(Theme.Unpack(color or "muted"))
+                row.campWorth:Show()
+                -- The camp's name gives way to its worth, never under it.
+                row.heading:SetPoint("RIGHT", -(Theme.TextWidth("small", Util.StripColor(worth)) + 20), 0)
+            end
         end
         row.heading:SetText(text)
         row.heading:Show()
@@ -893,6 +966,21 @@ function GrindingUI:UpdateRow(row, data)
     end
 
     local columns = self.columns
+
+    if data.type == "herb" then
+        local texts = self:HerbTexts(data.herb, data.camp)
+        for _, key in ipairs({ "mob", "level", "kills", "worth" }) do
+            if columns.shown[key] then
+                row[key]:SetText(texts[key])
+                row[key]:Show()
+            end
+        end
+        row.mob:SetTextColor(Theme.Unpack("good"))
+        row.level:SetTextColor(Theme.Unpack(texts.short and "loss" or "text"))
+        row.kills:SetTextColor(Theme.Unpack("text"))
+        row.worth:SetTextColor(Theme.Unpack(texts.worth == "--" and "dim" or "good"))
+        return
+    end
 
     if data.type == "spot" then
         local spot = data.spot
@@ -949,8 +1037,8 @@ function GrindingUI:UpdateRow(row, data)
     end
 
     local mob = data.mob
-    local texts = self:MobTexts(mob)
-    for _, key in ipairs({ "type", "mob", "level", "gives", "worth", "skill", "count" }) do
+    local texts = self:MobTexts(mob, data.camp)
+    for _, key in ipairs({ "type", "mob", "level", "gives", "worth", "skill", "count", "kills" }) do
         if columns.shown[key] and texts[key] then
             row[key]:SetText(texts[key])
             row[key]:Show()
@@ -967,7 +1055,9 @@ function GrindingUI:UpdateRow(row, data)
     row.gives:SetTextColor(Theme.Unpack(short and "dim" or "muted"))
     row.skill:SetTextColor(Theme.Unpack(short and "loss" or "text"))
     row.count:SetTextColor(Theme.Unpack(short and "dim" or "text"))
-    row.worth:SetTextColor(Theme.Unpack(short and "dim" or (texts.worth:sub(1, 1) == "~" and "muted" or "good")))
+    row.worth:SetTextColor(Theme.Unpack((short or texts.worth == "--") and "dim"
+        or (texts.worth:sub(1, 1) == "~" and "muted" or "good")))
+    row.kills:SetTextColor(Theme.Unpack(texts.killsShort and "loss" or "text"))
 
     -- Classic Era shows no Forever tag (docs/CLASSIC_DIFFERENCES.md).
 end
@@ -1050,6 +1140,22 @@ function GrindingUI:ShowRowTooltip(row, data)
         return
     end
 
+    if data.type == "herb" then
+        local herb, texts = data.herb, self:HerbTexts(data.herb, data.camp)
+        GameTooltip:SetOwner(row, "ANCHOR_RIGHT")
+        GameTooltip:AddLine(("%s, %s"):format(herb.node, data.camp.label), Theme.Unpack("good"))
+        if texts.level ~= "" then
+            GameTooltip:AddDoubleLine(L["Skill"], texts.level, 1, 1, 1, Theme.Unpack(texts.short and "loss" or "text"))
+        end
+        GameTooltip:AddLine(texts.kills, 1, 1, 1)
+        if texts.worth ~= "" and texts.worth ~= "--" then
+            GameTooltip:AddDoubleLine(L["An hour"], texts.worth, 1, 1, 1, Theme.Unpack("good"))
+        end
+        GameTooltip:AddLine(L["Click to point the arrow here."], Theme.Unpack("good"))
+        GameTooltip:Show()
+        return
+    end
+
     if data.type ~= "camp" then return end
     local camp = data.camp
     GameTooltip:SetOwner(row, "ANCHOR_RIGHT")
@@ -1057,8 +1163,71 @@ function GrindingUI:ShowRowTooltip(row, data)
     for _, mob in ipairs(camp.mobs) do
         GameTooltip:AddDoubleLine(mob.name, ns.Search:LevelText(mob), 1, 1, 1, Theme.Unpack("muted"))
     end
+    GrindingUI.AddHourCard(GrindingUI.CampResult(camp))
     GameTooltip:AddLine(L["Click to point the arrow here."], Theme.Unpack("good"))
     GameTooltip:Show()
+end
+
+-- A thin gold rule across the card, as an inline texture.
+local function Rule()
+    local r, g, b = Theme.Unpack("accent")
+    return ("|TInterface\\Buttons\\WHITE8X8:1:180:0:0:8:8:0:8:0:8:%d:%d:%d|t"):format(
+        math.floor(r * 255), math.floor(g * 255), math.floor(b * 255))
+end
+GrindingUI.Rule = Rule
+
+--- The lines of a camp's AN HOUR HERE card: { left, right, kind }, kind
+--- "head", "line", "rule", "total" or "note". Empty until the camp has
+--- enough of your kills.
+function GrindingUI.HourLines(result)
+    local lines = {}
+    if not (result and result.ready) then return lines end
+    local Coins = ns.Value.Coins
+    local function Copper(value) return Coins(math.floor((value or 0) + 0.5)) end
+    lines[#lines + 1] = { L["AN HOUR HERE"], nil, "head" }
+    for _, line in ipairs(result.lines or {}) do
+        lines[#lines + 1] = { ns.CampWorth.Plural(line.name), Copper(line.perHour), "line" }
+    end
+    if (result.coin or 0) > 0 then lines[#lines + 1] = { L["Coin"], Copper(result.coin), "line" } end
+    for _, herb in ipairs(result.herbs or {}) do
+        if herb.perHour then lines[#lines + 1] = { herb.node, Copper(herb.perHour), "herb" } end
+    end
+    lines[#lines + 1] = { Rule(), nil, "rule" }
+    lines[#lines + 1] = { L["In all"], Copper(result.perHour), "total" }
+    local note = ns.CampWorth.HoursText(result.hours)
+    if result.mix then note = note .. " " .. result.mix end
+    lines[#lines + 1] = { note, nil, "note" }
+    return lines
+end
+
+--- Add the AN HOUR HERE card to the tooltip shown.
+function GrindingUI.AddHourCard(result)
+    local lines = GrindingUI.HourLines(result)
+    if #lines == 0 then
+        if result and not result.ready then
+            GameTooltip:AddLine(L["Farm here a while to see"], Theme.Unpack("muted"))
+        end
+        return
+    end
+    GameTooltip:AddLine(" ")
+    for _, line in ipairs(lines) do
+        local left, right, kind = line[1], line[2], line[3]
+        if kind == "head" then
+            GameTooltip:AddLine(left, Theme.Unpack("accent"))
+        elseif kind == "rule" then
+            GameTooltip:AddLine(left)
+        elseif kind == "note" then
+            GameTooltip:AddLine(left, Theme.Unpack("muted"), true)
+        elseif kind == "herb" then
+            local r, g, b = Theme.Unpack("good")
+            GameTooltip:AddDoubleLine(left, right, r, g, b, 1, 1, 1)
+        elseif kind == "total" then
+            local r, g, b = Theme.Unpack("accent")
+            GameTooltip:AddDoubleLine(left, right, r, g, b, 1, 1, 1)
+        else
+            GameTooltip:AddDoubleLine(left, right, 1, 1, 1, 1, 1, 1)
+        end
+    end
 end
 
 --- A camp points the arrow there; a mob opens its loot table, or says why not.
@@ -1119,7 +1288,7 @@ function GrindingUI:OnRowClick(data, button)
         return
     end
 
-    if data.type == "camp" then
+    if data.type == "camp" or data.type == "herb" then
         local camp = data.camp
         ns.Arrow:Grind(camp)
         ns.Print(ns.Grinding:Line(camp))
@@ -1139,7 +1308,7 @@ end
 
 -- The headings that sort a camp's mobs (or a zone's nodes).
 GrindingUI.MOB_KEYS = { type = true, mob = true, level = true, gives = true, worth = true,
-    skill = true, count = true, spots = true, respawn = true, hour = true }
+    skill = true, count = true, kills = true, spots = true, respawn = true, hour = true }
 
 --- What a node sorts by under heading `key`; nodes with nothing go last.
 function GrindingUI:NodeSortValue(node, key)
@@ -1207,7 +1376,11 @@ function GrindingUI:SortedNodes(nodes)
 end
 
 --- What a mob sorts by under heading `key`; mobs with nothing go last.
-function GrindingUI:SortValue(mob, key)
+function GrindingUI:SortValue(mob, key, camp)
+    if key == "kills" then
+        local entry = camp and ns.CampWorth and ns.CampWorth:Kills(camp)
+        return entry and entry.mobs[mob.name] or 0
+    end
     if key == "type" then return mob.type and ns.Grinding.TypeLabel(mob.type):lower() or "~" end
     if key == "mob" then return mob.name:lower() end
     if key == "level" then return (mob.minLevel or 0) * 100 + (mob.maxLevel or mob.minLevel or 0) end
@@ -1230,7 +1403,7 @@ end
 
 --- A camp's mobs in the order the headings ask for (a copy; the camp keeps
 --- its own order).
-function GrindingUI:SortedMobs(mobs)
+function GrindingUI:SortedMobs(mobs, camp)
     local saved = ns.db.grindColumns
     local key = type(saved) == "table" and saved.key
     if not (GrindingUI.MOB_KEYS[key or ""] and self.columns.shown[key]) then return mobs end
@@ -1239,7 +1412,7 @@ function GrindingUI:SortedMobs(mobs)
     local sorted = {}
     for index, mob in ipairs(mobs) do sorted[index] = mob end
     table.sort(sorted, function(a, b)
-        local va, vb = self:SortValue(a, key), self:SortValue(b, key)
+        local va, vb = self:SortValue(a, key, camp), self:SortValue(b, key, camp)
         if va ~= vb then
             if up then return va < vb end
             return va > vb
@@ -1256,8 +1429,15 @@ function GrindingUI:Rows(camps, unknown, low, high)
 
     for _, camp in ipairs(camps) do
         rows[#rows + 1] = { type = "camp", camp = camp }
-        for _, mob in ipairs(self:SortedMobs(camp.mobs)) do
+        for _, mob in ipairs(self:SortedMobs(camp.mobs, camp)) do
             rows[#rows + 1] = { type = "mob", mob = mob, camp = camp }
+        end
+        -- The herbs and ore you gathered in the camp's subzone.
+        if ns.CampWorth then
+            local _, gathered = ns.CampWorth:Kills(camp)
+            for _, herb in ipairs(gathered) do
+                rows[#rows + 1] = { type = "herb", herb = herb, camp = camp }
+            end
         end
     end
 
@@ -1348,11 +1528,12 @@ function GrindingUI:FitColumns(rows, layout)
     -- Then only a column whose words would not fit grows, never past its
     -- most.
     for _, row in ipairs(rows) do
-        local texts = row.type == "mob" and self:MobTexts(row.mob)
+        local texts = row.type == "mob" and self:MobTexts(row.mob, row.camp)
+            or row.type == "herb" and self:HerbTexts(row.herb, row.camp)
             or row.type == "node" and self:NodeTexts(row.node)
             or row.type == "spot" and self:FishTexts(row.spot) or nil
         if texts then
-            for _, key in ipairs({ "type", "mob", "gives", "worth", "skill", "count", "respawn", "hour" }) do
+            for _, key in ipairs({ "type", "mob", "gives", "worth", "skill", "count", "kills", "respawn", "hour" }) do
                 if texts[key] then
                     local want = math.ceil(Theme.TextWidth("small", texts[key]) + 8)
                     if MAX_WIDTH[key] then want = math.min(MAX_WIDTH[key], want) end
@@ -1517,4 +1698,25 @@ function GrindingUI:OnEnable()
         if C_Timer and C_Timer.After then C_Timer.After(1, Changed) else Changed() end
     end)
     ns.RegisterEvent(self, "ZONE_CHANGED_NEW_AREA", Changed)
+
+    -- A kill or a gather moves a camp's worth: the rows on screen ask again
+    -- (CampWorth works the camps out a few a frame), and once it is done
+    -- they are drawn with it; under Best Worth the camps are sorted again.
+    if ns.CampWorth then
+        ns.CampWorth.onDone = function()
+            local frame = ns.UI and ns.UI.frame
+            if not (GrindingUI.view and GrindingUI.view:IsShown() and frame and frame:IsShown()) then return end
+            if ns.Grinding.Sort() == "worth" then
+                GrindingUI:Render()
+            elseif GrindingUI.list then
+                GrindingUI.list:Refresh()
+            end
+        end
+    end
+    ns.RegisterEvent(self, "LOOT_CLOSED", function()
+        local frame = ns.UI and ns.UI.frame
+        if GrindingUI.view and GrindingUI.view:IsShown() and frame and frame:IsShown() and GrindingUI.list then
+            GrindingUI.list:Refresh()
+        end
+    end)
 end

@@ -469,6 +469,25 @@ section "f"), so the pace never leaves the account.
 `FishZoneText`, `FishRows`. `/farm grind fish`. Tested in
 `tools/test_fishview.lua`. Not yet seen in game.
 
+## Camp worth on the Grind tab (Classic first)
+
+The owner said build it (2026-10-29), in Classic before Forever: on the
+Cloth and Leather views each camp band says "This camp: X an hour",
+worked out only from your own play in that camp's subzone
+(`Logic/CampWorth.lua`): each mob's `Value:FromTally` (your own rates)
+weighted by your kills there, its coin, and the herbs or ore you picked
+there (`gathering.nodes`, priced by `GrindGather.Worth`), all at your own
+pace (`Stats:SecondsPerKill`, `gathering.pace`). Never shipped or guild
+data. Under `Tracker.MIN_KILLS` kills in the camp the band says "Farm here
+a while to see" and its mobs' worth reads "--". YOUR KILLS shows "88
+(35%)", or "7/20" in red; a herb row "Kingsblood (herb)" sits in its camp;
+the band's hover adds AN HOUR HERE (`GrindingUI.HourLines`); the Sort menu
+has Best Worth (`grindSort` "worth", not the default). Nothing is saved:
+`CampWorth:Index` is laid out once a stamp (Stats, Harvest, pace and hide
+versions), and camps are worked out `BUDGET` a frame while the tab shows
+(`CampWorth:For`, `Step`). Ore, Herbs and Fish are unchanged. Tested in
+`tools/test_campworth.lua`. Not yet seen in game.
+
 ## The fishing bar (Classic only)
 
 A player asked, the owner approved the mockup and said build it

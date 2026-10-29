@@ -91,6 +91,14 @@ used only once the character knows it, so they need no change.
   grey. Fishing still marks only schools you moused over, as Forever does.
 - Tested in `tools/test_mapicons.lua`. Keep all of it on a catch-up.
 
+### Camp worth on the Grind tab
+- Built here first (2026-10-29), so Forever does not have it yet:
+  `Logic/CampWorth.lua`, the camp band's "This camp:" line, YOUR KILLS,
+  herb rows, the AN HOUR HERE card and the Best Worth sort in
+  `UI/Grinding.lua` and `Logic/Grinding.lua`. A Forever change to the Grind
+  tab's camps is a clash; keep all of this.
+- Tested in `tools/test_campworth.lua`.
+
 ### Notes and docs
 - `CLAUDE.md` opens with "This repo is the Classic Era copy".
 - `README.md` names the Classic CurseForge project.
