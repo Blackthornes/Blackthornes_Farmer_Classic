@@ -16,15 +16,59 @@ local Theme = ns.Theme
 local Widgets = ns.Widgets
 local Util = ns.Util
 
-local ROW = 20
+local ROW = 26
 local MOST = 3
+-- How far in from the rim the rows sit, and the words from a row's left.
+local INSET = 4
+local PAD = 10
 -- Seconds it waits for the mouse to come onto it.
 HideMenu.WAIT = 6
+
+--- One line: dark glass, a shade apart from the one above, a fine line
+--- under it, and the gold edge and wash under the mouse.
+local function CreateLine(menu, index)
+    local line = CreateFrame("Button", nil, menu)
+    line:SetHeight(ROW)
+    line:SetPoint("TOPLEFT", INSET, -INSET - (index - 1) * ROW)
+    line:SetPoint("TOPRIGHT", -INSET, -INSET - (index - 1) * ROW)
+    pcall(line.RegisterForClicks, line, "LeftButtonUp", "RightButtonUp")
+
+    line.stripe = Theme.Fill(line, index % 2 == 1 and "glass" or "glassAlt")
+    line.rule = line:CreateTexture(nil, "BACKGROUND", nil, 1)
+    line.rule:SetPoint("BOTTOMLEFT")
+    line.rule:SetPoint("BOTTOMRIGHT")
+    line.rule:SetHeight(1)
+    line.rule:SetColorTexture(Theme.Unpack("border", 0.6))
+    Widgets.RowLight(line)
+
+    line.label = Theme.CreateLabel(line, "small", "text", "LEFT")
+    line.label:SetPoint("LEFT", PAD, 0)
+    line.label:SetPoint("RIGHT", -PAD, 0)
+
+    line:SetScript("OnClick", function(self) HideMenu:Pick(self.choice) end)
+    line:SetScript("OnEnter", function(self)
+        HideMenu.entered = true
+        Widgets.SetRowLight(self, 1)
+    end)
+    line:SetScript("OnLeave", function(self)
+        Widgets.SetRowLight(self, 0)
+        if C_Timer and C_Timer.After then
+            C_Timer.After(0.3, function() HideMenu:CloseIfLeft() end)
+        end
+    end)
+    line:Hide()
+    return line
+end
 
 function HideMenu:Build()
     if self.frame then return self.frame end
 
-    local menu = Theme.CreatePanel(UIParent, "panel", "metal")
+    -- The house menu: a thin gold rim round the dark, the lines in glass.
+    local menu = Theme.CreatePanel(UIParent, "window", "accent")
+    menu.inner = CreateFrame("Frame", nil, menu)
+    menu.inner:SetPoint("TOPLEFT", 1, -1)
+    menu.inner:SetPoint("BOTTOMRIGHT", -1, 1)
+    Theme.Border(menu.inner, "metal")
     pcall(menu.SetFrameStrata, menu, "FULLSCREEN_DIALOG")
     pcall(menu.SetToplevel, menu, true)
     pcall(menu.SetClampedToScreen, menu, true)
@@ -33,14 +77,7 @@ function HideMenu:Build()
 
     menu.lines = {}
     for index = 1, MOST do
-        local line = Widgets.CreateChip(menu, "", function(self)
-            HideMenu:Pick(self.choice)
-        end, { noUnderline = true })
-        line:SetPoint("TOPLEFT", 4, -4 - (index - 1) * ROW)
-        line:SetPoint("TOPRIGHT", -4, -4 - (index - 1) * ROW)
-        line:HookScript("OnEnter", function() HideMenu.entered = true end)
-        line:Hide()
-        menu.lines[index] = line
+        menu.lines[index] = CreateLine(menu, index)
     end
 
     -- Leaving it closes it, once the mouse has been on it. A line takes the
@@ -51,13 +88,6 @@ function HideMenu:Build()
             C_Timer.After(0.3, function() HideMenu:CloseIfLeft() end)
         end
     end)
-    for _, line in ipairs(menu.lines) do
-        line:HookScript("OnLeave", function()
-            if C_Timer and C_Timer.After then
-                C_Timer.After(0.3, function() HideMenu:CloseIfLeft() end)
-            end
-        end)
-    end
 
     self.frame = menu
     return menu
@@ -104,18 +134,19 @@ function HideMenu:Open(choices)
                 local shown = choice.kind == "item" and Util.ColorItem(choice.name) or choice.name
                 line.label:SetText(L.Format("Hide %s", shown))
             end
-            local w = Theme.TextWidth("tiny", line.label:GetText())
+            local w = Theme.TextWidth("small", line.label:GetText())
             local ok, drawn = pcall(line.label.GetStringWidth, line.label)
             if ok and type(drawn) == "number" and drawn > w then w = drawn end
-            width = math.max(width, math.ceil(w) + 24)
+            width = math.max(width, math.ceil(w) + PAD * 2)
+            Widgets.SetRowLight(line, 0)
             line:Show()
         else
             line.choice = nil
             line:Hide()
         end
     end
-    menu:SetWidth(width + 8)
-    menu:SetHeight(8 + #kept * ROW - 2)
+    menu:SetWidth(width + INSET * 2)
+    menu:SetHeight(INSET * 2 + #kept * ROW)
 
     -- At the mouse, its top left corner just under it.
     menu:ClearAllPoints()

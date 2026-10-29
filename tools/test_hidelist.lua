@@ -173,6 +173,20 @@ suite.check("a right-click opens the menu", opened and menu:IsShown())
 suite.check("with a line each", menu.lines[1]:IsShown() and menu.lines[2]:IsShown()
     and not menu.lines[3]:IsShown())
 suite.check("named", menu.lines[1].label:GetText() == "Hide Kobold Vermin", menu.lines[1].label:GetText())
+-- The house menu: a gold rim, dark glass lines a shade apart, and the gold
+-- edge only on the line under the mouse.
+suite.check("a gold rim", menu.borderTextures ~= nil and menu.inner and menu.inner.borderTextures ~= nil)
+suite.check("glass lines a shade apart", menu.lines[1].stripe and menu.lines[2].stripe
+    and menu.lines[1].stripe ~= menu.lines[2].stripe)
+suite.check("each with the hover light", menu.lines[1].edge and menu.lines[1].highlight)
+local lit = {}
+local realLight = ns.Widgets.SetRowLight
+ns.Widgets.SetRowLight = function(row, value) lit[row] = value end
+menu.lines[1]:GetScript("OnEnter")(menu.lines[1])
+suite.check("the line under the mouse lights", lit[menu.lines[1]] == 1 and lit[menu.lines[2]] == nil)
+menu.lines[1]:GetScript("OnLeave")(menu.lines[1])
+suite.check("and goes dark again", lit[menu.lines[1]] == 0)
+ns.Widgets.SetRowLight = realLight
 -- At the mouse, not the middle of the screen (a player found it there).
 local point = menu._point
 suite.check("it opens at the mouse", point and point[1] == "TOPLEFT" and point[3] == "BOTTOMLEFT"

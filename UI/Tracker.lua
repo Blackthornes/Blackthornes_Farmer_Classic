@@ -671,14 +671,14 @@ function TrackerUI:Build()
     title:SetPoint("LEFT", header, "TOPLEFT", PADDING + 4, -TITLE_LINE / 2)
     title:SetText(L["Kills & Loot"])
 
-    local close = Widgets.CreateButton(header, "X", function()
+    local close = Widgets.HeaderCloseGem(header, function()
         ns.db.trackerHidden = true
         TrackerUI:Refresh()
         -- An open Settings page shows the panel's switch: keep it in step,
         -- as /farm tracker off does.
         if ns.SettingsUI and ns.SettingsUI.Refresh then ns.SettingsUI:Refresh() end
         ns.Print(L["kill and loot panel hidden. /farm tracker brings it back."])
-    end, { width = 18, height = 16, danger = true })
+    end)
     close:SetPoint("RIGHT", header, "TOPRIGHT", -6, -TITLE_LINE / 2)
 
     -- The session's gathered value on the title bar's second line
@@ -1091,7 +1091,7 @@ end
 --- How long a first click on Clear waits for the second, in seconds.
 TrackerUI.CLEAR_ARMED = 4
 
---- A Clear panel button: the first click asks "Sure?", a second within
+--- A Clear panel button: the first click asks "Click Again", a second within
 --- CLEAR_ARMED seconds empties what the panel shows (Session:Clear). Only
 --- the view goes; every tally, rate and ranking stays. Used on the panel and
 --- in Settings.
@@ -1108,9 +1108,9 @@ function TrackerUI.ClearButton(parent, width, height)
     local function Arm(on, at)
         button.armed, armedAt = on, at
         if button.SetText then
-            button:SetText(on and L["Sure?"] or L["Clear"])
+            button:SetText(on and L["Click Again"] or L["Clear"])
         elseif button.label then
-            button.label:SetText(on and L["Sure?"] or L["Clear"])
+            button.label:SetText(on and L["Click Again"] or L["Clear"])
         end
     end
 

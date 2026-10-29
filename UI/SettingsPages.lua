@@ -352,7 +352,7 @@ function Page:BuildBar()
     end
 
     -- The house order for an option bar: search, then tick boxes.
-    self.describe = Widgets.CreateCheckbox(bar, L["Show descriptions"], function(checked)
+    self.describe = Widgets.CreateCheckbox(bar, L["Show Descriptions"], function(checked)
         self:DB().settingsDescriptions = checked
         self:ShowDescriptions(checked)
     end, false)
@@ -389,7 +389,7 @@ function Page:BarWidth()
         if index > 1 then width = width + SWITCH_GAP end
     end
     -- The tick box is its square, a gap and its words.
-    local tick = 24 + Theme.TextWidth("small", L["Show descriptions"])
+    local tick = 24 + Theme.TextWidth("small", L["Show Descriptions"])
     return width + BAR_GAP + 170 + BAR_GAP + tick
 end
 

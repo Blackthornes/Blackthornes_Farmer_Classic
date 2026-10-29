@@ -256,7 +256,7 @@ function UI:ImportRemove(row)
         return
     end
     row.confirming = true
-    row.remove:SetText(L["Sure?"])
+    row.remove:SetText(L["Click Again"])
     C_Timer.After(4, function()
         if row.confirming then
             row.confirming = false

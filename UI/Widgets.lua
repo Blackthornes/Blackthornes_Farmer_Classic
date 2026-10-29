@@ -1173,6 +1173,22 @@ function Widgets.SetRowLight(row, value)
     Theme.LightGradient(row.lightWash, "HORIZONTAL", "accent", 0.10, 0, value)
 end
 
+--- The small red close gem on a panel that keeps its own frame (the Kills &
+--- Loot and Goals panels): Titanforged's gem, sized for a title bar, its
+--- glow scaled with it. The flat red "X" where the gem art is not loaded.
+function Widgets.HeaderCloseGem(parent, onClick, size)
+    size = size or 18
+    local Titanforged = ns.Titanforged
+    if not (Titanforged and Titanforged.CloseGem) then
+        return Widgets.CreateButton(parent, "X", onClick, { width = 18, height = 16, danger = true })
+    end
+    local close = Titanforged.CloseGem(parent, onClick)
+    close:SetSize(size, size)
+    if close.glow then close.glow:SetSize(size * 2.2, size * 2.2) end
+    close:ClearAllPoints()
+    return close
+end
+
 --- A scrolling list that recycles row frames.
 --
 -- Where CreateLineList draws one label per line, this gives each row a set of

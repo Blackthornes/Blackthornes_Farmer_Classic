@@ -291,11 +291,11 @@ function GoalsUI:Build()
     title:SetPoint("LEFT", PADDING + 4, 0)
     title:SetText(L["Goals"])
 
-    local close = Widgets.CreateButton(header, "X", function()
+    local close = Widgets.HeaderCloseGem(header, function()
         ns.db.goalsHidden = true
         GoalsUI:Refresh()
         ns.Print(L["goals panel hidden. /farm goals brings it back."])
-    end, { width = 18, height = 16, danger = true })
+    end)
     close:SetPoint("RIGHT", -6, 0)
 
     local rule = Theme.CreateDivider(frame, "borderLit")
@@ -440,9 +440,9 @@ function GoalsUI:Card(index)
     card.sub:SetPoint("TOPLEFT", card.name, "BOTTOMLEFT", 0, -2)
 
     -- The best places near you to farm it (2026-09-27).
-    card.where = Widgets.CreateButton(card, L["Where?"], function()
+    card.where = Widgets.CreateButton(card, L["Places"], function()
         if card.goal then GoalsUI:OpenSpots(card.goal.item, GoalsUI.frame) end
-    end, { width = 46, height = 15, labelKey = "accent" })
+    end, { width = 52, height = 15, labelKey = "accent" })
     card.where:HookScript("OnLeave", function()
         if GameTooltip then GameTooltip:Hide() end
     end)

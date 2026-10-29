@@ -428,6 +428,29 @@ local ranked = TUI.Stripe({ { style = "loot", rank = 1 }, { style = "loot", rank
 suite.check("glass: the Loot tab shades by rank",
     ranked[1].glass == "glass" and ranked[2].glass == "glassAlt")
 
+-- The panels close with the small red gem, not a flat "X", and the gem
+-- does what the X did.
+local gem = TUI.closeButton
+suite.check("Kills & Loot closes with the red gem", gem and gem.glow ~= nil)
+local printed
+local realPrint = ns.Print
+ns.Print = function(text) printed = text end
+gem:GetScript("OnClick")(gem)
+suite.check("the gem hides the panel", ns.db.trackerHidden == true)
+suite.check("and says how to bring it back", printed and printed:find("/farm tracker", 1, true) ~= nil, printed)
+ns.db.trackerHidden = nil
+if ns.GoalsUI and ns.GoalsUI.Build then
+    ns.GoalsUI:Build()
+    local goalsGem = ns.GoalsUI.closeButton
+    suite.check("Goals closes with the red gem too", goalsGem and goalsGem.glow ~= nil)
+    printed = nil
+    goalsGem:GetScript("OnClick")(goalsGem)
+    suite.check("the gem hides the goals panel", ns.db.goalsHidden == true)
+    suite.check("and says how to bring it back", printed and printed:find("/farm goals", 1, true) ~= nil, printed)
+    ns.db.goalsHidden = nil
+end
+ns.Print = realPrint
+
 Theme.SetGradientAlpha = SetGradientAlpha
 Theme.SetHalo = SetHalo
 _G.PlaySoundFile = nil
