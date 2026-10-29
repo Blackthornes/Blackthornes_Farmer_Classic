@@ -242,6 +242,33 @@ suite.check("no matching map pins where you stand", placed and placed.map == 427
 _G.C_Map.GetMapInfo = nil
 env.world.mapID = 21
 
+-- Forever turns the game's pin down without a word (a German player found
+-- nothing at the Crossroads, 2026-10-29): our own gold marker goes on the
+-- spot, and "pinned" is said only because it shows.
+ns.SpotMarker:Clear()
+local setPin = _G.C_Map.SetUserWaypoint
+_G.C_Map.SetUserWaypoint = nil
+env.chat = {}
+local here = { name = "Copper Vein", zone = "Loch Modan", coords = { 40, 60 }, hops = 0 }
+suite.check("no game pin: still shown", Spots:Share("Copper Ore", here) == true)
+local light = ns.SpotMarker.current
+suite.check("our marker on the spot", light and light.map == 21 and light.x == 40 and light.y == 60,
+    light and light.map)
+suite.check("named for the node", light and light.name == "Copper Vein")
+suite.check("it goes when you stand there", light and light.arrow == ns.Arrow and light.gamePin == false)
+suite.check("chat says pinned", env.chat[1] and env.chat[1]:find("pinned") ~= nil, env.chat[1])
+-- A pin the game turns down, with no marker either, is never called pinned.
+_G.C_Map.SetUserWaypoint = setPin
+_G.C_Map.HasUserWaypoint = function() return false end
+local marker = ns.SpotMarker
+ns.SpotMarker = nil
+env.chat = {}
+suite.check("a pin turned down is not pinned", Spots:Share("Copper Ore", here) == false)
+suite.check("and chat says nothing of a pin", env.chat[1] and env.chat[1]:find("pinned") == nil, env.chat[1])
+ns.SpotMarker = marker
+_G.C_Map.HasUserWaypoint = nil
+marker:Clear()
+
 -- The same button again closes it.
 card.where:GetScript("OnClick")(card.where, "LeftButton")
 suite.check("second click closes", not panel:IsShown())

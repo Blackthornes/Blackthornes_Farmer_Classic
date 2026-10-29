@@ -709,12 +709,9 @@ end
 -- "Here" for the ranking takes in a dungeon or a capital inside the zone,
 -- but their coordinates are on maps of their own: a pin is only put down
 -- when the spot's zone is the very zone you are in.
-function Spots:Mark(spot)
+function Spots:Mark(spot, name)
     if not (spot and spot.coords and spot.hops == 0) then return false end
-    if not (type(C_Map) == "table" and type(C_Map.SetUserWaypoint) == "function") then return false end
-    if not (type(UiMapPoint) == "table" and type(UiMapPoint.CreateFromCoordinates) == "function") then
-        return false
-    end
+    if type(C_Map) ~= "table" then return false end
 
     if type(spot.zone) ~= "string" then return false end
     -- Your own records keep the client's name for the zone.
@@ -723,20 +720,44 @@ function Spots:Mark(spot)
 
     local mapID = ZoneMapID(zone)
     if not mapID then return false end
+    local x, y = tonumber(spot.coords[1]), tonumber(spot.coords[2])
+    if not (x and y) then return false end
 
-    local ok = pcall(function()
-        local point = UiMapPoint.CreateFromCoordinates(mapID, spot.coords[1] / 100, spot.coords[2] / 100)
-        C_Map.SetUserWaypoint(point)
-        if type(C_SuperTrack) == "table" and type(C_SuperTrack.SetSuperTrackedUserWaypoint) == "function" then
-            C_SuperTrack.SetSuperTrackedUserWaypoint(true)
+    -- The game's own pin, when the client takes one. Forever turns it down
+    -- without a word (a German player found nothing at the Crossroads,
+    -- 2026-10-29), so only a pin it kept counts.
+    local gamePin = false
+    if type(C_Map.SetUserWaypoint) == "function" and type(UiMapPoint) == "table"
+        and type(UiMapPoint.CreateFromCoordinates) == "function" then
+        gamePin = pcall(function()
+            local point = UiMapPoint.CreateFromCoordinates(mapID, x / 100, y / 100)
+            C_Map.SetUserWaypoint(point)
+            if type(C_SuperTrack) == "table" and type(C_SuperTrack.SetSuperTrackedUserWaypoint) == "function" then
+                C_SuperTrack.SetSuperTrackedUserWaypoint(true)
+            end
+        end)
+        if gamePin and type(C_Map.HasUserWaypoint) == "function" then
+            local ok, has = pcall(C_Map.HasUserWaypoint)
+            if ok and has == false then gamePin = false end
         end
-    end)
-    return ok
+    end
+
+    -- Our own gold marker (UI/SpotMarker.lua) shows whether the game took a
+    -- pin or not; with the game's pin it goes with it, without one when you
+    -- stand there.
+    local marked = false
+    local marker = ns.SpotMarker
+    if marker and marker.Show then
+        local ok, laid = pcall(marker.Show, marker, { map = mapID, x = x, y = y },
+            { name = name or spot.name, gamePin = gamePin, arrow = ns.Arrow })
+        marked = ok and laid == true
+    end
+    return marked or gamePin
 end
 
 --- Print a spot and pin it on the map where that can be done.
 function Spots:Share(itemName, spot)
-    local marked = self:Mark(spot)
+    local marked = self:Mark(spot, spot and spot.name)
     ns.Print(("%s: %s%s"):format(Util.Colored("accent", itemName), self:Line(spot),
         marked and Util.Colored("good", L["  (pinned on your map)"]) or ""))
     return marked

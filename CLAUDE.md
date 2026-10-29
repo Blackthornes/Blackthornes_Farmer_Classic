@@ -954,6 +954,23 @@ the latest claim is drawn; the others wait hidden. The lines are the same
 in each dial's file (`ArrowUI:Claim`, `ArrowUI.Wins`); a change to them
 belongs in all three.
 
+## Our own map marker
+
+A German player found nothing at the Crossroads; the owner said do all
+six fixes (2026-10-29, in every addon): Forever turns the game's map pin
+down without a word, so a click on a Where to farm place in the zone you
+stand in (`Spots:Share`, `Spots:Mark(spot, name)`) lays our own gold
+marker on it (`UI/SpotMarker.lua`, the same file in Pets, Tradeskills,
+Butler and Farmer; Equipment's `MapPins:Spotlight` is the same look, a
+fix to one belongs in all): a gold ring with the name under it, two waves
+for `WAVE_FOR` seconds then a breathing glow (Effects Subtle a still
+glow, Off still). The game's pin is still tried and counts only when
+`C_Map.HasUserWaypoint` says it stuck; with it the marker goes with the
+pin, without it when you stand within `Arrow.ARRIVED_NODE` of the spot.
+"(pinned on your map)" is said only when one of them shows. Listed in
+`tools/testenv.lua`'s `UI_FILES`. Tested in `tools/test_spots.lua`. Not
+yet seen in game.
+
 ## The way there (arrows across zones and the sea)
 
 The owner said build it (2026-10-21, from a mockup): an arrow aimed at a
@@ -973,8 +990,11 @@ again on a new place, zone change, landing or flight learned, else every
 `REPLAN` seconds; held still on a flight (`UnitOnTaxi`) and in a fight.
 `Data/Travel.lua` (flight masters, flights, docks, rides) is written by
 `tools/make_travel.py <tables> <build>` from the Forever client's game
-tables (TaxiNodes, TaxiPath, GameObjects); never by hand, and each dock
-spot is a real row (`DOCKS`). The arrow's state carries `trip`
+tables (TaxiNodes, TaxiPath, TaxiPathNode, GameObjects); never by hand,
+and each dock spot is a real row (`DOCKS`). A flight's time is its real
+length along its TaxiPathNode points (`lengths`, one a pair in `paths`'
+order, 2026-10-28) over `FLIGHT_SPEED`; only a 0 falls back to the
+straight line times `FLIGHT_DETOUR`. The arrow's state carries `trip`
 (`Arrow:TripState`: "Step 2 of 3", the step's words); TomTom gets the next
 stop (`TomTomLink.Point`). `UI/TravelCard.lua` is "Your Way There"
 (`travelCardX`, `travelCardY`, `travelCardScale`), `UI/TravelMap.lua` the
