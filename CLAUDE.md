@@ -2047,6 +2047,11 @@ marks, streaks, "Up to #N!", "Goal done: X!"), and `About.NOTE` is the
 owner's own wording. This rule is in every addon's notes; keep them the
 same.
 
+**Label and value only** (the owner, 2026-10-29): no extra descriptive
+line under a label, a name or a number unless it is truly needed. Show
+the label and the value only; anything more goes on the hover. This rule
+is in every addon's notes; keep them the same.
+
 ## The owner's standing rules (both addons)
 
 - **Every list is dark glass** (the owner, 2026-10-12: "keep this as the
