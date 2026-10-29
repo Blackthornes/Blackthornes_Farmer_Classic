@@ -335,7 +335,7 @@ function StatsUI:PlaceSwitch()
         switch:SetPoint("RIGHT", settings, "LEFT", -12, 0)
         self.switchPlaced = true
     else
-        switch:SetPoint("TOPRIGHT", self.view, "TOPRIGHT", -(PADDING + 80), -(ns.UI.HEAD_TOP or 26))
+        switch:SetPoint("TOPRIGHT", self.view, "TOPRIGHT", -PADDING, -(ns.UI.HEAD_TOP or 26))
     end
     local killGoal = self.killGoalButton
     if killGoal then

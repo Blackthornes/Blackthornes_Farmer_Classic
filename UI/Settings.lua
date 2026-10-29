@@ -161,6 +161,9 @@ function SettingsUI:ApplyWindowScale(previous)
     -- Converted even while the window is not built yet: it opens at the new size.
     if previous then SettingsUI.KeepSpot({ "x", "y" }, previous, ns.db.windowScale or 100) end
 
+    -- Settings is the window's tab and wears its scale too.
+    if self.frame then self.frame:SetScale((ns.db.windowScale or 100) / 100) end
+
     local UI = ns.UI
     if UI and UI.frame then
         UI.frame:SetScale((ns.db.windowScale or 100) / 100)
@@ -297,13 +300,47 @@ function SettingsUI:FillBar()
     COLUMN_WIDTH, CONTROL_X = BASE_COLUMN_WIDTH, BASE_CONTROL_X
     local natural = PADDING * 2 + COLUMN_WIDTH * 2 + COLUMN_GAP
     local ok, bar = pcall(pages.BarWidth, pages)
-    if not ok or type(bar) ~= "number" or bar <= natural then return end
-    local grow = math.floor((bar - natural) / 2)
+    if not ok or type(bar) ~= "number" then bar = 0 end
+    -- Settings is the window's last tab, so it fills the window's width too
+    -- (asked before its own need is known, so it never feeds itself).
+    local window = SettingsUI.WindowSize()
+    local room = math.max(bar, window or 0)
+    if room <= natural then return end
+    local grow = math.floor((room - natural) / 2)
     COLUMN_WIDTH = COLUMN_WIDTH + grow
     CONTROL_X = CONTROL_X + math.floor(grow / 2)
     pages.opts.columnWidth = COLUMN_WIDTH
     pages.opts.controlX = CONTROL_X
     pages.columnX[2] = PADDING + COLUMN_WIDTH + COLUMN_GAP
+end
+
+--- The main window's width and height, or nil before it can say. Settings
+--- is its last tab and opens at the same size (the owner, 2026-10-27).
+function SettingsUI.WindowSize()
+    local UI = ns.UI
+    if not (UI and UI.WindowWidth and UI.WindowHeight) then return nil end
+    local okW, width = pcall(UI.WindowWidth, UI)
+    local okH, height = pcall(UI.WindowHeight, UI)
+    if not (okW and okH and type(width) == "number" and type(height) == "number") then return nil end
+    return width, height
+end
+
+--- After the pages fit themselves: keep what Settings needs (the main
+--- window grows to it), then take the shared size, so every tab is one
+--- size and Settings opens exactly in the window's place.
+function SettingsUI:TakeWindowSize()
+    local frame = self.frame
+    if not frame then return end
+    self.need = { frame:GetWidth(), frame:GetHeight() }
+    local width, height = SettingsUI.WindowSize()
+    if not width then return end
+    if frame:GetWidth() ~= width then
+        frame:SetWidth(width)
+        local strip = rawget(self, "tabStrip")
+        if strip and strip.SetRoom then strip:SetRoom(width - 2 * (ns.UI.TAB_INSET or 34)) end
+    end
+    if frame:GetHeight() ~= height then frame:SetHeight(height) end
+    if ns.UI and rawget(ns.UI, "frame") and ns.UI.ApplySize then ns.UI:ApplySize() end
 end
 
 --- Give every stepper the widest one's width, never past `room`.
@@ -382,6 +419,11 @@ function SettingsUI:Build()
         db = function() return ns.db end,
     })
     self:FillBar()
+    local fit = self.pages.Fit
+    self.pages.Fit = function(pages, ...)
+        fit(pages, ...)
+        SettingsUI:TakeWindowSize()
+    end
 
     -- Every +/- box and drop-down on every page comes out the same width,
     -- the widest one's, so they line up down the page (2026-10-22).
@@ -411,19 +453,40 @@ function SettingsUI:Build()
     SettingsUI.EvenSteppers(steppers, COLUMN_WIDTH - CONTROL_X)
     self.pages:Fit()
 
+    -- The window's tabs hang below, Settings last on the right and lit
+    -- (the owner, 2026-10-27: "Last tab on bottom right will always be
+    -- settings"). Another tab opens the main window in this one's place.
+    if ns.UI and ns.UI.Tabs and Widgets.CreateTabStrip then
+        local inset = ns.UI.TAB_INSET or 34
+        local strip = Widgets.CreateTabStrip(frame, ns.UI.Tabs(), function(key)
+            SettingsUI:OpenTab(key)
+        end, { width = frame:GetWidth() - 2 * inset, hanging = true })
+        strip:SetPoint("TOPLEFT", frame, "BOTTOMLEFT", inset, 0)
+        strip:Select("settings")
+        self.tabStrip = strip
+    end
+    if self.trim and ns.Titanforged and ns.Titanforged.Reach and frame.SetClampRectInsets then
+        local left, right, top, bottom = ns.Titanforged.Reach(self.trim)
+        pcall(frame.SetClampRectInsets, frame, -left, right, top, -math.max(bottom or 0, SettingsUI.TAB_HANG))
+    end
+
     -- The house size grip under the bottom right corner
-    -- (Widgets.CreateSizeGrip), saved as `settingsScale`.
+    -- (Widgets.CreateSizeGrip). It is the window's own scale, `windowScale`,
+    -- shared by every tab; `settingsScale` stays in the save, unread.
     local below = 0
     if self.trim and ns.Titanforged and ns.Titanforged.Reach then
         local _, _, _, bottom = ns.Titanforged.Reach(self.trim)
         if type(bottom) == "number" then below = bottom end
     end
-    Widgets.ApplySize(frame, ns.db and ns.db.settingsScale)
+    Widgets.ApplySize(frame, ns.db and ns.db.windowScale)
     self.sizeGrip = Widgets.CreateSizeGrip(frame, {
         below = below,
-        get = function() return ns.db and ns.db.settingsScale end,
-        save = function(percent) if ns.db then ns.db.settingsScale = percent end end,
-        done = function() SettingsUI:SavePosition() end,
+        get = function() return ns.db and ns.db.windowScale end,
+        save = function(percent) if ns.db then ns.db.windowScale = percent end end,
+        done = function()
+            SettingsUI:SavePosition()
+            if ns.UI and ns.UI.ApplyScale then ns.UI:ApplyScale() end
+        end,
     })
 
     local footer = Theme.CreateLabel(frame, "tiny", "dim")
@@ -1608,15 +1671,20 @@ end
 -- Position
 --------------------------------------------------------------------------------
 
+-- Settings opens in the main window's place, so it keeps the window's own
+-- spot (`point`, `relativePoint`, `x`, `y`): the same anchor, size and
+-- scale put it exactly where the window was. `settingsPoint`,
+-- `settingsRelativePoint`, `settingsX` and `settingsY` stay in the save,
+-- unread (2026-10-27).
 function SettingsUI:SavePosition()
     if not (ns.db and self.frame) then return end
 
     local point, _, relativePoint, x, y = self.frame:GetPoint()
 
-    ns.db.settingsPoint = point
-    ns.db.settingsRelativePoint = relativePoint
-    ns.db.settingsX = x
-    ns.db.settingsY = y
+    ns.db.point = point
+    ns.db.relativePoint = relativePoint
+    ns.db.x = x
+    ns.db.y = y
 end
 
 function SettingsUI:RestorePosition()
@@ -1626,24 +1694,48 @@ function SettingsUI:RestorePosition()
 
     if ns.Motion then ns.Motion:Stop(self.frame, "open", true) end
     self.frame:ClearAllPoints()
-    self.frame:SetPoint(db.settingsPoint or "CENTER", UIParent,
-        db.settingsRelativePoint or "CENTER", db.settingsX or 0, db.settingsY or 0)
+    self.frame:SetPoint(db.point or "CENTER", UIParent,
+        db.relativePoint or "CENTER", db.x or 0, db.y or 40)
 end
 
 --------------------------------------------------------------------------------
 -- Visibility
 --------------------------------------------------------------------------------
 
+-- How far below the window the tabs reach, kept on screen with it.
+SettingsUI.TAB_HANG = 28
+
+--- Open Settings. With the main window up it steps aside and Settings opens
+--- in its place, at the same size and scale, without the opening rise.
 function SettingsUI:Show()
     self:Build()
 
     if not self.frame:IsShown() then
+        local main = ns.UI and rawget(ns.UI, "frame")
+        local switching = main and main:IsShown()
+        if switching then
+            pcall(ns.UI.SavePosition, ns.UI)
+            main:Hide()
+        end
+        if self.pages and self.pages.fitted then self:TakeWindowSize() end
+        Widgets.ApplySize(self.frame, ns.db and ns.db.windowScale)
         self:RestorePosition()
         self.frame:Show()
-        ns.Motion:Open(self.frame)
+        if not switching then ns.Motion:Open(self.frame) end
     end
+    if self.tabStrip and self.tabStrip.selected ~= "settings" then self.tabStrip:Select("settings") end
 
     self:Refresh()
+end
+
+--- A tab under Settings was clicked: another opens the main window here.
+function SettingsUI:OpenTab(key)
+    if key == "settings" then return end
+    if not ns.UI then return end
+    ns.UI.searching = key ~= "search" or nil
+    ns.UI:Show()
+    ns.UI.searching = nil
+    ns.UI:ShowTab(key)
 end
 
 function SettingsUI:Hide()

@@ -61,9 +61,8 @@ click(UI.minimapButton, "LeftButton")
 suite.check("left-click still opens the search window", UI.frame:IsShown())
 UI:Hide()
 
-suite.check("the search window has a Settings button", UI.settingsButton ~= nil)
-UI.settingsButton:GetScript("OnClick")(UI.settingsButton, "LeftButton")
-suite.check("which opens it", SettingsUI.frame:IsShown())
+UI:ShowTab("settings")
+suite.check("the window's Settings tab opens it", SettingsUI.frame:IsShown())
 SettingsUI:Hide()
 
 suite.check("it is in the game's AddOns options", #registered == 1, #registered)

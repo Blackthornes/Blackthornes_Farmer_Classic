@@ -59,7 +59,7 @@ UI.WIDEST_KEPT = 1600
 function UI:WindowWidth()
     local width = math.max(WIDTH, ns.GrindingUI and ns.GrindingUI.WIDTH or 0,
         ns.StatsUI and ns.StatsUI.WIDTH or 0, self.widest or 0,
-        tonumber(ns.db and ns.db.windowWidth) or 0)
+        tonumber(ns.db and ns.db.windowWidth) or 0, UI.SettingsNeed(1))
     width = math.min(width, UI.WIDEST_KEPT)
     local room = self.ScreenRoom and self:ScreenRoom()
     if room then width = math.max(WIDTH, math.min(width, room)) end
@@ -68,7 +68,13 @@ end
 
 --- The height every tab draws at: the Stats tab's charts want the most.
 function UI:WindowHeight()
-    return math.max(HEIGHT, ns.StatsUI and ns.StatsUI.HEIGHT or 0)
+    return math.max(HEIGHT, ns.StatsUI and ns.StatsUI.HEIGHT or 0, UI.SettingsNeed(2))
+end
+
+--- What the Settings tab needs at least (1 its width, 2 its height), or 0.
+function UI.SettingsNeed(index)
+    local need = ns.SettingsUI and rawget(ns.SettingsUI, "need")
+    return type(need) == "table" and tonumber(need[index]) or 0
 end
 
 --- A tab needs this much room: the shared width grows to it (and is kept)
@@ -88,7 +94,11 @@ end
 function UI:ApplySize()
     if not self.frame then return end
     local width, height = self:WindowWidth(), self:WindowHeight()
-    if self.frame:GetWidth() ~= width then self.frame:SetWidth(width) end
+    if self.frame:GetWidth() ~= width then
+        self.frame:SetWidth(width)
+        -- Settings stays flush with the window's right end.
+        if self.tabStrip and self.tabStrip.SetRoom then self.tabStrip:SetRoom(width - 2 * TAB_INSET) end
+    end
     if self.frame:GetHeight() ~= height then self.frame:SetHeight(height) end
 end
 
@@ -98,7 +108,15 @@ local TABS = {
     { key = "rankings", text = L["RANKINGS"] },
     { key = "grind", text = L["GRIND"] },
     { key = "stats", text = L["STATS"] },
+    -- Always last, on the right (the owner, 2026-10-27: "Last tab on bottom
+    -- right will always be settings"). It opens Settings in the window's
+    -- place, at the same size (UI/Settings.lua).
+    { key = "settings", text = L["SETTINGS"], right = true },
 }
+
+--- The tabs, for Settings to hang the same ones under itself.
+function UI.Tabs() return TABS end
+UI.TAB_INSET = TAB_INSET
 
 -- Column widths, left to right, at their narrowest. The source, where and
 -- drop columns widen to fit what a search turns up, and the window with them:
@@ -334,18 +352,12 @@ function UI:BuildHeader()
 
     -- The window's name is on the plate across the top edge and the close
     -- gem sits on the top right corner (UI/Titanforged.lua), so the top row
-    -- holds the search box (or the Rankings chips) and the Settings button,
-    -- clear of the portrait on the left.
+    -- holds the search box (or the Rankings chips), clear of the portrait on
+    -- the left. Settings is the last tab below the window.
     local header = CreateFrame("Frame", nil, frame)
     header:SetPoint("TOPLEFT", HEAD_LEFT, -HEAD_TOP)
     header:SetPoint("TOPRIGHT", -PADDING, -HEAD_TOP)
     header:SetHeight(24)
-
-    local settings = Widgets.CreateButton(header, L["Settings"], function()
-        if ns.SettingsUI then ns.SettingsUI:Toggle() end
-    end, { width = 64, height = 24 })
-    settings:SetPoint("TOPRIGHT", 0, 0)
-    self.settingsButton = settings
 
     -- Hung below the window, as the game's own windows wear their tabs. The
     -- one showing reaches up over the rim and joins the window, and a gold
@@ -373,9 +385,9 @@ function UI:BuildBody()
         L["an item, a zone, a mob, or a place"],
         function(text) UI:Search(text, true) end)
 
-    -- Up in the top row, beside the portrait and the Settings button.
+    -- Up in the top row, beside the portrait.
     search:SetPoint("TOPLEFT", HEAD_LEFT, -HEAD_TOP)
-    search:SetPoint("TOPRIGHT", self.settingsButton, "TOPLEFT", -8, 0)
+    search:SetPoint("TOPRIGHT", -PADDING, -HEAD_TOP)
     self.searchBox = search
 
     -- Filter chips sit between the box and the results, showing only the kinds
@@ -1407,9 +1419,15 @@ end
 --------------------------------------------------------------------------------
 
 --- Switch the window to a tab: "search", "rankings", "grind" or "stats".
---- Remembered for the next time the window opens.
+--- Remembered for the next time the window opens. "settings" opens
+--- Settings in the window's place.
 function UI:ShowTab(key)
     self:Build()
+    if key == "settings" and ns.SettingsUI then
+        if self.tabStrip then self.tabStrip:Select(self.tab or "search") end
+        ns.SettingsUI:Show()
+        return
+    end
     local views = { rankings = self.rankingsView, grind = self.grindView, stats = self.statsView }
     if not views[key] then key = "search" end
 
@@ -1521,9 +1539,21 @@ function UI:Show()
         return
     end
 
+    -- Settings up as the window's tab: it steps aside, and this opens in its
+    -- place (the same spot keys, size and scale), without the opening rise.
+    local settings = ns.SettingsUI and rawget(ns.SettingsUI, "frame")
+    local switching = settings and settings:IsShown()
+    if switching then
+        ns.SettingsUI.switching = true
+        pcall(ns.SettingsUI.SavePosition, ns.SettingsUI)
+        settings:Hide()
+        ns.SettingsUI.switching = false
+    end
+
+    self:ApplySize()
     self:RestorePosition()
     self.frame:Show()
-    ns.Motion:Open(self.frame)
+    if not switching then ns.Motion:Open(self.frame) end
     -- A light runs round the portrait as it opens.
     if ns.Titanforged then ns.Titanforged:Opened(self.frame) end
 
@@ -1541,6 +1571,13 @@ function UI:Toggle()
 
     if self.frame:IsShown() then
         self:Hide()
+        return
+    end
+
+    -- Settings showing is the window too: the button closes it.
+    local settings = ns.SettingsUI and rawget(ns.SettingsUI, "frame")
+    if settings and settings:IsShown() then
+        ns.SettingsUI:Hide()
         return
     end
 

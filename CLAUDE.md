@@ -831,6 +831,20 @@ something (`pages:Row(..., nil)` shows none), never "Same as /farm ...",
 section headings ALL CAPS. The pages are UI, Kills, Loot, Map & goals,
 Sharing, Advanced and About. The minimap button always shows: no setting,
 no `/farm minimap`, and a saved `minimapHidden` is kept but not read.
+Settings is the main window's last tab (the owner, 2026-10-27: "Last tab
+on bottom right will always be settings", in every addon): SEARCH,
+RANKINGS, GRIND, STATS, then SETTINGS flush right (`right = true` in
+`Widgets.CreateTabStrip`, kept flush by `strip:SetRoom` as the window
+grows). There is no header Settings button. Settings hangs the same tabs
+(`UI.Tabs()`), opens in the window's place and the window steps aside
+(`SettingsUI:Show`, `UI:Show`, `SettingsUI:OpenTab`), at the window's
+size (`SettingsUI:TakeWindowSize` after each `pages:Fit`; what Settings
+needs is `SettingsUI.need`, which `UI:WindowWidth`/`WindowHeight` grow
+to), its scale (`windowScale`) and its spot (`point`, `relativePoint`,
+`x`, `y`). `settingsScale`, `settingsPoint`, `settingsRelativePoint`,
+`settingsX` and `settingsY` stay in the save, unread; never rename them.
+The minimap's right-click still opens Settings. Tested in
+`tools/test_settingstab.lua`.
 Word choices are drop-downs, never < > pickers or word steppers (the
 owner, 2026-10-23): `Widgets.CreateChoice` takes a stepper's opts
 (min, max, step, value, format, onChange) on Pets' `Widgets.CreateDropdown`

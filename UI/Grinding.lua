@@ -472,7 +472,7 @@ function GrindingUI:TopRowRoom()
         + 6 + self.high:GetWidth() + 10 + self.mineButton:GetWidth()
     local frameWidth = ns.UI.frame and ns.UI.frame:GetWidth()
     if type(frameWidth) ~= "number" or frameWidth <= 0 then frameWidth = ns.UI.BASE_WIDTH or 724 end
-    local settings = ns.UI.settingsButton and ns.UI.settingsButton:GetWidth() or 64
+    local settings = ns.UI.settingsButton and ns.UI.settingsButton:GetWidth() or 0
     return frameWidth - PADDING - settings - 8 - (ns.UI.HEAD_LEFT or PADDING) - used
 end
 
