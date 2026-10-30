@@ -333,6 +333,12 @@ end
 function SettingsUI:TakeWindowSize()
     local frame = self.frame
     if not frame then return end
+    local Tabs = ns.FarmerTabs
+    if Tabs and Tabs.area then
+        -- Inside the one window it fills the area, which grows instead.
+        Tabs:Grow()
+        return
+    end
     self.need = { frame:GetWidth(), frame:GetHeight() }
     local width, height = SettingsUI.WindowSize()
     if not width then return end
@@ -512,6 +518,11 @@ function SettingsUI:Build()
     footer:SetText(L["Changes save as you make them."])
     self.footer = footer
 
+    -- Inside the one window, closing Settings by itself closes it too.
+    frame:HookScript("OnHide", function()
+        if ns.FarmerTabs then ns.FarmerTabs:Closed() end
+    end)
+
     frame:Hide()
     return frame
 end
@@ -594,6 +605,16 @@ function SettingsUI:BuildWindowsPage()
         if ns.SharedMinimap then ns.SharedMinimap.SetCombined(checked) end
     end, true)
     controls.combineButtons:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    -- The one Blackthornes window (UI/SharedWindow.lua, the owner approved
+    -- "One Window:", 2026-10-30): every Blackthornes addon in one window
+    -- with a rail down its left side. Off unless ticked; ticked here is
+    -- ticked in every addon.
+    local oneRow = pages:Row("general", 1, L["One Window:"], nil)
+    controls.oneWindow = Widgets.CreateCheckbox(oneRow, L["On"], function(checked)
+        SettingsUI:SetOneWindow(checked)
+    end, false)
+    controls.oneWindow:SetPoint("TOPLEFT", CONTROL_X, -2)
 
     -- The kills and loot panel's size, which its gold corner grip and
     -- /farm tracker size set too (the owner asked 2026-10-07): any percent
@@ -1665,6 +1686,10 @@ function SettingsUI:Refresh()
     controls.textSize:Sync()
     controls.windowStyle:Sync()
     controls.combineButtons:SetChecked(not ns.SharedMinimap or ns.SharedMinimap.Combined())
+    if controls.oneWindow then
+        local One = ns.FarmerTabs and ns.FarmerTabs.One()
+        controls.oneWindow:SetChecked(One ~= nil and One.On() == true)
+    end
     if controls.snapPanels then controls.snapPanels:SetChecked(not ns.PanelSnap or ns.PanelSnap:IsOn()) end
 
     local usable = ns.Harvest:Capabilities().usable
@@ -1702,6 +1727,7 @@ end
 -- unread (2026-10-27).
 function SettingsUI:SavePosition()
     if not (ns.db and self.frame) then return end
+    if ns.FarmerTabs and ns.FarmerTabs.area then return end
 
     local point, _, relativePoint, x, y = self.frame:GetPoint()
 
@@ -1732,6 +1758,9 @@ SettingsUI.TAB_HANG = 28
 --- Open Settings. With the main window up it steps aside and Settings opens
 --- in its place, at the same size and scale, without the opening rise.
 function SettingsUI:Show()
+    -- With "One Window:" ticked, the one window opens on Farmer's Settings.
+    local Tabs = ns.FarmerTabs
+    if Tabs and Tabs:Route("settings") then return end
     self:Build()
 
     if not self.frame:IsShown() then
@@ -1739,13 +1768,21 @@ function SettingsUI:Show()
         local switching = main and main:IsShown()
         if switching then
             pcall(ns.UI.SavePosition, ns.UI)
+            if Tabs then Tabs.switching = true end
             main:Hide()
+            if Tabs then Tabs.switching = false end
         end
-        if self.pages and self.pages.fitted then self:TakeWindowSize() end
-        Widgets.ApplySize(self.frame, ns.db and ns.db.windowScale)
-        self:RestorePosition()
-        self.frame:Show()
-        if not switching then ns.Motion:Open(self.frame) end
+        if Tabs and Tabs.area then
+            Tabs:LayIn(self)
+            Tabs:Grow()
+            self.frame:Show()
+        else
+            if self.pages and self.pages.fitted then self:TakeWindowSize() end
+            Widgets.ApplySize(self.frame, ns.db and ns.db.windowScale)
+            self:RestorePosition()
+            self.frame:Show()
+            if not switching then ns.Motion:Open(self.frame) end
+        end
     end
     if self.tabStrip and self.tabStrip.selected ~= "settings" then self.tabStrip:Select("settings") end
 
@@ -1764,6 +1801,24 @@ end
 
 function SettingsUI:Hide()
     if self.frame then self.frame:Hide() end
+end
+
+--- "One Window:" ticked or unticked here: written to every addon's save.
+--- Ticked with Settings up, Settings moves into the one window.
+function SettingsUI:SetOneWindow(on)
+    local Tabs = ns.FarmerTabs
+    local One = Tabs and Tabs.One()
+    if not One then return end
+    local inside = Tabs:Hosted()
+    One.SetOn(on)
+    if on and not inside and self.frame and self.frame:IsShown() then
+        Tabs.switching = true
+        self.frame:Hide()
+        Tabs.switching = false
+        self:Show()
+    elseif not on and inside then
+        self:Show()
+    end
 end
 
 function SettingsUI:Toggle()

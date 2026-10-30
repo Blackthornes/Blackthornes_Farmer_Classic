@@ -60,6 +60,8 @@ local function Stub(fields)
 
     -- Recorded so a test can check where something was anchored.
     function frame:SetPoint(...) self._point = { ... } end
+    function frame:SetParent(parent) self._parent = parent end
+    function frame:GetParent() return rawget(self, "_parent") end
     function frame:GetCenter() return self._cx or 0, self._cy or 0 end
     function frame:GetEffectiveScale() return 1 end
 
@@ -391,6 +393,8 @@ local UI_FILES = {
     "UI/RowMenu.lua",
     "UI/Notice.lua",
     "UI/SharedChoices.lua",
+    "UI/SharedMinimap.lua",
+    "UI/SharedWindow.lua",
     "UI/About.lua",
     "UI/WhatsNew.lua",
     "UI/SettingsPages.lua",

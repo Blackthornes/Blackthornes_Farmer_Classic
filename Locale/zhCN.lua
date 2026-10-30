@@ -1730,6 +1730,7 @@ L["Auctionator First"] = "Auctionator 优先"
 L["Click a name to open it. Right-click for its settings."] = "点击名称即可打开。右键点击打开它的设置。"
 L["Click to pick an addon"] = "点击选择插件"
 L["Combine Addon Buttons:"] = "合并插件按钮："
+L["One Window:"] = "单一窗口："
 L["Where to farm and what it's worth"] = "去哪里刷，能值多少"
 L["Middle-click to bring back your panels"] = "中键点击找回你的面板"
 
