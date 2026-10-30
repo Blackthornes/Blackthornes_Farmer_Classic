@@ -803,8 +803,8 @@ rename them: `oneWindow`, `oneWindowAt` (the newest wins), `oneWindowPick`,
 & Loot, arrows, plaques, loot feed, XP bar) stay their own. Tested in
 `tools/test_sharedwindow.lua`. Not yet seen in game.
 
-Docking (2026-10-30, `UI/SharedWindow.lua` FILE_VERSION 2): while the
-game's mailbox, vendor or trainer window is open and the one window is up,
+Docking (2026-10-30, `UI/SharedWindow.lua` FILE_VERSION 3): while the
+game's auction house, mailbox, vendor or trainer window is open and the one window is up,
 it sits beside it (`SharedWindow.PLACES`, `Arrived`, `Dock`, by screen
 position only, never in a fight), its rail a row of emblems along the top
 (`SharedWindow.Lay`; the area keeps its size, so the window loses the
@@ -814,7 +814,8 @@ to its own place (`Undock`) and, `BACK_WAIT` later, to the addon open
 before (`Left`, `hub.back`); one that was closed before stays closed,
 since each addon closes what it opened by itself. Which addon shows at a
 place is still each addon's own doing (Butler at the mailbox and vendor).
-The auction house comes next, with Tradeskills' drawer. Tested in
+Tradeskills shows at the auction house, with its sell drawer inside the
+window (FILE_VERSION 3, see Tradeskills' notes). Tested in
 `tools/test_sharedwindow.lua`. Not yet seen in game.
 
 Farmer's tabs are in (2026-10-30, after Butler's, Pets' and Equipment's):
