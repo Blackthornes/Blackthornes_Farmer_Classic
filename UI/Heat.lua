@@ -544,7 +544,6 @@ local function Card(map)
     local card = CreateFrame("Frame", nil, map)
     card.background = Theme.Fill(card, "window")
     card:SetWidth(PANEL_WIDTH)
-    card:SetFrameStrata("HIGH")
     card:EnableMouse(true)
     card:SetMovable(true)
     card:RegisterForDrag("LeftButton")
@@ -639,6 +638,20 @@ local function Row(card, index)
     row.mob:SetPoint("RIGHT", row.rate, "LEFT", -8, 0)
     card.rows[index] = row
     return row
+end
+
+-- The layer above the map's own, so the card is never drawn under the map
+-- art and its pins (at the map's own layer it sat under them and could not
+-- be seen, 2026-10-30). Read each time it shows: a bigger map can move up.
+local STRATA_ABOVE = {
+    BACKGROUND = "LOW", LOW = "MEDIUM", MEDIUM = "HIGH", HIGH = "DIALOG",
+    DIALOG = "FULLSCREEN", FULLSCREEN = "FULLSCREEN_DIALOG",
+    FULLSCREEN_DIALOG = "FULLSCREEN_DIALOG", TOOLTIP = "TOOLTIP",
+}
+
+function HeatUI.CardStrata(map)
+    local ok, strata = pcall(map.GetFrameStrata, map)
+    return ok and STRATA_ABOVE[strata] or "DIALOG"
 end
 
 -- The map area the card sits in and is kept inside.
@@ -743,11 +756,15 @@ function HeatUI:UpdateCard()
         return
     end
 
+    if self.card then pcall(self.card.SetFrameStrata, self.card, HeatUI.CardStrata(map)) end
     local key = Heat:TargetKey() .. "|" .. Heat.version
     if key == self.cardKey and self.card:IsShown() then return end
     self.cardKey = key
 
-    if not self.card then self.card = Card(map) end
+    if not self.card then
+        self.card = Card(map)
+        pcall(self.card.SetFrameStrata, self.card, HeatUI.CardStrata(map))
+    end
 
     local card = self.card
     local Theme = ns.Theme
