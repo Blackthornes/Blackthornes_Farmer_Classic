@@ -243,3 +243,9 @@ used only once the character knows it, so they need no change.
 - Farmer's main window and Settings move into it when ticked
   (`FarmerTabs.host`, `Route`, `Closed` at the end of `UI/Main.lua`);
   Forever's Main.lua has none of it.
+
+## The Kill Heat card
+
+- Drawn at `HeatUI.CARD_SCALE` (0.6) in `UI/Heat.lua` (2026-10-30): Era's
+  world map is small, and at full size the card hid much of it. Its saved
+  place stays in the map's units.

@@ -316,6 +316,19 @@ end)
 _G.WorldMapFrame.IsShown = mapShown
 suite.check("an item's card draws its mob rows", okItem and ns.HeatUI.card ~= nil
     and #ns.HeatUI.card.rows >= 1)
+-- The card is drawn small, so Era's small map still shows round it.
+suite.check("the card is drawn at its smaller size", ns.HeatUI.CARD_SCALE and ns.HeatUI.CARD_SCALE < 1)
+local scaleSeen
+local okScale = pcall(function()
+    local placed = ns.HeatUI.card
+    local setPoint = placed.SetPoint
+    placed.SetPoint = function(self, point, rel, relPoint, x, y) scaleSeen = { x, y } end
+    ns.db.heatCardX, ns.db.heatCardY = 30, 30
+    ns.HeatUI:PlaceCard()
+    placed.SetPoint = setPoint
+end)
+suite.check("the card's place is kept in the map's units", okScale and scaleSeen
+    and math.abs(scaleSeen[1] * ns.HeatUI.CARD_SCALE - 30) < 0.01)
 -- The card sits a layer above the map, never under its art.
 suite.check("the card is drawn above a HIGH map", ns.HeatUI.CardStrata({ GetFrameStrata = function() return "HIGH" end }) == "DIALOG")
 suite.check("the card is drawn above a full screen map",
