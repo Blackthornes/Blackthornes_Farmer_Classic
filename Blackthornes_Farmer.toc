@@ -97,6 +97,7 @@ UI\About.lua
 UI\WhatsNew.lua
 UI\SettingsPages.lua
 UI\SharedMinimap.lua
+UI\SharedWindow.lua
 UI\Main.lua
 UI\Export.lua
 UI\Import.lua
