@@ -236,3 +236,7 @@ used only once the character knows it, so they need no change.
 - The Grind tab's row hover ends with "A camp's worth comes from your own
   kills and picks there." for camps, as Classic's footer said before.
 
+## The one window
+
+- `UI/SharedWindow.lua` is Classic's own (2026-10-30); Forever has no copy
+  yet. Nothing shows until "One Window:" is ticked.
