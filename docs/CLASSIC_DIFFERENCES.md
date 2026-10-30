@@ -239,7 +239,8 @@ used only once the character knows it, so they need no change.
 ## The one window
 
 - `UI/SharedWindow.lua` is Classic's own (2026-10-30); Forever has no copy
-  yet. Nothing shows until "One Window:" is ticked.
+  yet. "One Window:" is on unless unticked (2026-10-30). At the auction
+  house only Tradeskills shows in it.
 - Farmer's main window and Settings move into it when ticked
   (`FarmerTabs.host`, `Route`, `Closed` at the end of `UI/Main.lua`);
   Forever's Main.lua has none of it.
