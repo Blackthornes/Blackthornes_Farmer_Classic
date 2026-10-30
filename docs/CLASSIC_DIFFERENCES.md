@@ -243,6 +243,8 @@ used only once the character knows it, so they need no change.
 - Farmer's main window and Settings move into it when ticked
   (`FarmerTabs.host`, `Route`, `Closed` at the end of `UI/Main.lua`);
   Forever's Main.lua has none of it.
+- Docking beside the mailbox, vendor and trainer (2026-10-30) is in the
+  shared file, so Forever has none of it either.
 
 ## The Kill Heat card
 
