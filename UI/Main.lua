@@ -312,7 +312,7 @@ function UI:Build()
     -- was closed (Escape, the close gem, the minimap button).
     frame:HookScript("OnHide", function()
         if ns.GoalsUI then ns.GoalsUI:CheckPicker() end
-        FarmerTabs:Closed()
+        FarmerTabs:Closed(frame)
     end)
     -- It also stays outside the window's edge as the window widens or narrows.
     frame:HookScript("OnSizeChanged", function()
@@ -2086,8 +2086,11 @@ end
 
 --- One of Farmer's windows closed by itself (Escape, its close gem):
 --- inside the one window, the one window closes with it.
-function FarmerTabs:Closed()
+function FarmerTabs:Closed(frame)
     if not self.area or self.leaving or self.switching then return end
+    -- A window built for the first time hides itself before it is laid
+    -- in, and that is no close: only one inside the area counts.
+    if frame and frame.GetParent and frame:GetParent() ~= self.area then return end
     local One = FarmerTabs.One()
     if One and One.Close then pcall(One.Close) end
 end

@@ -52,6 +52,13 @@ SettingsUI:OpenTab("rankings")
 suite.check("Rankings back in the area", UI.frame:IsShown() and UI.tab == "rankings"
     and UI.frame:GetParent() == area and not SettingsUI.frame:IsShown())
 
+-- A window built for the first time hides itself before it is laid in
+-- (a player's report, 2026-10-30: picking another addon on the rail once
+-- turned the one window into that addon's own window).
+local fresh = { GetParent = function() return UIParent end }
+Tabs:Closed(fresh)
+suite.check("a window not yet laid in hiding keeps the one window", hub.frame:IsShown() and Tabs:Hosted())
+
 -- 4.
 hub.frame:Hide()
 local onHide = hub.frame:GetScript("OnHide")

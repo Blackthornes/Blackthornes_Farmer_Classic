@@ -520,7 +520,7 @@ function SettingsUI:Build()
 
     -- Inside the one window, closing Settings by itself closes it too.
     frame:HookScript("OnHide", function()
-        if ns.FarmerTabs then ns.FarmerTabs:Closed() end
+        if ns.FarmerTabs then ns.FarmerTabs:Closed(frame) end
     end)
 
     frame:Hide()
