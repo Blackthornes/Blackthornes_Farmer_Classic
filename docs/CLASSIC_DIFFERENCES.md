@@ -240,3 +240,9 @@ used only once the character knows it, so they need no change.
 
 - `UI/SharedWindow.lua` is Classic's own (2026-10-30); Forever has no copy
   yet. Nothing shows until "One Window:" is ticked.
+
+## The Kill Heat card
+
+- Drawn at `HeatUI.CARD_SCALE` (0.6) in `UI/Heat.lua` (2026-10-30): Era's
+  world map is small, and at full size the card hid much of it. Its saved
+  place stays in the map's units.
