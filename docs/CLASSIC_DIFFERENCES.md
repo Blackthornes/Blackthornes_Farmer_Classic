@@ -240,3 +240,6 @@ used only once the character knows it, so they need no change.
 
 - `UI/SharedWindow.lua` is Classic's own (2026-10-30); Forever has no copy
   yet. Nothing shows until "One Window:" is ticked.
+- Farmer's main window and Settings move into it when ticked
+  (`FarmerTabs.host`, `Route`, `Closed` at the end of `UI/Main.lua`);
+  Forever's Main.lua has none of it.

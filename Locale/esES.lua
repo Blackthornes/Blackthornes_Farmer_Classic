@@ -1736,6 +1736,7 @@ L["Auctionator First"] = "Primero Auctionator"
 L["Click a name to open it. Right-click for its settings."] = "Haz clic en un nombre para abrirlo. Clic derecho para sus ajustes."
 L["Click to pick an addon"] = "Haz clic para elegir un addon"
 L["Combine Addon Buttons:"] = "Unir botones de addons:"
+L["One Window:"] = "Una ventana:"
 L["Where to farm and what it's worth"] = "Dónde farmear y cuánto vale"
 L["Middle-click to bring back your panels"] = "Clic central para recuperar tus paneles"
 
