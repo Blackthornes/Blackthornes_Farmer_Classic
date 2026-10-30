@@ -239,7 +239,7 @@ suite.check("the panel has a Clear button", clear ~= nil)
 
 clear:GetScript("OnClick")(clear)
 suite.check("one click only asks", Tracker.session["Mangy Wolf"] == 3 and clear.armed == true)
-suite.check("and says so", clear.label:GetText() == "Sure?")
+suite.check("and says so", clear.label:GetText() == "Click Again")
 
 clock = clock + 10
 clear:GetScript("OnClick")(clear)

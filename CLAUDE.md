@@ -828,9 +828,25 @@ list); checks and debug are typed only too (the owner, 2026-10-23). The owner's 
 (2026-10-15): labels in Title Case ending with ":" ("Text Size:"),
 one-word buttons ("Open", "Show", "On"), a hover only when it adds
 something (`pages:Row(..., nil)` shows none), never "Same as /farm ...",
-section headings ALL CAPS. The pages are UI, Kills, Loot, Map & goals,
-Sharing, Advanced and About. The minimap button always shows: no setting,
+section headings ALL CAPS. The pages are Kills, Loot, Map & goals,
+Sharing, General and About (2026-10-29: UI and Advanced became General;
+a saved `settingsPage` of "windows" or "advanced" opens General,
+`SettingsUI.OLD_PAGES`). The minimap button always shows: no setting,
 no `/farm minimap`, and a saved `minimapHidden` is kept but not read.
+Settings is the main window's last tab (the owner, 2026-10-27: "Last tab
+on bottom right will always be settings", in every addon): SEARCH,
+RANKINGS, GRIND, STATS, then SETTINGS flush right (`right = true` in
+`Widgets.CreateTabStrip`, kept flush by `strip:SetRoom` as the window
+grows). There is no header Settings button. Settings hangs the same tabs
+(`UI.Tabs()`), opens in the window's place and the window steps aside
+(`SettingsUI:Show`, `UI:Show`, `SettingsUI:OpenTab`), at the window's
+size (`SettingsUI:TakeWindowSize` after each `pages:Fit`; what Settings
+needs is `SettingsUI.need`, which `UI:WindowWidth`/`WindowHeight` grow
+to), its scale (`windowScale`) and its spot (`point`, `relativePoint`,
+`x`, `y`). `settingsScale`, `settingsPoint`, `settingsRelativePoint`,
+`settingsX` and `settingsY` stay in the save, unread; never rename them.
+The minimap's right-click still opens Settings. Tested in
+`tools/test_settingstab.lua`.
 Word choices are drop-downs, never < > pickers or word steppers (the
 owner, 2026-10-23): `Widgets.CreateChoice` takes a stepper's opts
 (min, max, step, value, format, onChange) on Pets' `Widgets.CreateDropdown`
@@ -2050,6 +2066,65 @@ tables"). It holds names and map IDs only, no drop rates or spawns.
   compared stays English. A new place that shows a zone calls it too.
 
 Tested in `tools/test_zones.lua`. Not yet seen in game.
+
+## One look across the addons (the house kit)
+
+The owner said build all of it (2026-10-29), from the unified look's
+mockups (22 cards and 9 fixes, `reviews/unified-ui/` in the project
+files). These files are the same in all five addons; a fix to one
+belongs in all five:
+
+- `UI/HouseKit.lua`: `Widgets.CreateViewTabs(parent, tabs, onSelect,
+  opts)` (small tabs on top of a list, one a view: Tradeskills' My Crafts
+  and Your Time, Farmer's This Session and Overall; each as wide as its
+  words, never cut), `Widgets.CreateChip` (the filter chip),
+  `Widgets.CreateEmpty` (the emblem faint, one short line, a gold button
+  when there is a next step: "Clear Search", "Show All") and
+  `Widgets.CreatePanelGems(header, { onFold, onClose })` (the gold fold
+  gem and red close gem for panels that stay up while you play; folded,
+  only the header shows; nothing saved).
+- `UI/RowMenu.lua`: a right-click on any row opens its menu, what a click
+  does first, then the rest. Shift-click and Alt-click still work; what
+  the game guards (a craft, a cast, a sale) stays a button.
+- `UI/Notice.lua`: one note slot under the top of the screen for every
+  addon (`ns.Notice:Show(text, { icon, hold, key })`, signed up in
+  `_G.BlackthornesNotice`), so two notes never land on each other.
+- `UI/SharedChoices.lua`: Text Size, Window Style, Effects, Use TomTom,
+  Guide Me and Arrow Size, changed in one addon, are written to every
+  loaded addon (`_G.BlackthornesSharedChoices`); each keeps its own saved
+  key and name, and nothing moves until the player changes one.
+
+The rules that came with it:
+
+- A list's footer is a count or a result on the left and the version on
+  the right, nothing else. What a click does is the last line, dim, of
+  the row's hover. Settings' footer reads "Changes save as you make them."
+- Settings: the General page holds the look (Window Style, Text Size,
+  Effects, Combine Addon Buttons), TRANSPARENT and ADDONS; Settings is
+  the last tab, flush right.
+- Rows are one line: a second line under a name moves to the hover.
+- A sort picked by a column heading lasts the session; nothing is saved.
+- Buttons are Title Case ("Show the Way", "Queue It", "Got It"), and
+  "Show the Way" is our map marker and the arrow (TomTom when picked).
+- Buttons out on the screen on their own wear the gold plaque
+  (`UI/Plaque.lua`).
+
+Farmer's part (2026-10-29): Snap Panels (`UI/PanelSnap.lua`, "Snap
+Panels:" on the General page, on unless unticked, `snapPanels`; never in a
+fight): drop the goals panel near Kills & Loot's bottom edge, or Kills &
+Loot over a loose goals panel, and the goals panel hangs under it again
+(`GoalsUI:Dock`); drop Where to Farm near the goals panel's bottom and it
+opens under it from then on (`goalSpotsUnder`). Never rename either. Kills
+& Loot and Goals wear the panel gems (Goals with a count chip; folded,
+only the header), Kills & Loot's tabs are dark metal with a gold top edge
+on the one picked, Sort opens a menu (`TrackerUI:OpenSort`), the gathered
+value's name is its hover, Stats' This Session and Overall are view tabs,
+the bags-full and clam notes go in the shared note slot, a right-click
+puts the row's own action first in the hide menu (`HideMenu`'s `action`
+lines: Open Loot Table, Show the Way), and the Search, Rankings and Grind
+footers keep only a count or your skill, their hints on the rows' hovers.
+Tested in `tools/test_panelsnap.lua`, `test_panellook.lua`,
+`test_hidelist.lua`, `test_bagsfull.lua` and `test_opennote.lua`.
 
 ## Writing for players
 

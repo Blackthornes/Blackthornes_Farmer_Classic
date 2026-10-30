@@ -1173,6 +1173,22 @@ function Widgets.SetRowLight(row, value)
     Theme.LightGradient(row.lightWash, "HORIZONTAL", "accent", 0.10, 0, value)
 end
 
+--- The small red close gem on a panel that keeps its own frame (the Kills &
+--- Loot and Goals panels): Titanforged's gem, sized for a title bar, its
+--- glow scaled with it. The flat red "X" where the gem art is not loaded.
+function Widgets.HeaderCloseGem(parent, onClick, size)
+    size = size or 18
+    local Titanforged = ns.Titanforged
+    if not (Titanforged and Titanforged.CloseGem) then
+        return Widgets.CreateButton(parent, "X", onClick, { width = 18, height = 16, danger = true })
+    end
+    local close = Titanforged.CloseGem(parent, onClick)
+    close:SetSize(size, size)
+    if close.glow then close.glow:SetSize(size * 2.2, size * 2.2) end
+    close:ClearAllPoints()
+    return close
+end
+
 --- A scrolling list that recycles row frames.
 --
 -- Where CreateLineList draws one label per line, this gives each row a set of
@@ -1669,6 +1685,9 @@ function Widgets.CreateTabStrip(parent, tabs, onSelect, opts)
 
         button.key = tab.key
         button.fixedWidth = tab.width or false
+        -- A tab marked right sits flush with the strip's right end (Settings
+        -- is always last there, the owner 2026-10-27).
+        button.right = tab.right and true or false
 
         button:SetScript("OnClick", function(self)
             strip:Select(self.key)
@@ -1732,7 +1751,33 @@ function Widgets.CreateTabStrip(parent, tabs, onSelect, opts)
         x = x + width + gap
     end
 
-    strip:SetWidth(math.max(x, 1))
+    -- Tabs marked right move to the far end of the strip, keeping their
+    -- order, when the strip has room for them. Again when the window it
+    -- hangs from changes width (strip:SetRoom).
+    local packed = math.max(x, 1)
+    local function PlaceRight(width)
+        local full = packed
+        if hanging and type(width) == "number" and width > packed then
+            local right = width
+            for index = #strip.tabs, 1, -1 do
+                local button = strip.tabs[index]
+                if button.right then
+                    right = right - button.span
+                    button.left = right
+                    right = right - gap
+                    full = width
+                end
+            end
+        end
+        strip:SetWidth(full)
+    end
+    PlaceRight(opts.width)
+    for _, button in ipairs(strip.tabs) do
+        if button.right and hanging then
+            button:ClearAllPoints()
+            button:SetPoint("TOPLEFT", button.left, 0)
+        end
+    end
 
     -- One gold line for the whole strip, gliding to the tab picked, with a
     -- soft glow over it. Both ride on a layer of their own above the tabs:
@@ -1782,6 +1827,16 @@ function Widgets.CreateTabStrip(parent, tabs, onSelect, opts)
             line:SetPoint("BOTTOMLEFT", button, "BOTTOMLEFT", x - button.left, 0)
             line:SetWidth(math.max(1, width))
         end)
+    end
+
+    --- The strip's room changed (its window grew): the tabs marked right
+    --- move to its new right end.
+    function strip:SetRoom(width)
+        PlaceRight(width)
+        local picked = self.selected
+        self.selected = false
+        self.lineX, self.lineWidth = false, false
+        if picked then self:Select(picked) end
     end
 
     function strip:Select(key)
@@ -2064,8 +2119,10 @@ end
 -- Sortable column headings
 --------------------------------------------------------------------------------
 
--- Blizzard's own list sort arrow, pointing down; flipped for smallest first.
-local SORT_ARROW = [[Interface\Buttons\UI-SortArrow]]
+-- The house's gold sort arrow (Media/Frame/SortArrow.tga, drawn by
+-- tools/make_frame_art.py, the same in every addon), pointing down; flipped
+-- for smallest first.
+local SORT_ARROW = [[Interface\AddOns\Blackthornes_Farmer\Media\Frame\SortArrow]]
 
 --- Make a list's column headings sort it when clicked, as Tradeskills' do.
 --
@@ -2105,9 +2162,9 @@ function Widgets.SortableHeadings(labels, tips, onChange, opts)
             arrow:SetShown(active)
             if active then
                 if sorter.ascending then
-                    arrow:SetTexCoord(0, 0.5625, 1, 0)
+                    arrow:SetTexCoord(0, 1, 1, 0)
                 else
-                    arrow:SetTexCoord(0, 0.5625, 0, 1)
+                    arrow:SetTexCoord(0, 1, 0, 1)
                 end
                 local width = Theme.TextWidth("tiny", label:GetText())
                 if type(width) ~= "number" then width = 0 end
@@ -2149,8 +2206,9 @@ function Widgets.SortableHeadings(labels, tips, onChange, opts)
             button.glow = glow
 
             local arrow = button:CreateTexture(nil, "OVERLAY")
-            arrow:SetSize(9, 8)
+            arrow:SetSize(10, 10)
             pcall(arrow.SetTexture, arrow, SORT_ARROW)
+            arrow:SetVertexColor(Theme.Unpack("accent"))
             arrow:Hide()
             button.arrow = arrow
 

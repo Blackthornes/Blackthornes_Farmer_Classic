@@ -162,7 +162,7 @@ Motion:FinishAll()
 suite.check("and back to Search", strip.selected == "search" and strip.lineX == UI.tabs.search.left)
 
 -- Buttons ease under the mouse and back.
-local button = UI.settingsButton
+local button = ns.Widgets.CreateButton(UI.frame, "Open", function() end)
 button:GetScript("OnEnter")(button)
 Motion:FinishAll()
 suite.check("a button lights under the mouse", Motion:Value(button, "hover") == 1)

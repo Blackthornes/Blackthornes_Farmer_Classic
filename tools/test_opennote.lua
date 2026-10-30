@@ -32,16 +32,19 @@ local function OpenOne()
 end
 
 OpenOne()
-local frame = OpenNote.frame
+-- It goes in the shared note slot (UI/Notice.lua), with every addon's notes.
+local frame = OpenNote.card
 suite.check("an opening shows the note", frame ~= nil and frame:IsShown())
-suite.check("with the count", ns.Util.StripColor(frame.label:GetText()) == "Small Barnacled Clam: 1 of 10 opened",
-    frame and frame.label:GetText())
+suite.check("with the count", ns.Util.StripColor(frame.text:GetText()) == "Small Barnacled Clam: 1 of 10 opened",
+    frame and frame.text:GetText())
 
-OpenNote:Tick(OpenNote.HOLD + OpenNote.FADE * 2 + 0.1)
+clock = clock + 20
+frame:GetScript("OnUpdate")(frame)
 suite.check("it goes after a few seconds", not frame:IsShown())
 
 for _ = 2, 10 do OpenOne() end
-local text = frame.label:GetText()
+frame = OpenNote.card
+local text = frame.text:GetText()
 suite.check("at 10 it says what one is worth", text:find("10 opened, about", 1, true) ~= nil, text)
 suite.check("in coins", text:find("25c", 1, true) ~= nil, text)
 

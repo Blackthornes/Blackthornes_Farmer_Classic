@@ -66,6 +66,16 @@ local function Gradient(texture, bottom, top)
 end
 Plaque.Gradient = Gradient
 
+--- How wide `text` is at `size`: the addon's own measure, Tradeskills'
+--- MeasureText or the others' TextWidth(size, text), 0 when it can't say.
+local function TextWidth(size, text)
+    local Theme = ns.Theme
+    local measure = Theme.MeasureText or Theme.TextWidth
+    local ok, width = pcall(measure, size, text)
+    return (ok and type(width) == "number") and width or 0
+end
+Plaque.TextWidth = TextWidth
+
 --- How tall a wrapped label's words stand at `room` wide: the game's own
 --- answer, else lines counted from the words' width.
 function Plaque.TextHeight(label, size, room)
@@ -75,7 +85,7 @@ function Plaque.TextHeight(label, size, room)
     if ok and type(high) == "number" and high > 0 then return high end
     local Theme = ns.Theme
     local line = (Theme.sizes and Theme.sizes[size] or 12) + 2
-    local wide = Theme.TextWidth(size, text)
+    local wide = TextWidth(size, text)
     return line * math.max(1, math.ceil(wide / math.max(1, room)))
 end
 
@@ -233,8 +243,8 @@ function Plaque.Create(parent, opts)
             button.fitHeight = height
             return
         end
-        local wide = Theme.TextWidth("normal", first:GetText() or "")
-        if hasSecond then wide = math.max(wide, Theme.TextWidth("small", second:GetText() or "")) end
+        local wide = TextWidth("normal", first:GetText() or "")
+        if hasSecond then wide = math.max(wide, TextWidth("small", second:GetText() or "")) end
         button:SetWidth(math.max(opts.minWidth or 60, left + wide + right + 4))
     end
     button.Layout = Layout

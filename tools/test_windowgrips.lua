@@ -70,7 +70,7 @@ end
 local windows = {
     { name = "search window", key = "windowScale",
       build = function() return ns.UI:Build() end, grip = function() return ns.UI.sizeGrip end },
-    { name = "settings", key = "settingsScale",
+    { name = "settings", key = "windowScale",
       build = function() return ns.SettingsUI:Build() end, grip = function() return ns.SettingsUI.sizeGrip end },
     { name = "loot table", key = "lootTableScale", saved = 90,
       build = function() return ns.LootTableUI:Build() end, grip = function() return ns.LootTableUI.sizeGrip end },
@@ -141,7 +141,7 @@ for _, w in ipairs(windows) do
         grip._scripts.OnMouseUp(grip, "LeftButton")
         suite.check(w.name .. ": saved on release", ns.db[w.key] == 80, ns.db[w.key])
         suite.check(w.name .. ": stopped", grip._scripts.OnUpdate == nil and not grip.sizing)
-        if w.key == "windowScale" then
+        if w.name == "search window" then
             suite.check("search window: its list drawn once, after the drag", renders == 1, renders)
             suite.check("search window: its spot saved at the new size",
                 ns.db.point == "TOPLEFT" and near(ns.db.x * 0.8, 100), tostring(ns.db.x))

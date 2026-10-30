@@ -225,3 +225,14 @@ used only once the character knows it, so they need no change.
 - Not yet seen in an Era client. Client calls are read in a pcall, and the
   code already falls back to the classic calls (skill lines, spell info, the
   older tooltip scripts) where Era lacks the newer ones.
+
+## The house look (2026-10-29)
+
+- Brought over from Forever's "One look across the five addons". The game
+  calls it uses (`CreateFrame`, `C_Timer.After`, `GetTime`,
+  `GetCursorPosition`, `InCombatLockdown`, the usual frame methods) are all
+  in Era, so nothing needed a fallback.
+- No Arrow Size here: the shared choice is heard and left alone.
+- The Grind tab's row hover ends with "A camp's worth comes from your own
+  kills and picks there." for camps, as Classic's footer said before.
+

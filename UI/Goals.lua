@@ -278,6 +278,8 @@ function GoalsUI:Build()
         GoalsUI.dragging = nil
         self:StopMovingOrSizing()
         GoalsUI:SavePosition()
+        -- Dropped under Kills & Loot, it hangs there again (UI/PanelSnap.lua).
+        if ns.PanelSnap then ns.PanelSnap:GoalsDropped() end
     end)
 
     local header = Theme.CreatePanel(frame, "header", false)
@@ -291,12 +293,25 @@ function GoalsUI:Build()
     title:SetPoint("LEFT", PADDING + 4, 0)
     title:SetText(L["Goals"])
 
-    local close = Widgets.CreateButton(header, "X", function()
-        ns.db.goalsHidden = true
-        GoalsUI:Refresh()
-        ns.Print(L["goals panel hidden. /farm goals brings it back."])
-    end, { width = 18, height = 16, danger = true })
+    -- The house panel header: a count chip, the fold gem (down to this
+    -- header) and the close gem (2026-10-29).
+    local gems = Widgets.CreatePanelGems(header, {
+        onFold = function(folded) GoalsUI:SetFolded(folded) end,
+        onClose = function()
+            ns.db.goalsHidden = true
+            GoalsUI:Refresh()
+            ns.Print(L["goals panel hidden. /farm goals brings it back."])
+        end,
+    })
+    local close = gems.close
+    close:ClearAllPoints()
     close:SetPoint("RIGHT", -6, 0)
+
+    local chip = Widgets.CreateChip(header, "0", nil, { height = 16, selected = true })
+    chip:SetPoint("RIGHT", gems.fold, "LEFT", -6, 0)
+    pcall(chip.EnableMouse, chip, false)
+    if chip.SetSelected then chip:SetSelected(true) end
+    self.countChip = chip
 
     local rule = Theme.CreateDivider(frame, "borderLit")
     rule:SetPoint("TOPLEFT", header, "BOTTOMLEFT")
@@ -331,6 +346,7 @@ function GoalsUI:Build()
     self.header = header
     self.title = title
     self.closeButton = close
+    self.gems = gems
     self.footer = footer
 
     -- The house size grip beside the bottom right corner, as the kills
@@ -440,9 +456,9 @@ function GoalsUI:Card(index)
     card.sub:SetPoint("TOPLEFT", card.name, "BOTTOMLEFT", 0, -2)
 
     -- The best places near you to farm it (2026-09-27).
-    card.where = Widgets.CreateButton(card, L["Where?"], function()
+    card.where = Widgets.CreateButton(card, L["Places"], function()
         if card.goal then GoalsUI:OpenSpots(card.goal.item, GoalsUI.frame) end
-    end, { width = 46, height = 15, labelKey = "accent" })
+    end, { width = 52, height = 15, labelKey = "accent" })
     card.where:HookScript("OnLeave", function()
         if GameTooltip then GameTooltip:Hide() end
     end)
@@ -808,6 +824,10 @@ function GoalsUI:Render()
         needs = PADDING + Theme.TextWidth("small", Util.StripColor(self.footer.left:GetText()))
             + 8 + self.footer.next:GetWidth() + PADDING
     end
+    self.countChip:SetText(tostring(#list))
+    -- The header: title, count chip and both gems in full.
+    needs = math.max(needs, PADDING + 4 + Theme.TextWidth("normal", self.title:GetText())
+        + 8 + self.countChip:GetWidth() + 6 + 18 + 4 + 18 + 6)
     for index, goal in ipairs(list) do
         local card = self:Card(index)
         if card.goal ~= nil and card.goal ~= goal then self:StopCard(card) end
@@ -833,7 +853,21 @@ function GoalsUI:Render()
         self.cards[index].goal = nil
     end
 
+    if self.folded then
+        for index = 1, #self.cards do self.cards[index]:Hide() end
+        self.footer:Hide()
+        self.frame:SetHeight(HEADER)
+        return
+    end
+    for index = 1, #list do self.cards[index]:Show() end
     self.frame:SetHeight(HEADER + GAP + #list * (CARD + 2) + (footer and FOOTER or 0))
+end
+
+--- The fold gem: folded, only the header shows. Nothing is saved.
+function GoalsUI:SetFolded(on)
+    self.folded = on and true or false
+    if self.gems then self.gems:SetFolded(self.folded) end
+    if self.frame and self.frame:IsShown() then self:Render() end
 end
 
 --- An item's rarity came in late (Util.OnRarity): the cards and the
@@ -1466,6 +1500,25 @@ function GoalsUI:BuildSpots()
     panel:SetFrameStrata("DIALOG")
     panel:SetClampedToScreen(true)
     panel:EnableMouse(true)
+    -- It can be dragged, never in a fight; dropped under the goals panel it
+    -- snaps there (UI/PanelSnap.lua).
+    panel:SetMovable(true)
+    panel:RegisterForDrag("LeftButton")
+    panel:SetScript("OnDragStart", function(self)
+        if ns.PanelSnap and ns.PanelSnap.Fighting() then return end
+        self.moving = true
+        self:StartMoving()
+    end)
+    panel:SetScript("OnDragStop", function(self)
+        if not rawget(self, "moving") then return end
+        self.moving = nil
+        self:StopMovingOrSizing()
+        if ns.PanelSnap and ns.PanelSnap:SpotsDropped(self) then
+            local goals = GoalsUI.frame
+            self:ClearAllPoints()
+            self:SetPoint("TOPLEFT", goals, "BOTTOMLEFT", 0, -6)
+        end
+    end)
 
     local back = Theme.Fill(panel, "window", 0.96)
     -- The house frame's rim and corner gems, and its red close gem
@@ -1688,7 +1741,11 @@ function GoalsUI:OpenSpots(item, anchor)
     panel:SetHeight(SPOTS_TOP + math.max(1, #spots) * SPOT_ROW + 44)
 
     panel:ClearAllPoints()
-    if anchor and anchor.IsShown and anchor:IsShown() then
+    if anchor and anchor.IsShown and anchor:IsShown()
+        and ns.PanelSnap and ns.PanelSnap:SpotsUnder() then
+        -- Snapped under the goals panel (UI/PanelSnap.lua).
+        panel:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, -6)
+    elseif anchor and anchor.IsShown and anchor:IsShown() then
         panel:SetPoint("TOPLEFT", anchor, "TOPRIGHT", 6, 0)
     else
         panel:SetPoint("CENTER", UIParent, "CENTER", 0, 80)
@@ -1817,7 +1874,7 @@ function GoalsUI:BuildPicker()
     bank:SetPoint("TOPLEFT", 10, -74)
     picker.bank = bank
 
-    local set = Widgets.CreateButton(picker, L["Set goal"], function() GoalsUI:PickerSet() end,
+    local set = Widgets.CreateButton(picker, L["Set Goal"], function() GoalsUI:PickerSet() end,
         { width = 80, height = 22, primary = true })
     set:SetPoint("BOTTOMLEFT", 10, 10)
     picker.set = set
@@ -1881,7 +1938,7 @@ function GoalsUI:FillPicker()
         chip.label:SetText(tostring(amount))
     end
 
-    picker.set:SetText(goal and L["Change goal"] or L["Set goal"])
+    picker.set:SetText(goal and L["Change goal"] or L["Set Goal"])
     picker.remove:SetShown(goal ~= nil)
 
     if not GoalsUI.choice or GoalsUI.choice <= have then

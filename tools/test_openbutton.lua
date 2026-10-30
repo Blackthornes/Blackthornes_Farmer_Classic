@@ -106,7 +106,7 @@ local button = Open.button
 local header = ns.TrackerUI.header
 suite.check("the button shows", button and button:IsShown())
 suite.check("on the panel's title bar", button:GetParent() == header)
-suite.check("left of the X", button._point and button._point[2] == ns.TrackerUI.closeButton)
+suite.check("left of the fold gem", button._point and button._point[2] == ns.TrackerUI.openAnchor)
 suite.check("how many in its corner", button.count:GetText() == "4", button.count:GetText())
 local said
 GameTooltip.SetText = function(_, text) said = text end

@@ -233,11 +233,13 @@ check("the headings are the fish ones",
         and GrindingUI.HeadingText("fish", "hour") == "AN HOUR",
     GrindingUI.HeadingText("fish", "gives"))
 
+-- The footer is the count or the skill only; the hint is the last line of
+-- a row's hover (2026-10-29).
 local footer = GrindingUI.FooterText("fish")
-check("the footer says what a click does",
-    footer:find("Click a spot to point the arrow where you fished it", 1, true), footer)
-check("and to mouse over a pool first",
-    footer:find("Mouse over a pool before you cast", 1, true), footer)
+check("the footer gives no help line", not footer:find("Click", 1, true), footer)
+local hint = GrindingUI.RowHint("fish")
+check("the hover says to mouse over a pool first",
+    hint:find("Mouse over a pool before you cast", 1, true), hint)
 
 --------------------------------------------------------------------------------
 -- Sorting

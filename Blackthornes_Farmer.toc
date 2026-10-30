@@ -89,6 +89,10 @@ UI\Plaque.lua
 UI\SeeThrough.lua
 UI\Titanforged.lua
 UI\FoldWindow.lua
+UI\HouseKit.lua
+UI\RowMenu.lua
+UI\Notice.lua
+UI\SharedChoices.lua
 UI\About.lua
 UI\WhatsNew.lua
 UI\SettingsPages.lua
@@ -96,6 +100,7 @@ UI\SharedMinimap.lua
 UI\Main.lua
 UI\Export.lua
 UI\Import.lua
+UI\PanelSnap.lua
 UI\Tracker.lua
 UI\TrackerFX.lua
 UI\Goals.lua

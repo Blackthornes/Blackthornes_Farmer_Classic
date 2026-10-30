@@ -102,6 +102,16 @@ function OpenNote:Notice(text, icon, hold)
 end
 
 function OpenNote:Put(text, icon, hold)
+    -- The shared note slot (UI/Notice.lua), so it never lands on another
+    -- addon's note; the old card only when the shared one is missing.
+    if ns.Notice and ns.Notice.Show then
+        local ok, card = pcall(ns.Notice.Show, ns.Notice, text,
+            { icon = icon, hold = hold, key = "farmer:opennote" })
+        if ok and card then
+            self.card = card
+            return
+        end
+    end
     local frame = self:Build()
     frame.label:SetText(text)
     frame.icon:SetTexture(icon)
@@ -139,6 +149,9 @@ function OpenNote:Tick(elapsed)
 end
 
 function OpenNote:Hide()
+    if self.card and self.card.key == "farmer:opennote" and ns.Notice and ns.Notice.Remove then
+        ns.Notice.Remove(self.card)
+    end
     if self.frame then self.frame:Hide() end
 end
 

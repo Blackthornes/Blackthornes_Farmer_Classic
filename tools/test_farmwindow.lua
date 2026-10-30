@@ -131,6 +131,14 @@ TUI:NextSort()
 TUI:NextSort()
 suite.check("round to recent again", TUI:Sort("farm") == "recent")
 
+-- The button opens a drop-down of the same orders, the one in use ticked.
+local sortLines = TUI:SortLines()
+suite.check("the Sort drop-down lists every order", #sortLines == #TUI.SORTS.farm
+    and sortLines[1].checked and not sortLines[2].checked)
+sortLines[3].run()
+suite.check("a line picks its order", TUI:Sort("farm") == "kills" and ns.db.trackerSort == "kills")
+TUI:SetSort("recent")
+
 --------------------------------------------------------------------------------
 -- The Loot tab
 --------------------------------------------------------------------------------

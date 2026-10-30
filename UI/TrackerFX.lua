@@ -1762,6 +1762,7 @@ end
 
 function TrackerFX:SetLevel(level)
     ns.db.trackerEffects = level
+    if ns.SharedChoices then ns.SharedChoices:Changed("effects", level or "full") end
     if level == "off" then
         self:Forget()
         -- What is moving in any window lands at once rather than finishing

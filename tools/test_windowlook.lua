@@ -412,7 +412,7 @@ local kinds = {
     { "a primary button with a dark face of its own", { primary = true, baseColor = { 0.06, 0.07, 0.09, 1 } }, 4.5 },
 }
 for _, kind in ipairs(kinds) do
-    local b = Widgets.CreateButton(UIParent, "Set goal", nil, kind[2])
+    local b = Widgets.CreateButton(UIParent, "Set Goal", nil, kind[2])
     b.Light(0)
     suite.check(kind[1] .. " is readable at rest",
         Contrast(Raw(b.label, "_color"), Raw(b.background, "_rgba")) >= kind[3],
@@ -426,7 +426,7 @@ for _, kind in ipairs(kinds) do
     Motion:FinishAll()
 end
 
-local primary = Widgets.CreateButton(UIParent, "Set goal", nil, { primary = true })
+local primary = Widgets.CreateButton(UIParent, "Set Goal", nil, { primary = true })
 primary.Light(0)
 suite.check("a primary button is solid gold with dark lettering",
     Same(Raw(primary.background, "_rgba"), Color("accent")) and Same(Raw(primary.label, "_color"), Color("ink")))

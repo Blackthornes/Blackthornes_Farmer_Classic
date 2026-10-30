@@ -184,8 +184,9 @@ local rows = GrindingUI:Rows(camps, 0, 24, 26)
 local herbRow = false
 for _, row in ipairs(rows) do if row.type == "herb" and row.camp.location == "Bandit Camp" then herbRow = true end end
 check("herb row inside its camp", herbRow)
-check("footer", GrindingUI.FooterText("mobs")
-    == "Click a camp to point the arrow there. A camp's worth comes from your own kills and picks there.")
+-- The footer only counts; what a camp's worth comes from is the rows' hover.
+check("footer", GrindingUI.FooterText("mobs") == "")
+check("row hint", GrindingUI.RowHint("mobs") == "A camp's worth comes from your own kills and picks there.")
 
 -- Ore stays as it was.
 local Layouts = GrindingUI.LAYOUTS

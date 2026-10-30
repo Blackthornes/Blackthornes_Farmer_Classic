@@ -593,6 +593,35 @@ function TrackerUI:SetTab(tab)
     self:Refresh()
 end
 
+--- Sort the tab showing by `key`, one of SORTS[tab]'s keys.
+function TrackerUI:SetSort(key)
+    local tab = self:Tab()
+    if not ns.db then return end
+    ns.db[tab == "loot" and "trackerLootSort" or "trackerSort"] = key
+    self.scroll = 0
+    if ns.TrackerFX and ns.TrackerFX.Rebase then ns.TrackerFX:Rebase() end
+    self:Refresh()
+end
+
+--- The Sort drop-down's lines (the owner's rule of 2026-10-23: word choices
+--- are drop-downs): every order for the tab showing, the one in use ticked.
+function TrackerUI:SortLines()
+    local tab = self:Tab()
+    local current = self:Sort(tab)
+    local lines = {}
+    for _, sort in ipairs(SORTS[tab]) do
+        local key = sort.key
+        lines[#lines + 1] = { text = sort.label, checked = key == current,
+            run = function() TrackerUI:SetSort(key) end }
+    end
+    return lines
+end
+
+--- Open the Sort drop-down under its button (UI/RowMenu.lua).
+function TrackerUI:OpenSort()
+    if ns.RowMenu then ns.RowMenu:Open(self:SortLines(), { title = L["Sort"] }) end
+end
+
 --- The next way of sorting the tab showing.
 function TrackerUI:NextSort()
     local tab = self:Tab()
@@ -650,6 +679,8 @@ function TrackerUI:Build()
         TrackerUI.dragging = false
         TrackerUI:AnchorTop()
         TrackerUI:SavePosition()
+        -- Dropped over a loose goals panel, it hangs under (UI/PanelSnap.lua).
+        if ns.PanelSnap then ns.PanelSnap:TrackerDropped() end
     end)
 
     -- The wheel scrolls the column rather than cutting it off.
@@ -671,15 +702,23 @@ function TrackerUI:Build()
     title:SetPoint("LEFT", header, "TOPLEFT", PADDING + 4, -TITLE_LINE / 2)
     title:SetText(L["Kills & Loot"])
 
-    local close = Widgets.CreateButton(header, "X", function()
-        ns.db.trackerHidden = true
-        TrackerUI:Refresh()
-        -- An open Settings page shows the panel's switch: keep it in step,
-        -- as /farm tracker off does.
-        if ns.SettingsUI and ns.SettingsUI.Refresh then ns.SettingsUI:Refresh() end
-        ns.Print(L["kill and loot panel hidden. /farm tracker brings it back."])
-    end, { width = 18, height = 16, danger = true })
+    -- The house panel header (2026-10-29): the fold gem left of the close
+    -- gem. Folded, the panel keeps its title bar only (session only).
+    local gems = Widgets.CreatePanelGems(header, {
+        onFold = function(folded) TrackerUI:SetFolded(folded) end,
+        onClose = function()
+            ns.db.trackerHidden = true
+            TrackerUI:Refresh()
+            -- An open Settings page shows the panel's switch: keep it in step,
+            -- as /farm tracker off does.
+            if ns.SettingsUI and ns.SettingsUI.Refresh then ns.SettingsUI:Refresh() end
+            ns.Print(L["kill and loot panel hidden. /farm tracker brings it back."])
+        end,
+    })
+    local close = gems.close
+    close:ClearAllPoints()
     close:SetPoint("RIGHT", header, "TOPRIGHT", -6, -TITLE_LINE / 2)
+    self.gems = gems
 
     -- The session's gathered value on the title bar's second line
     -- (2026-09-27). Built like a line row so the count-up, glow and "+38s" in
@@ -688,9 +727,22 @@ function TrackerUI:Build()
     total:SetPoint("TOPLEFT", header, "TOPLEFT", 3, -TITLE_LINE + 2)
     total:SetPoint("BOTTOMRIGHT", header, "BOTTOMRIGHT", 0, 2)
 
+    -- Its name is on the hover, not under the title (2026-10-29).
     total.left = Theme.CreateLabel(total, "small", "muted")
     total.left:SetPoint("LEFT", PADDING + 1, 0)
-    total.left:SetText(L["Gathered value"])
+    total.left:SetText("")
+    pcall(total.EnableMouse, total, true)
+    total:SetScript("OnEnter", function(self)
+        if not GameTooltip then return end
+        GameTooltip:SetOwner(self, "ANCHOR_BOTTOM")
+        GameTooltip:AddLine(L["Gathered value"])
+        GameTooltip:Show()
+    end)
+    total:SetScript("OnLeave", function() if GameTooltip then GameTooltip:Hide() end end)
+    -- A drag on it still moves the panel.
+    pcall(total.RegisterForDrag, total, "LeftButton")
+    total:SetScript("OnDragStart", function() local f = frame:GetScript("OnDragStart"); if f then f(frame) end end)
+    total:SetScript("OnDragStop", function() local f = frame:GetScript("OnDragStop"); if f then f(frame) end end)
 
     total.right = Theme.CreateLabel(total, "normal", "good", "RIGHT")
     total.right:SetPoint("RIGHT", -PADDING, 0)
@@ -706,6 +758,8 @@ function TrackerUI:Build()
     self.titleRow = total
     self.header = header
     self.closeButton = close
+    -- The Open button (UI/OpenButton.lua) sits left of the fold gem.
+    self.openAnchor = gems.fold
     self.lines = {}
     self.cards = {}
     self.scroll = self.scroll or 0
@@ -716,6 +770,7 @@ function TrackerUI:Build()
     local rule = Theme.CreateDivider(frame, "borderLit")
     rule:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, -TOP)
     rule:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 0, -TOP)
+    self.rule = rule
 
     -- "12 more below" at the bottom edge while the column scrolls.
     local more = Theme.CreateLabel(frame, "tiny", "muted", "RIGHT")
@@ -907,7 +962,7 @@ end
 local function TabHover(tab, p)
     tab.hover:SetAlpha(p)
     if tab.key ~= TrackerUI:Tab() then
-        tab.label:SetTextColor(ns.Motion.Mix("muted", "text", p))
+        tab.label:SetTextColor(ns.Motion.Mix("accent", "accentHi", p))
     end
 end
 
@@ -929,6 +984,18 @@ function TrackerUI:BuildTabs(frame)
         tab.key = spec.key
         tab.index = index
 
+        -- The house's small view tabs (UI/HouseKit.lua, 2026-10-29): dark
+        -- gold metal, the one showing dark glass with a bright gold top edge.
+        tab.metal = Theme.Fill(tab, "metal", 0.55, "BACKGROUND")
+        self:AddGlass(tab.metal)
+        pcall(Theme.Border, tab, "metal", 0.8)
+        tab.edge = tab:CreateTexture(nil, "ARTWORK")
+        tab.edge:SetPoint("TOPLEFT")
+        tab.edge:SetPoint("TOPRIGHT")
+        tab.edge:SetHeight(2)
+        tab.edge:SetColorTexture(Theme.Unpack("accentHi"))
+        tab.edge:Hide()
+
         -- Under the mouse a tab lifts, easing in and out (TabHover). Hidden
         -- with SetAlpha rather than Hide, so the blend can set it.
         tab.hover = Theme.Fill(tab, "rowHover", 0.5, "BORDER")
@@ -940,7 +1007,7 @@ function TrackerUI:BuildTabs(frame)
         Theme.SetGradientAlpha(tab.lit, "VERTICAL", "accent", 0.14, 0)
         tab.lit:Hide()
 
-        tab.label = Theme.CreateLabel(tab, "small", "muted", "CENTER")
+        tab.label = Theme.CreateLabel(tab, "small", "accent", "CENTER")
         tab.label:SetPoint("CENTER", -6, 0)
         tab.label:SetText(spec.label)
 
@@ -991,10 +1058,16 @@ function TrackerUI:DrawTabs(counts)
     for _, tab in ipairs(self.tabs) do
         tab:ClearAllPoints()
         tab:SetPoint("TOPLEFT", self.tabStrip, "TOPLEFT", (tab.index - 1) * each, 0)
-        tab:SetWidth(each)
+        tab:SetWidth(each - (tab.index < #self.tabs and 3 or 0))
 
         local on = tab.key == showing
         tab.lit:SetShown(on)
+        tab.edge:SetShown(on)
+        if on then
+            tab.metal:SetColorTexture(Theme.Unpack("glassActive"))
+        else
+            tab.metal:SetColorTexture(Theme.Unpack("metal", 0.55))
+        end
         if on then
             -- The tab showing does not light under the mouse, and its name
             -- is gold.
@@ -1063,7 +1136,7 @@ function TrackerUI:BuildToolbar(frame)
     bar.left = Theme.CreateLabel(bar, "small", "muted")
     bar.left:SetPoint("LEFT", PADDING, 0)
 
-    bar.sort = Widgets.CreateButton(bar, L.Format("Sort: %s", L["Recent"]), function() TrackerUI:NextSort() end,
+    bar.sort = Widgets.CreateButton(bar, L.Format("Sort: %s", L["Recent"]), function() TrackerUI:OpenSort() end,
         { width = 60, height = 16 })
     bar.sort:SetPoint("RIGHT", -PADDING + 2, 0)
     bar.sort:SetScript("OnEnter", function(self)
@@ -1071,7 +1144,6 @@ function TrackerUI:BuildToolbar(frame)
         if GameTooltip then
             GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
             GameTooltip:AddLine(L["Sort"])
-            GameTooltip:AddLine(L["Click for the next order."], 1, 1, 1)
             GameTooltip:Show()
         end
     end)
@@ -1091,7 +1163,7 @@ end
 --- How long a first click on Clear waits for the second, in seconds.
 TrackerUI.CLEAR_ARMED = 4
 
---- A Clear panel button: the first click asks "Sure?", a second within
+--- A Clear panel button: the first click asks "Click Again", a second within
 --- CLEAR_ARMED seconds empties what the panel shows (Session:Clear). Only
 --- the view goes; every tally, rate and ranking stays. Used on the panel and
 --- in Settings.
@@ -1108,9 +1180,9 @@ function TrackerUI.ClearButton(parent, width, height)
     local function Arm(on, at)
         button.armed, armedAt = on, at
         if button.SetText then
-            button:SetText(on and L["Sure?"] or L["Clear"])
+            button:SetText(on and L["Click Again"] or L["Clear"])
         elseif button.label then
-            button.label:SetText(on and L["Sure?"] or L["Clear"])
+            button.label:SetText(on and L["Click Again"] or L["Clear"])
         end
     end
 
@@ -1452,9 +1524,14 @@ function TrackerUI:CreateLine(parent, index)
                 -- A zone's card hides or names the mob itself.
                 local mob = ns.Tracker.NameOf(line.mob)
                 local choices = {}
+                if ns.LootTableUI then
+                    local key = line.mob
+                    choices[1] = { kind = "action", text = L["Open Loot Table"],
+                        run = function() ns.LootTableUI:Show(key) end }
+                end
                 local npcID = tonumber(mob:match("^Creature #(%d+)$"))
                 if npcID and not ns.Harvest.KnownNpcName(npcID) then
-                    choices[1] = { kind = "name", name = mob, npcID = npcID }
+                    choices[#choices + 1] = { kind = "name", name = mob, npcID = npcID }
                 end
                 choices[#choices + 1] = { kind = "source", name = mob }
                 ns.HideMenu:Open(choices)
@@ -2960,6 +3037,7 @@ function TrackerUI:Arrange(effects)
     end
 
     self:FitTitleBadge()
+    if self.folded then self:ApplyFold() return end
 
     -- The progress bars again, now that the panel has its width.
     for index, line in ipairs(shown) do
@@ -3066,7 +3144,7 @@ function TrackerUI:DrawTitle(line)
     self.titleBadgeNeeds = nil
 
     -- Top line: the title, a gap, and the X with its margins.
-    local top = PADDING + 4 + Theme.TextWidth("normal", self.title:GetText()) + 8 + 6 + 18 + 6
+    local top = PADDING + 4 + Theme.TextWidth("normal", self.title:GetText()) + 8 + 6 + 18 + 4 + 18 + 6
 
     local value = line and line.right or (ns.Value and ns.Value.Coins(0) or "0c")
     local valueWidth = Theme.TextWidth("normal", Util.StripColor(value)) + 2
@@ -3107,6 +3185,30 @@ end
 --------------------------------------------------------------------------------
 -- On and off
 --------------------------------------------------------------------------------
+
+--- Fold the panel to its title bar, or open it again (the fold gem; for
+--- the session only). A docked goals panel follows it up.
+function TrackerUI:SetFolded(on)
+    self.folded = on and true or false
+    if self.gems then self.gems:SetFolded(self.folded) end
+    if not self.folded then
+        for _, part in ipairs({ self.tabStrip, self.toolbar, self.rule }) do
+            if part then part:Show() end
+        end
+    end
+    if self.frame and self.frame:IsShown() then self:Refresh() end
+end
+
+--- Folded: only the title bar shows.
+function TrackerUI:ApplyFold()
+    for _, part in ipairs({ self.tabStrip, self.toolbar, self.rule, self.moreLabel,
+        self.fadeTop, self.fadeBottom }) do
+        if part then part:Hide() end
+    end
+    for _, line in ipairs(self.lines or {}) do line:Hide() end
+    for _, card in ipairs(self.cards or {}) do card:Hide() end
+    self.frame:SetHeight(HEADER)
+end
 
 --- The goals panel hangs under this one until it is dragged, as wide as it
 --- is: follow it when it comes back, changes width or goes, so it never

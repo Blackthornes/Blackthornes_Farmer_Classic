@@ -189,7 +189,7 @@ for _, control in ipairs({ "seeThrough", "goalsSeeThrough", "goalSpotsSeeThrough
     for _, entry in ipairs(ns.SettingsUI.pages.searchables or {}) do
         if entry.frame == controls[control]._parent then found = entry.page end
     end
-    suite.check(control .. " is on the UI page", found == "windows", tostring(found))
+    suite.check(control .. " is on the General page", found == "general", tostring(found))
 end
 
 -- The Kills & Loot row is one stepper over its two keys.
