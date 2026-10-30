@@ -316,6 +316,12 @@ end)
 _G.WorldMapFrame.IsShown = mapShown
 suite.check("an item's card draws its mob rows", okItem and ns.HeatUI.card ~= nil
     and #ns.HeatUI.card.rows >= 1)
+-- The card sits a layer above the map, never under its art.
+suite.check("the card is drawn above a HIGH map", ns.HeatUI.CardStrata({ GetFrameStrata = function() return "HIGH" end }) == "DIALOG")
+suite.check("the card is drawn above a full screen map",
+    ns.HeatUI.CardStrata({ GetFrameStrata = function() return "FULLSCREEN" end }) == "FULLSCREEN_DIALOG")
+suite.check("the card follows the map's layer", ns.HeatUI.card:GetFrameStrata()
+    == ns.HeatUI.CardStrata(_G.WorldMapFrame))
 Heat:ShowAll()
 ns.db.heatCardX, ns.db.heatCardY = nil, nil
 
