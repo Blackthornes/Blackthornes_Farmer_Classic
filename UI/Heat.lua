@@ -504,6 +504,9 @@ end
 HeatUI.KEY_MOST = 5
 
 local PANEL_WIDTH = 262
+-- The card is drawn at this size: Era's world map is small, and at full
+-- size the card hid much of it (the owner, 2026-10-30).
+HeatUI.CARD_SCALE = 0.6
 local INSET = 12       -- the card's contents, clear of the rim
 local ICON = 32
 local ROW_HEIGHT = 20
@@ -544,6 +547,7 @@ local function Card(map)
     local card = CreateFrame("Frame", nil, map)
     card.background = Theme.Fill(card, "window")
     card:SetWidth(PANEL_WIDTH)
+    card:SetScale(HeatUI.CARD_SCALE)
     card:EnableMouse(true)
     card:SetMovable(true)
     card:RegisterForDrag("LeftButton")
@@ -661,14 +665,16 @@ local function CardCorner(map)
 end
 
 -- The nearest the card's top left may come to the corner's, and how far it
--- may go, so it stays inside with its plate and corners.
+-- may go, so it stays inside with its plate and corners. In the corner's
+-- units, so the card's own size and reach are scaled down to them.
 local function CardRoom(card, corner)
+    local scale = HeatUI.CARD_SCALE
     local left, right, top, bottom = Reach(card)
-    local minX, minY = 8 + left, 8 + top
+    local minX, minY = 8 + left * scale, 8 + top * scale
     local okW, width = pcall(corner.GetWidth, corner)
     local okH, height = pcall(corner.GetHeight, corner)
-    local roomX = math.max(0, ((okW and tonumber(width)) or 0) - (card:GetWidth() or 0) - 8 - right)
-    local roomY = math.max(0, ((okH and tonumber(height)) or 0) - (card:GetHeight() or 0) - 8 - bottom)
+    local roomX = math.max(0, ((okW and tonumber(width)) or 0) - ((card:GetWidth() or 0) + right) * scale - 8)
+    local roomY = math.max(0, ((okH and tonumber(height)) or 0) - ((card:GetHeight() or 0) + bottom) * scale - 8)
     return roomX, roomY, minX, minY
 end
 
@@ -682,8 +688,10 @@ function HeatUI:PlaceCard()
     local y = tonumber(ns.db and ns.db.heatCardY) or minY
     if roomX > 0 then x = math.min(math.max(x, minX), roomX) end
     if roomY > 0 then y = math.min(math.max(y, minY), roomY) end
+    -- The offsets are in the corner's units; the card's own are scaled.
+    local scale = HeatUI.CARD_SCALE
     card:ClearAllPoints()
-    card:SetPoint("TOPLEFT", corner, "TOPLEFT", x, -y)
+    card:SetPoint("TOPLEFT", corner, "TOPLEFT", x / scale, -y / scale)
 end
 
 --- After a drag: keep where the card was left, as an offset from the map's
