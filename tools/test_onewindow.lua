@@ -2,7 +2,7 @@
 -- the owner said build it, 2026-10-30).
 --
 -- What must hold:
---   1. Off unless ticked: the main window opens in its own place.
+--   1. On unless unticked; unticked, the main window opens in its own place.
 --   2. Ticked, opening Farmer opens the one window on it, with the main
 --      window laid into its area, bare of its own rim and grip.
 --   3. Settings and the other tabs open in the same area; one at a time.
@@ -25,6 +25,9 @@ suite.check("Farmer joins with its tabs", hub.entries.farmer and hub.entries.far
 suite.check("the one window is Farmer's own copy", Tabs.One() == SW)
 
 -- 1.
+ns.db.oneWindow = nil
+suite.check("on unless unticked", SW.On())
+ns.db.oneWindow = false
 UI:Show()
 suite.check("off: the main window opens by itself", UI.frame:IsShown() and not Tabs:Hosted())
 UI:Hide()

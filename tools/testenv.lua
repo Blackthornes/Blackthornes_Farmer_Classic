@@ -466,6 +466,9 @@ function env.Load(opts)
     opts = opts or {}
 
     env.InstallClient()
+    -- Every suite shares one Lua state: start each with its own one window
+    -- hub, so an earlier suite's Farmer entry and save are not read.
+    _G.BlackthornesWindow = nil
     if opts.unknownEvents then
         local unknown, create = opts.unknownEvents, _G.CreateFrame
         _G.CreateFrame = function(...)
@@ -503,6 +506,9 @@ function env.Load(opts)
     -- ADDON_LOADED installs saved variables; tests that skip the event loop
     -- still need ns.db to exist.
     ns.LoadSavedVariables()
+    -- "One Window:" is on unless unticked; suites test Farmer's own windows
+    -- unless they tick it (test_onewindow.lua checks the default).
+    if ns.db then ns.db.oneWindow = false end
 
     -- Farmer leaves skinning out by default ("Hide skinning"); the suites
     -- written before it test the whole picture, so they see it all.
