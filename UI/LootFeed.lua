@@ -430,6 +430,7 @@ function LootFeed:Layout()
         local row = rows[index]
         if row then
             line.icon:SetTexture(row.icon or 134400)
+            Theme.RingItem(line.icon, not row.sample and row.name or nil, not row.sample and row.id or nil)
             local name = row.sample and row.name or Util.ColorItem(row.name, row.id)
             line.name:SetText(name)
             line.count:SetText(row.sample and "" or ("x" .. row.count))

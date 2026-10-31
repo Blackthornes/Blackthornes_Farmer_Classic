@@ -1045,7 +1045,7 @@ function UI:UpdateRow(row, data, index)
         -- and a recycled row keeps whatever the last one left on it.
         PlaceHeading(row, data.item.id and 38 or 18)
         row.heading:SetTextColor(Theme.Unpack("accent"))
-        row.heading:SetText(("%s  %s"):format(data.item.name,
+        row.heading:SetText(("%s  %s"):format(Util.ColorItemOr("accent", data.item.name, data.item.id),
             Util.Colored("muted", ("(%s, %s)"):format(
                 data.item.category, ns.Search:SpotsText(data.count, #data.item.sources)))))
         row.heading:Show()

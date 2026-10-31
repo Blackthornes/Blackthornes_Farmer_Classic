@@ -2407,6 +2407,7 @@ function TrackerUI:DrawLine(row, line)
     if line.style == "item" then
         local look = ns.Tracker:LookOf(line.item)
         row.icon:SetTexture(look.icon or FALLBACK_ICON)
+        Theme.RingItem(row.icon, line.item, look.id)
         row.icon:Show()
         indent = PADDING + 6 + ICON + 4
         row.left:SetTextColor(ItemColor(line.item))
@@ -2414,6 +2415,7 @@ function TrackerUI:DrawLine(row, line)
         indent = self:DrawLootParts(row, line)
     elseif line.style == "place" then
         row.icon:SetTexture(PLACE_ICON)
+        Theme.RingItem(row.icon, nil, nil)
         row.icon:Show()
         indent = PADDING + 6 + ICON + 4
         row.left:SetTextColor(Theme.Unpack("muted"))
@@ -2603,6 +2605,7 @@ function TrackerUI:DrawLootParts(row, line)
     row.icon:SetPoint("LEFT", PADDING - 2 + MEDAL + 5, 0)
     row.icon:SetSize(LOOT_ICON, LOOT_ICON)
     row.icon:SetTexture(look.icon or FALLBACK_ICON)
+    Theme.RingItem(row.icon, line.item, look.id)
     row.icon:Show()
 
     row.left:SetTextColor(ItemColor(line.item))
