@@ -324,4 +324,21 @@ suite.check("picking another mob while open lifts the window over the main one",
 LTU.frame.Raise = nil
 LTU:Hide()
 
+-- What a drop adds to a kill shows as the game's coins, each in its own
+-- column (UI/Coins.lua), in place of the coloured words.
+do
+    local row = CreateFrame("Button", nil, UIParent)
+    row:SetSize(400, 22)
+    LTU._CreateRow(row)
+    suite.check("a row has coin columns", row.coins ~= nil)
+    LTU._UpdateRow(row, { name = "Linen Cloth", id = 2589, dropped = 3, total = 3, perKill = 160 })
+    suite.check("per kill in coins", ns.Coins.Shown(row.coins) and row.coins.silver:IsShown()
+        and row.coins.copper:IsShown() and row.cells.perKill:GetText() == "", row.cells.perKill:GetText())
+    LTU._UpdateRow(row, { name = "Linen Cloth", id = 2589, dropped = 3, total = 3, quest = true })
+    suite.check("a quest item says Quest, no coins", not ns.Coins.Shown(row.coins)
+        and row.cells.perKill:GetText() == "Quest")
+    LTU._UpdateRow(row, { name = "Linen Cloth", id = 2589, dropped = 3, total = 3 })
+    suite.check("no value is --", not ns.Coins.Shown(row.coins) and row.cells.perKill:GetText() == "--")
+end
+
 suite.done()

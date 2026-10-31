@@ -384,6 +384,7 @@ local UI_FILES = {
     "UI/Theme.lua",
     "UI/ItemLook.lua",
     "UI/Marks.lua",
+    "UI/Coins.lua",
     "UI/BlizzardLook.lua",
     "UI/Widgets.lua",
     "UI/SpotMarker.lua",
