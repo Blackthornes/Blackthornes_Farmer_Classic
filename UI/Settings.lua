@@ -333,13 +333,21 @@ end
 function SettingsUI:TakeWindowSize()
     local frame = self.frame
     if not frame then return end
+    -- What the pages asked for: laid into the one window the frame fills
+    -- the area, so its own size would only say how big the area is now.
+    local pages = rawget(self, "pages")
+    local need = pages and rawget(pages, "need")
+    if type(need) == "table" then
+        self.need = { need[1], need[2] }
+    else
+        self.need = { frame:GetWidth(), frame:GetHeight() }
+    end
     local Tabs = ns.FarmerTabs
     if Tabs and Tabs.area then
         -- Inside the one window it fills the area, which grows instead.
         Tabs:Grow()
         return
     end
-    self.need = { frame:GetWidth(), frame:GetHeight() }
     local width, height = SettingsUI.WindowSize()
     if not width then return end
     if frame:GetWidth() ~= width then
