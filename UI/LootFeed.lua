@@ -433,10 +433,17 @@ function LootFeed:Layout()
             Theme.RingItem(line.icon, not row.sample and row.name or nil, not row.sample and row.id or nil)
             local name = row.sample and row.name or Util.ColorItem(row.name, row.id)
             line.name:SetText(name)
-            line.count:SetText(row.sample and "" or ("x" .. row.count))
+            -- How many sits on the icon's corner, as in the bags
+            -- (UI/ItemLook.lua); without it, after the name as before.
+            if ns.ItemLook then
+                ns.ItemLook.SetCount(line.icon, not row.sample and row.count or nil)
+                line.count:SetText("")
+            else
+                line.count:SetText(row.sample and "" or ("x" .. row.count))
+            end
             line.edge:SetShown(index == 1 and not row.sample)
             local wide = PAD * 2 + ICON + 12 + (tonumber(Theme.TextWidth("normal", row.name)) or 120)
-                + (tonumber(Theme.TextWidth("normal", "x" .. tostring(row.count or ""))) or 20)
+                + (tonumber(Theme.TextWidth("normal", line.count:GetText() or "")) or 20)
             width = math.max(width, wide)
             line:ClearAllPoints()
             line:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, -(index - 1) * ROW)

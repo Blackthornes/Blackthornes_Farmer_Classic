@@ -65,10 +65,10 @@ local lines = {}
 TrackerUI:LootLines(function(line) lines[#lines + 1] = line; return line end)
 local below, notes = {}, {}
 for _, line in ipairs(lines) do
-    if line.style == "loot" then below[line.item] = line.below end
+    if line.style == "loot" then below[line.item] = line.right end
     if line.style == "note" then notes[#notes + 1] = line.left end
 end
-suite.check("it says Quest under its count", below["Gold Dust Sample"] == "Quest", below["Gold Dust Sample"])
+suite.check("it says Quest beside its name", below["Gold Dust Sample"] == "Quest", below["Gold Dust Sample"])
 suite.check("the odd rock still says no price", below["Odd Rock"] == "no price", below["Odd Rock"])
 
 -- The session's gold and the "left out" note.

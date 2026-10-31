@@ -171,7 +171,7 @@ suite.check("the session heading totals kills",
 UI:SetTab("loot")
 local scrapsLoot = Line(SCRAPS.name)
 suite.check("session loot adds up quantities",
-    scrapsLoot and scrapsLoot.right == "x2", scrapsLoot and scrapsLoot.right)
+    scrapsLoot and scrapsLoot.count == 2, scrapsLoot and scrapsLoot.count)
 suite.check("and says which mob it came from",
     scrapsLoot and scrapsLoot.sub == BOAR .. " 2", scrapsLoot and scrapsLoot.sub)
 suite.check("the Loot tab is saved", ns.db.trackerTab == "loot")
@@ -192,7 +192,7 @@ Loot(BOAR, { { name = "Chunk of Boar Meat", quantity = 2 }, { name = "Chunk of B
 UI:SetTab("loot")
 local meatLoot = Line(MEAT.name)
 suite.check("two slots of one item both count toward loot",
-    meatLoot and meatLoot.right == "x4", meatLoot and meatLoot.right)
+    meatLoot and meatLoot.count == 4, meatLoot and meatLoot.count)
 UI:SetTab("farm")
 
 --------------------------------------------------------------------------------

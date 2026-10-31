@@ -102,7 +102,7 @@ local scrapsRow
 for _, line in ipairs(TUI.shown) do
     if line.item == "Ruined Leather Scraps" then scrapsRow = line end
 end
-suite.check("its leather is on the Loot tab", scrapsRow and scrapsRow.right == "x3", scrapsRow and scrapsRow.right)
+suite.check("its leather is on the Loot tab", scrapsRow and scrapsRow.count == 3, scrapsRow and scrapsRow.count)
 suite.check("from the mob you skinned", scrapsRow and scrapsRow.sub == "Plainstrider 3", scrapsRow and scrapsRow.sub)
 TUI:SetTab("farm")
 
