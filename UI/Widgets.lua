@@ -629,6 +629,10 @@ function Widgets.CreateDropdown(parent, options, onSelect, opts)
         end
         Rebuild()
         Place()
+        -- Laid into the one window, the box's window takes that window's
+        -- strata, and the menu with it, so the rows under the box drew over
+        -- the open list. Lift it again each time it opens.
+        menu:SetFrameStrata("FULLSCREEN_DIALOG")
         menu:Show()
         menu:Raise()
         Motion:Run(menu, "open", 0.12, function(p) menu:SetAlpha(p) end)
