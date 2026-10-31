@@ -498,8 +498,11 @@ function Page:Fit()
     local height = opts.top + BAR_HEIGHT + 14 + self:TallestColumn() + opts.bottom
     local width = math.max(opts.padding * 2 + opts.columnWidth * 2 + opts.columnGap, self:BarWidth())
     self.fitted = true
-    self.frame:SetWidth(math.ceil(width))
-    self.frame:SetHeight(math.ceil(height))
+    -- Kept, since the frame's own size can't be read back for it: laid
+    -- into the one window, it fills the area whatever size is asked for.
+    self.need = { math.ceil(width), math.ceil(height) }
+    self.frame:SetWidth(self.need[1])
+    self.frame:SetHeight(self.need[2])
     for _, page in pairs(self.pages) do
         page.content:SetHeight(math.ceil(self:TallestColumn()))
     end
