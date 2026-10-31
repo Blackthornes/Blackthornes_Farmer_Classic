@@ -2289,10 +2289,11 @@ function TrackerUI:LootLines(Add)
         local sub, short = SourcesText(entry.sources)
         Add({ style = "loot", item = entry.name, left = entry.name,
             sub = sub, subShort = short, rank = rank,
-            right = ("x%d"):format(entry.count),
-            below = entry.value and ns.Value.Coins(entry.value)
+            -- How many sits on the icon's corner (UI/ItemLook.lua), so the
+            -- worth takes the count's place beside the name.
+            right = entry.value and ns.Value.Coins(entry.value)
                 or (entry.quest and L["Quest"] or L["no price"]),
-            belowColor = entry.value and "good" or (entry.quest and "accent" or "muted"),
+            rightColor = entry.value and "good" or (entry.quest and "accent" or "muted"),
             key = "loot:" .. entry.name, count = entry.count })
     end
 
@@ -2403,6 +2404,7 @@ function TrackerUI:DrawLine(row, line)
     row.icon:ClearAllPoints()
     row.icon:SetPoint("LEFT", PADDING + 6, 0)
     row.icon:SetSize(ICON, ICON)
+    if ns.ItemLook then ns.ItemLook.SetCount(row.icon, nil) end
 
     if line.style == "item" then
         local look = ns.Tracker:LookOf(line.item)
@@ -2606,6 +2608,7 @@ function TrackerUI:DrawLootParts(row, line)
     row.icon:SetSize(LOOT_ICON, LOOT_ICON)
     row.icon:SetTexture(look.icon or FALLBACK_ICON)
     Theme.RingItem(row.icon, line.item, look.id)
+    if ns.ItemLook then ns.ItemLook.SetCount(row.icon, line.count) end
     row.icon:Show()
 
     row.left:SetTextColor(ItemColor(line.item))

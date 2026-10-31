@@ -72,8 +72,8 @@ local rows = {}
 for _, line in ipairs(TUI.shown) do
     if line.item then rows[line.item] = line end
 end
-suite.check("the Loot tab says six wool", rows[WOOL.name] and rows[WOOL.name].right == "x6",
-    rows[WOOL.name] and rows[WOOL.name].right)
+suite.check("the Loot tab says six wool", rows[WOOL.name] and rows[WOOL.name].count == 6,
+    rows[WOOL.name] and rows[WOOL.name].count)
 suite.check("and lists the linen", rows[LINEN.name] ~= nil)
 TUI:SetTab("farm")
 

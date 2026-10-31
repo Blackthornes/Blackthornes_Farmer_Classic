@@ -158,8 +158,8 @@ end
 suite.check("best earners first", rows[1] and rows[1].item == "Wool Cloth"
     and rows[2].item == "Large Fang", rows[1] and rows[1].item)
 suite.check("ranked", rows[1].rank == 1 and rows[2].rank == 2)
-suite.check("with how many", rows[1].right == "x6", rows[1].right)
-suite.check("and what they are worth, in coin colours", rows[1].below == Value.Coins(360), rows[1].below)
+suite.check("with how many", rows[1].count == 6, rows[1].count)
+suite.check("and what they are worth, in coin colours", rows[1].right == Value.Coins(360), rows[1].right)
 suite.check("and where they came from", rows[1].sub == "Kobold Worker 6", rows[1].sub)
 local scraps
 for _, row in ipairs(rows) do if row.item == SCRAPS.name then scraps = row end end
@@ -167,11 +167,17 @@ suite.check("two mobs, most first", scraps and scraps.sub == "Gnoll Brute 2, Man
     or scraps and scraps.sub == "Mangy Wolf 2, Gnoll Brute 2", scraps and scraps.sub)
 local paw
 for _, row in ipairs(rows) do if row.item == PAW.name then paw = row end end
-suite.check("an item with no price says so", paw and paw.below == "no price", paw and paw.below)
+suite.check("an item with no price says so", paw and paw.right == "no price", paw and paw.right)
 suite.check("and sorts last", paw and paw.rank > 3)
 
 local drawn = TUI.lines[1]
 suite.check("the top three wear medals", drawn.medal:IsShown())
+local countedRow
+for _, row in ipairs(TUI.lines) do
+    if row.line == rows[1] or (row.left and row.left:GetText() == "Wool Cloth") then countedRow = row; break end
+end
+suite.check("how many sits on the icon's corner", countedRow and ns.ItemLook
+    and ns.ItemLook.CountShown(countedRow.icon) == 6)
 suite.check("the Loot tab's rows are two lines tall",
     TUI:LineHeight(rows[1], 260) > TUI:LineHeight({ style = "note" }, 260))
 

@@ -77,6 +77,9 @@ do
     TakeAll(ns, { FANG })
     suite.check("the same thing adds to its count", #Feed.rows == 2 and Feed.rows[1].name == "Large Fang"
         and Feed.rows[1].count == 4, Feed.rows[1].count)
+    local top = Feed.lines and Feed.lines[1]
+    suite.check("how many sits on the icon's corner", top and ns.ItemLook
+        and ns.ItemLook.CountShown(top.icon) == 4 and top.count:GetText() == "")
     suite.check("and holds again from now", Feed.rows[1].at == 102)
 
     -- Fades: the cloth goes first.
