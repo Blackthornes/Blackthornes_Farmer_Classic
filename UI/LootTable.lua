@@ -51,7 +51,8 @@ local BOTTOM = 34
 
 -- The number columns, right to left, in pixels.
 local COLUMNS = {
-    { key = "perKill", title = L["PER KILL"], width = 70 },
+    -- Wide enough for the coins' three columns (UI/Coins.lua).
+    { key = "perKill", title = L["PER KILL"], width = 100 },
     { key = "rate",    title = L["RATE"],     width = 50 },
     { key = "total",   title = L["TOTAL"],    width = 44 },
     -- "123 of 1204" once a mob passes a hundred kills.
@@ -242,6 +243,13 @@ local function CreateRow(row)
         right = right + column.width + GAP
     end
 
+    -- What it adds to a kill, as the game's coins, each in its own
+    -- column, at the PER KILL column's right edge.
+    if ns.Coins then
+        row.coins = ns.Coins.Create(row, function() return Theme.CreateLabel(row, "small", "text", "RIGHT") end)
+        ns.Coins.Place(row.coins, row.cells.perKill, "RIGHT", 0, 0)
+    end
+
     row.name = Theme.CreateLabel(row, "small", "text")
     row.name:SetPoint("LEFT", row.icon, "RIGHT", 6, 0)
     row.name:SetPoint("RIGHT", -right, 0)
@@ -389,7 +397,12 @@ local function UpdateRow(row, data)
         row.fill:Hide()
     end
 
-    if data.perKill then
+    local coins = rawget(row, "coins")
+    if coins then ns.Coins.Set(coins, nil) end
+    if data.perKill and coins then
+        row.cells.perKill:SetText("")
+        ns.Coins.Set(coins, data.perKill)
+    elseif data.perKill then
         row.cells.perKill:SetText(ns.Value.Coins(data.perKill))
         row.cells.perKill:SetTextColor(Theme.Unpack("good"))
     elseif data.quest then
@@ -400,6 +413,10 @@ local function UpdateRow(row, data)
         row.cells.perKill:SetTextColor(Theme.Unpack("dim"))
     end
 end
+
+-- For the tests.
+LootTableUI._CreateRow = CreateRow
+LootTableUI._UpdateRow = UpdateRow
 
 function LootTableUI:Build()
     if self.frame then return self.frame end
