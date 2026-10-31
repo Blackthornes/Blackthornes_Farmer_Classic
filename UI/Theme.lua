@@ -467,5 +467,18 @@ function Theme.SetItemIcon(icon, itemID)
     end
 
     icon:SetTexture(Theme.ItemIcon(itemID) or FALLBACK_ICON)
+    Theme.RingItem(icon, nil, itemID)
     icon:Show()
+end
+
+--- The thin ring round an item's icon in its quality colour
+--- (UI/ItemLook.lua), by name and/or ID; no ring while nobody knows.
+function Theme.RingItem(icon, name, itemID)
+    if not icon or not ns.ItemLook then return end
+    local quality
+    if ns.Util and ns.Util.ItemQuality then
+        local ok, found = pcall(ns.Util.ItemQuality, name, itemID)
+        if ok then quality = found end
+    end
+    ns.ItemLook.SetQuality(icon, quality)
 end

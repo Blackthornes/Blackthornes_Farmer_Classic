@@ -643,6 +643,7 @@ function GoalsUI:DrawCard(card, goal)
 
     local kill = IsKill(goal)
     card.icon:SetTexture(kill and KILL_ICON or IconOf(goal.item))
+    Theme.RingItem(card.icon, not kill and goal.item or nil, nil)
 
     -- The name in its quality colour where the tracker has seen it.
     local look = (not kill and ns.Tracker and ns.Tracker:LookOf(goal.item)) or {}

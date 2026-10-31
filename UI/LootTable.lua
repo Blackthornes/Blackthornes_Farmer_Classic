@@ -326,6 +326,7 @@ local function UpdateRow(row, data)
     -- own icon for it, before the question mark.
     local look = ns.Tracker:LookOf(data.name)
     row.icon:SetTexture(look.icon or Theme.ItemIcon(data.id) or FALLBACK_ICON)
+    Theme.RingItem(row.icon, data.name, data.id)
 
     local r, g, b, a = HexColor(look.color)
     -- No loot link kept its colour: the item's rarity from the client.
