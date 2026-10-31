@@ -23,6 +23,16 @@ tell a friend: no hype, no questions to the reader, no exclamation marks
 outside the thanks line, no dashes as punctuation, no "now you can". The
 tool prints a note for a shipped line that reads like an advert.
 
+## 0.9.0
+
+- Item icons now have a ring and a name colour that match their quality.
+- Stack counts show on the corner of item icons.
+- Items show a small mark and colour for what to do with them.
+- Loot table worth shows in gold, silver and copper coins.
+
+Fixes and changes:
+- Various bug fixes.
+
 ## 0.8.0
 
 - All your Blackthornes add-ons now open in one window, with a button for each add-on down the side.
