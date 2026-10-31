@@ -822,6 +822,14 @@ it shows there the row of emblems is left out (`PLACES.auction.only`,
 picked there brings the row back. Tested in
 `tools/test_sharedwindow.lua`. Not yet seen in game.
 
+An open letter (2026-10-31, FILE_VERSION 5): at the mailbox the docked
+window sits beside `OpenMailFrame` while a letter is open and goes back
+beside the mailbox when it closes (`PLACES.mail.follow`, hooked by
+HookScript, read only). `SharedWindow.Watch(fn)` hears each dock, move
+and undock, and `SharedWindow.DockedFrame()` gives the window while it is
+docked, so side panels (Tradeskills' mail panel, Butler's buy box) sit
+past it. Tested in `tools/test_sharedwindow.lua`.
+
 Farmer's tabs are in (2026-10-30, after Butler's, Pets' and Equipment's):
 "One Window:" sits under "Combine Addon Buttons:" on the General page
 (`SettingsUI:SetOneWindow`, writing every save). Farmer joins with `host =
