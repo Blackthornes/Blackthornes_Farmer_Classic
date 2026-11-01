@@ -18,7 +18,9 @@
 -- The spots themselves are Logic/Gathering.lua's. This file only draws them,
 -- and only the ones on the map you are looking at (world map) or standing on
 -- (minimap). Each map has its own switch, both on unless turned off on the
--- settings page or with /farm markers.
+-- settings page or with /farm markers. Each character sees only the spots
+-- for the gathering skills it knows, unless "My Professions Only:" is
+-- unticked (MapMarkers.MineOnly).
 --
 -- Nothing here has a template or XML behind it: markers are plain frames
 -- parented to the map's canvas and to the minimap, placed by hand. Every
@@ -94,6 +96,108 @@ end
 function MapMarkers:SetMinimap(on)
     ns.db.markersMinimap = on and true or false
     self:Refresh()
+end
+
+--- Only the spots for the gathering skills this character knows (the owner,
+--- 2026-11-01: they are of no use on another character). On unless
+--- unticked; nil reads as on.
+function MapMarkers.MineOnly()
+    return ns.db and ns.db.markersMyProfessions ~= false
+end
+
+function MapMarkers:SetMineOnly(on)
+    ns.db.markersMyProfessions = on and true or false
+    self.known = nil
+    self:Refresh()
+end
+
+-- What each marker kind needs, by the skill's English name.
+MapMarkers.KIND_SKILL = { herb = "Herbalism", ore = "Mining", fish = "Fishing" }
+-- How often the skills are read again; a learned or dropped skill also
+-- reads them at once (SKILL_LINES_CHANGED).
+MapMarkers.KNOWN_EVERY = 10
+
+local SKILL_NAMES = { "Herbalism", "Herb Gathering", "Mining", "Fishing" }
+local SAME_SKILL = { ["Herb Gathering"] = "Herbalism" }
+
+local function SkillFromName(name, line, found)
+    line = ns.Harvest.ReadableNumber(line)
+    if line then
+        for english, lines in pairs(ns.Gathering.SKILL_LINES or {}) do
+            for _, id in ipairs(lines) do
+                if id == line then found[english] = true end
+            end
+        end
+    end
+    name = ns.Harvest.Readable(name)
+    local english = name and ns.Gathering.SkillOf(name, SKILL_NAMES)
+    if english then found[SAME_SKILL[english] or english] = true end
+end
+
+--- The gathering skills this character knows: { Herbalism = true, ... },
+--- or nil when the client will not say (then every spot shows).
+function MapMarkers.ReadKnown()
+    local found, read = {}, false
+
+    if type(GetProfessions) == "function" and type(GetProfessionInfo) == "function" then
+        local ok, a, b, c, d, e = pcall(GetProfessions)
+        if ok then
+            read = true
+            for _, index in ipairs({ a or false, b or false, c or false, d or false, e or false }) do
+                index = index and ns.Harvest.ReadableNumber(index)
+                if index then
+                    local got, name, _, _, _, _, _, line = pcall(GetProfessionInfo, index)
+                    if got then SkillFromName(name, line, found) end
+                end
+            end
+        end
+    end
+
+    if not next(found) and type(GetNumSkillLines) == "function" and type(GetSkillLineInfo) == "function" then
+        local ok, lines = pcall(GetNumSkillLines)
+        lines = ok and ns.Harvest.ReadableNumber(lines) or nil
+        if lines and lines > 0 then
+            read = true
+            for index = 1, lines do
+                local got, name, header = pcall(GetSkillLineInfo, index)
+                if got and not header then SkillFromName(name, nil, found) end
+            end
+        end
+    end
+
+    return read and found or nil
+end
+
+--- The kinds of spot to show: { herb = true, ... }, a stamp for redraw
+--- keys, and nil kinds when every kind shows. Kept KNOWN_EVERY seconds.
+function MapMarkers:ShownKinds()
+    if not MapMarkers.MineOnly() then return nil, "all" end
+
+    local now = GetTime and GetTime() or 0
+    local kept = self.known
+    if kept and now - kept.at < MapMarkers.KNOWN_EVERY then return kept.kinds, kept.stamp end
+
+    local known = MapMarkers.ReadKnown()
+    local kinds, stamp
+    if known then
+        kinds, stamp = {}, {}
+        for kind, skill in pairs(MapMarkers.KIND_SKILL) do
+            if known[skill] then kinds[kind] = true; stamp[#stamp + 1] = kind end
+        end
+        table.sort(stamp)
+        stamp = "mine:" .. table.concat(stamp, ",")
+    else
+        stamp = "all"
+    end
+    self.known = { at = now, kinds = kinds, stamp = stamp }
+    return kinds, stamp
+end
+
+--- Does a spot of this kind show for this character?
+function MapMarkers.KindShows(kind, kinds)
+    if not kinds then return true end
+    if not MapMarkers.KIND_SKILL[kind] then return true end
+    return kinds[kind] == true
 end
 
 --------------------------------------------------------------------------------
@@ -550,8 +654,9 @@ function MapMarkers:DrawWorld()
         return
     end
 
-    local key = ("%d:%s:%s:%s:%d"):format(view.mapID, view.scale, view.width,
-        view.height, ns.Gathering.spotsVersion or 0)
+    local _, kindStamp = self:ShownKinds()
+    local key = ("%d:%s:%s:%s:%d:%s"):format(view.mapID, view.scale, view.width,
+        view.height, ns.Gathering.spotsVersion or 0, kindStamp)
     local on = MapMarkers.WorldOn()
 
     if key == self.worldKey and self.worldOn == on then
@@ -715,21 +820,28 @@ function MapMarkers:MinimapKey()
     local okWidth, size = pcall(Minimap.GetWidth, Minimap)
     size = okWidth and ns.Harvest.ReadableNumber(size) or nil
 
-    return ("%d|%s|%s|%s|%s|%s|%s|%s"):format(mapID, tostring(px), tostring(py),
+    local _, kindStamp = self:ShownKinds()
+    return ("%d|%s|%s|%s|%s|%s|%s|%s|%s"):format(mapID, tostring(px), tostring(py),
         tostring(Facing()), tostring(IsSquare()), tostring(MapMarkers.MinimapRadius()),
-        tostring(size), tostring(ns.Gathering.spotsVersion or 0))
+        tostring(size), tostring(ns.Gathering.spotsVersion or 0), kindStamp)
 end
 
---- The spots on `mapID`, kept until the spots change.
+--- The spots on `mapID` this character shows (MineOnly), kept until the
+--- spots or the skills change.
 function MapMarkers:SpotsOn(mapID)
     local all = ns.Gathering:Spots()
     local version = ns.Gathering.spotsVersion or 0
+    local kinds, stamp = self:ShownKinds()
     local kept = self.spotsKept
-    if kept and kept.map == mapID and kept.version == version and kept.all == all then
+    if kept and kept.map == mapID and kept.version == version and kept.all == all
+        and kept.stamp == stamp then
         return kept.spots
     end
-    local spots = ns.Gathering:SpotsOn(mapID)
-    self.spotsKept = { map = mapID, version = version, all = all, spots = spots }
+    local spots = {}
+    for _, spot in ipairs(ns.Gathering:SpotsOn(mapID)) do
+        if MapMarkers.KindShows(spot.kind, kinds) then spots[#spots + 1] = spot end
+    end
+    self.spotsKept = { map = mapID, version = version, all = all, stamp = stamp, spots = spots }
     return spots
 end
 
@@ -737,10 +849,14 @@ end
 --- step apart as one marker. Kept until the spots change.
 function MapMarkers:JoinedOn(mapID)
     local version = ns.Gathering.spotsVersion or 0
+    local _, stamp = self:ShownKinds()
     local kept = self.joinedKept
-    if kept and kept.map == mapID and kept.version == version then return kept.spots end
-    local spots = ns.Gathering.Joined(ns.Gathering:SpotsOn(mapID))
-    self.joinedKept = { map = mapID, version = version, spots = spots }
+    if kept and kept.map == mapID and kept.version == version and kept.stamp == stamp then
+        return kept.spots
+    end
+    -- Only the kinds this character shows (MineOnly), then joined.
+    local spots = ns.Gathering.Joined(self:SpotsOn(mapID))
+    self.joinedKept = { map = mapID, version = version, stamp = stamp, spots = spots }
     return spots
 end
 
@@ -862,6 +978,12 @@ function MapMarkers:OnEnable()
     driver:SetScript("OnUpdate", function(_, elapsed) MapMarkers:Step(elapsed) end)
     driver:Show()
     self.driver = driver
+
+    -- A skill learned or dropped shows or hides its spots at once.
+    ns.RegisterEvent(self, "SKILL_LINES_CHANGED", function()
+        MapMarkers.known = nil
+        MapMarkers:Refresh()
+    end)
 end
 
 --------------------------------------------------------------------------------
@@ -875,8 +997,9 @@ local function Status()
         Util.Colored("accent", OnOff(MapMarkers.WorldOn())),
         Util.Colored("accent", OnOff(MapMarkers.MinimapOn())),
         Util.Plural(#ns.Gathering:Spots(), L["spot"], L["spots"])))
+    ns.Print(L.Format("Only your professions: %s.", Util.Colored("accent", OnOff(MapMarkers.MineOnly()))))
     ns.PrintRaw(Util.Colored("muted",
-        "  /farm markers on|off, /farm markers map on|off, /farm markers minimap on|off"))
+        "  /farm markers on|off, /farm markers map on|off, /farm markers minimap on|off, /farm markers mine on|off"))
 end
 
 ns.RegisterCommand("markers", L["gathered herb and ore markers on the maps (on, off, map, minimap)"], function(rest)
@@ -907,6 +1030,8 @@ ns.RegisterCommand("markers", L["gathered herb and ore markers on the maps (on, 
         MapMarkers:SetWorld(state == "on")
     elseif which == "minimap" and (state == "on" or state == "off") then
         MapMarkers:SetMinimap(state == "on")
+    elseif which == "mine" and (state == "on" or state == "off") then
+        MapMarkers:SetMineOnly(state == "on")
     end
 
     Status()

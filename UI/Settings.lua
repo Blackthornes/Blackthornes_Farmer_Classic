@@ -1163,6 +1163,16 @@ function SettingsUI:BuildMapPage()
     end, true)
     controls.markersMinimap:SetPoint("TOPLEFT", CONTROL_X, -2)
 
+    -- Only the spots this character's gathering skills can use (a player
+    -- asked, the owner said on by default, 2026-11-01).
+    local mineRow = pages:Row("map", 1, L["My Professions Only:"],
+        L["Shows only spots for the gathering skills this character knows."])
+
+    controls.markersMine = Widgets.CreateCheckbox(mineRow, L["On"], function(checked)
+        ns.MapMarkers:SetMineOnly(checked)
+    end, true)
+    controls.markersMine:SetPoint("TOPLEFT", CONTROL_X, -2)
+
     -- Sparkles on the node you face (the owner asked 2026-10-13).
     local sparkleRow = pages:Row("map", 1, L["Sparkles:"],
         L["Lights up the herb, ore, fishing school, chest, quest object or bobber in front of you."])
@@ -1610,6 +1620,7 @@ function SettingsUI:Refresh()
     if controls.shareDrops then controls.shareDrops:SetChecked(db.shareDrops == true) end
     controls.markersWorld:SetChecked(db.markersWorld ~= false)
     controls.markersMinimap:SetChecked(db.markersMinimap ~= false)
+    controls.markersMine:SetChecked(db.markersMyProfessions ~= false)
     controls.heatWorld:SetChecked(db.heatWorld == true)
     controls.heatMinimap:SetChecked(db.heatMinimap == true)
     controls.heatLevel:SetValue(ns.Heat:Level(), true)
