@@ -175,9 +175,10 @@ local before = SettingsUI.frame:GetHeight()
 pages.describe:GetScript("OnClick")(pages.describe)
 suite.check("Show descriptions is saved", ns.db.settingsDescriptions == true)
 suite.check("and puts the words under the rows", reportRow.hint:IsShown())
-suite.check("and the window grows to fit them", SettingsUI.frame:GetHeight() > before)
+suite.check("and the window keeps its size", SettingsUI.frame:GetHeight() == before)
+suite.check("the page scrolls instead", pages.body:GetHeight() > (pages.scroll:GetHeight() or 0))
 pages.describe:GetScript("OnClick")(pages.describe)
-suite.check("unticked, the window goes back", SettingsUI.frame:GetHeight() == before)
+suite.check("unticked, the window is the same", SettingsUI.frame:GetHeight() == before)
 
 -- The kill tally's size buttons sit under its stepper, over its words.
 local sizeRow = controls.trackerScale._parent
