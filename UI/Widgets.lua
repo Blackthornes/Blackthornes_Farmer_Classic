@@ -627,6 +627,14 @@ function Widgets.CreateDropdown(parent, options, onSelect, opts)
                 break
             end
         end
+        -- On UIParent at the box's own scale while open, so a list that
+        -- scrolls (Settings' pages) can't cut it off at its edge.
+        pcall(function()
+            if not UIParent then return end
+            if menu:GetParent() ~= UIParent then menu:SetParent(UIParent) end
+            local scale = dropdown:GetEffectiveScale() / UIParent:GetEffectiveScale()
+            if type(scale) == "number" and scale > 0 then menu:SetScale(scale) end
+        end)
         Rebuild()
         Place()
         -- Laid into the one window, the box's window takes that window's

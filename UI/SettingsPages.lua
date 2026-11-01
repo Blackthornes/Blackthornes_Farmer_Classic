@@ -36,6 +36,13 @@ local BAR_HEIGHT = 32
 local BAR_GAP = 16
 -- Between two names on the switch.
 local SWITCH_GAP = 20
+-- Room above the pages inside their scrolling area, so the top row's lit
+-- edge isn't cut, and under them.
+local LIFT = 4
+-- The pages' scroll bar, at the window's right edge, and how far a turn of
+-- the mouse wheel moves them.
+local SCROLL_WIDTH = 6
+local SCROLL_STEP = 40
 
 local Page = {}
 Page.__index = Page
@@ -81,11 +88,12 @@ function SettingsPages.New(frame, opts)
     self.columnX = { opts.padding, opts.padding + opts.columnWidth + opts.columnGap }
 
     self:BuildBar()
+    self:BuildScroll()
 
     for _, def in ipairs(opts.pages) do
-        local content = CreateFrame("Frame", nil, frame)
-        content:SetPoint("TOPLEFT", 0, -(opts.top + BAR_HEIGHT + 14))
-        content:SetPoint("TOPRIGHT", 0, -(opts.top + BAR_HEIGHT + 14))
+        local content = CreateFrame("Frame", nil, self.body)
+        content:SetPoint("TOPLEFT", self.body, "TOPLEFT", 0, -LIFT)
+        content:SetPoint("TOPRIGHT", self.body, "TOPRIGHT", 0, -LIFT)
         content:SetHeight(10)
         content:Hide()
 
@@ -100,6 +108,138 @@ end
 
 function Page:DB()
     return self.opts.db() or {}
+end
+
+--------------------------------------------------------------------------------
+-- Scrolling
+--------------------------------------------------------------------------------
+
+--- The pages sit in a scrolling area under the bar. The window keeps its
+--- size when Show Descriptions makes them taller (the owner, 2026-11-01);
+--- a scroll bar shows on the right instead, and the mouse wheel moves them.
+function Page:BuildScroll()
+    local opts = self.opts
+    local scroll = CreateFrame("ScrollFrame", nil, self.frame)
+    scroll:SetPoint("TOPLEFT", 0, -(opts.top + BAR_HEIGHT + 14 - LIFT))
+    scroll:SetPoint("BOTTOMRIGHT", 0, opts.bottom)
+    local body = CreateFrame("Frame", nil, scroll)
+    body:SetSize(opts.padding * 2 + opts.columnWidth * 2 + opts.columnGap, 10)
+    pcall(scroll.SetScrollChild, scroll, body)
+    self.scroll, self.body = scroll, body
+    self.offset = 0
+
+    scroll:EnableMouseWheel(true)
+    scroll:SetScript("OnMouseWheel", function(_, delta)
+        self:SetOffset((self.offset or 0) - (tonumber(delta) or 0) * SCROLL_STEP)
+    end)
+    scroll:SetScript("OnSizeChanged", function() self:UpdateScroll() end)
+    scroll:SetScript("OnShow", function() self:UpdateScroll() end)
+
+    -- Drawn and dragged by hand, the thumb following the cursor.
+    local track = CreateFrame("Frame", nil, self.frame)
+    track:SetPoint("TOPRIGHT", scroll, "TOPRIGHT", -8, -LIFT)
+    track:SetPoint("BOTTOMRIGHT", scroll, "BOTTOMRIGHT", -8, LIFT)
+    track:SetWidth(SCROLL_WIDTH)
+    local groove = track:CreateTexture(nil, "BACKGROUND")
+    groove:SetAllPoints()
+    groove:SetColorTexture(Theme.Unpack("border"))
+    groove:SetAlpha(0.6)
+
+    local thumb = CreateFrame("Button", nil, track)
+    thumb:SetWidth(SCROLL_WIDTH)
+    thumb:SetHeight(24)
+    thumb:SetPoint("TOP", track, "TOP", 0, 0)
+    local face = thumb:CreateTexture(nil, "ARTWORK")
+    face:SetAllPoints()
+    face:SetColorTexture(Theme.Unpack("accent"))
+    face:SetAlpha(0.65)
+    thumb.face = face
+    thumb:EnableMouse(true)
+    thumb:SetScript("OnEnter", function() face:SetAlpha(1) end)
+    thumb:SetScript("OnLeave", function() if not thumb.dragging then face:SetAlpha(0.65) end end)
+
+    local function CursorY()
+        local ok, _, y = pcall(GetCursorPosition)
+        local okScale, scale = pcall(track.GetEffectiveScale, track)
+        scale = okScale and Number(scale) or 1
+        return (ok and Number(y) or 0) / (scale > 0 and scale or 1)
+    end
+    thumb:SetScript("OnMouseDown", function()
+        thumb.dragging = { y = CursorY(), offset = self.offset or 0 }
+        thumb:SetScript("OnUpdate", function()
+            local drag = thumb.dragging
+            if not drag then return end
+            local range = self:Range()
+            local room = (Number(track:GetHeight()) or 0) - (Number(thumb:GetHeight()) or 0)
+            if room <= 0 or range <= 0 then return end
+            self:SetOffset(drag.offset + (drag.y - CursorY()) * range / room)
+        end)
+    end)
+    thumb:SetScript("OnMouseUp", function()
+        thumb.dragging = nil
+        thumb:SetScript("OnUpdate", nil)
+        local ok, over = pcall(thumb.IsMouseOver, thumb)
+        if not (ok and over) then face:SetAlpha(0.65) end
+    end)
+    thumb:SetScript("OnHide", function()
+        thumb.dragging = nil
+        thumb:SetScript("OnUpdate", nil)
+    end)
+
+    track:Hide()
+    self.track, self.thumb = track, thumb
+end
+
+--- How far the pages can scroll, how much shows and how tall they are.
+function Page:Range()
+    local view = self.scroll and Number(self.scroll:GetHeight()) or 0
+    local full = self.body and Number(self.body:GetHeight()) or 0
+    return math.max(0, full - view), view, full
+end
+
+--- Scroll the pages to `y` from their top, kept in range.
+function Page:SetOffset(y)
+    if not self.scroll then return end
+    local range, view, full = self:Range()
+    y = math.max(0, math.min(range, Number(y) or 0))
+    self.offset = y
+    pcall(self.scroll.SetVerticalScroll, self.scroll, y)
+
+    local track, thumb = self.track, self.thumb
+    local height = Number(track:GetHeight()) or 0
+    if range <= 0 or height <= 0 or full <= 0 then return end
+    local size = math.max(24, math.floor(height * view / full))
+    thumb:SetHeight(size)
+    thumb:ClearAllPoints()
+    thumb:SetPoint("TOP", track, "TOP", 0, -math.floor((height - size) * y / range))
+end
+
+--- Size the scrolling area to the page showing, and show the bar only
+--- when that page is taller than the room it has.
+function Page:UpdateScroll()
+    if not self.body then return end
+    local page = self.pages[self.shown or self:Current()]
+    local tallest = page and self:TallestColumn(page.key) or 0
+    self.body:SetHeight(math.ceil(LIFT + tallest + LIFT))
+    local width = Number(self.scroll:GetWidth())
+    if width and width > 0 then self.body:SetWidth(width) end
+    local range = self:Range()
+    self.track:SetShown(range > 0.5)
+    self:SetOffset(self.offset)
+end
+
+--- Scroll so `item` on the page showing is in view.
+function Page:ScrollTo(item)
+    local page = self.pages[self.shown or self:Current()]
+    if not (page and item) then return end
+    local ok, y = pcall(function() return page.content:GetTop() - item:GetTop() end)
+    if not (ok and Number(y)) then return end
+    local _, view = self:Range()
+    local offset = self.offset or 0
+    local height = Number(item:GetHeight()) or 24
+    if y < offset or y + height > offset + view then
+        self:SetOffset(y - 8)
+    end
 end
 
 --------------------------------------------------------------------------------
@@ -423,7 +563,10 @@ function Page:Show(key)
     for pageKey, page in pairs(self.pages) do
         page.content:SetShown(pageKey == key)
     end
+    local moved = self.shown ~= key
     self.shown = key
+    if moved then self.offset = 0 end
+    self:UpdateScroll()
     self:Paint()
 end
 
@@ -452,10 +595,20 @@ function Page:Search(text)
         end
     end
     if show ~= self:Current() then self:Show(show) else self:Paint() end
+    -- The first setting found on the page showing comes into view.
+    if self.query then
+        for _, entry in ipairs(self.searchables) do
+            if entry.page == show and entry.glow:IsShown() then
+                self:ScrollTo(entry.frame)
+                break
+            end
+        end
+    end
     return counts
 end
 
---- Show or hide the lines under every setting, and fit the window to them.
+--- Show or hide the lines under every setting. The window keeps its size;
+--- the pages scroll when they outgrow it.
 function Page:ShowDescriptions(show)
     for _, page in pairs(self.pages) do
         for _, row in ipairs(page.rows) do FitRow(row, show) end
@@ -475,27 +628,33 @@ local function HeightOf(item)
         or Number(item:GetHeight()) or 24
 end
 
---- How tall the fullest column on any page is.
-function Page:TallestColumn()
+--- How tall the fullest column is, on page `only` or on any page.
+--- `compact` measures each row as it is with no description under it.
+function Page:TallestColumn(only, compact)
     local tallest = 0
-    for _, page in pairs(self.pages) do
-        for _, list in ipairs(page.items) do
-            local height = 0
-            for _, entry in ipairs(list) do
-                height = height - entry.gap + HeightOf(entry.frame)
+    for key, page in pairs(self.pages) do
+        if not only or key == only then
+            for _, list in ipairs(page.items) do
+                local height = 0
+                for _, entry in ipairs(list) do
+                    local item = entry.frame
+                    local shown = compact and Number(rawget(item, "compactHeight")) or HeightOf(item)
+                    height = height - entry.gap + shown
+                end
+                tallest = math.max(tallest, height)
             end
-            tallest = math.max(tallest, height)
         end
     end
     return tallest
 end
 
---- Size the window to its fullest page and its bar, so every page fits
---- without scrolling and the bar never runs off the edge. The same size on
---- every page, so the window does not jump as the switch is clicked.
+--- Size the window to its fullest page without descriptions, and its bar,
+--- so the bar never runs off the edge. The same size on every page and with
+--- descriptions on or off, so the window does not jump; a page taller than
+--- that scrolls.
 function Page:Fit()
     local opts = self.opts
-    local height = opts.top + BAR_HEIGHT + 14 + self:TallestColumn() + opts.bottom
+    local height = opts.top + BAR_HEIGHT + 14 + self:TallestColumn(nil, true) + opts.bottom
     local width = math.max(opts.padding * 2 + opts.columnWidth * 2 + opts.columnGap, self:BarWidth())
     self.fitted = true
     -- Kept, since the frame's own size can't be read back for it: laid
@@ -503,9 +662,10 @@ function Page:Fit()
     self.need = { math.ceil(width), math.ceil(height) }
     self.frame:SetWidth(self.need[1])
     self.frame:SetHeight(self.need[2])
-    for _, page in pairs(self.pages) do
-        page.content:SetHeight(math.ceil(self:TallestColumn()))
+    for key, page in pairs(self.pages) do
+        page.content:SetHeight(math.ceil(self:TallestColumn(key)))
     end
+    self:UpdateScroll()
 end
 
 --- Put the bar back in step with what is saved: the page, the tick box.
