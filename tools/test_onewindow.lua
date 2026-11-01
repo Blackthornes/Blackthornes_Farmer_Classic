@@ -112,6 +112,13 @@ SettingsUI:SetOneWindow(true)
 suite.check("ticked again in every save", ns.db.oneWindow == true and other.oneWindow == true)
 suite.check("and Settings moves into the one window", Tabs:Hosted() and SettingsUI.frame:GetParent() == hub.frame.area)
 
+-- 6. Window Position's Set Default while hosted leaves the window where it is
+-- (a player's report, 2026-10-31: it pulled the page out of the one window).
+rawset(SettingsUI.frame, "_point", nil)
+SettingsUI:ResetPositions()
+suite.check("Set Default keeps Settings in the one window", Tabs:Hosted()
+    and SettingsUI.frame:GetParent() == hub.frame.area and rawget(SettingsUI.frame, "_point") == nil)
+
 SW.SetOn(false)
 _G.BlackthornesWindow = nil
 suite.done()

@@ -268,7 +268,12 @@ function SettingsUI:ResetPositions()
     db.trackerGroupX = nil
     db.trackerGroupY = nil
 
-    if ns.UI and ns.UI.frame then ns.UI:RestorePosition() end
+    -- With the search window or Settings laid into the one window, they stay
+    -- there: placed on UIParent they came loose from its frame (a player's
+    -- report, 2026-10-31). The places above are forgotten all the same.
+    local hosted = ns.FarmerTabs and ns.FarmerTabs.Hosted and ns.FarmerTabs:Hosted()
+
+    if ns.UI and ns.UI.frame and not hosted then ns.UI:RestorePosition() end
 
     if ns.TrackerUI and ns.TrackerUI.frame and ns.TrackerUI.RestorePosition then
         ns.TrackerUI:RestorePosition()
@@ -285,7 +290,7 @@ function SettingsUI:ResetPositions()
     -- The goal arrow goes back to the top middle.
     if ns.ArrowUI then ns.ArrowUI:ResetPosition() end
 
-    self:RestorePosition()
+    if not hosted then self:RestorePosition() end
 end
 
 --------------------------------------------------------------------------------
