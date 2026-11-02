@@ -146,6 +146,11 @@ used only once the character knows it, so they need no change.
   fight and at vendors. Off unless ticked (`fishingBar`). Forever has no
   such file, so a catch-up leaves it alone. Tested in
   `tools/test_fishingbar.lua`.
+- The fishing panel (Forever's `f6bccf4`) hangs its strip on this bar:
+  `FishingBar:FitButtons` hands `FishingPanel:PlaceStrip` the lure line
+  (`self.status`) rather than a y, and grows the bar by the strip's height.
+  `PlaceStrip` takes either; the rest of `UI/FishingPanel.lua` is Forever's
+  as it is. A catch-up that touches either file keeps this.
 
 ### One key fishing
 - Classic only (a player asked, the owner said build it, 2026-10-26):

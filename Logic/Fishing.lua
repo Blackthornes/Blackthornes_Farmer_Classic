@@ -324,6 +324,9 @@ end
 -- `items` are names, each once; `quantities` how many of each came up.
 function Fishing:Record(zone, location, school, items, quantities, skill, coords)
     local spot, key = self:GetSpot(zone, location, school)
+    -- Asked before this cast is kept, so a fish never caught anywhere
+    -- shows as new (UI/FishingPanel.lua).
+    local fresh = ns.FishingPanel and ns.FishingPanel:Fresh(items)
 
     spot.casts = spot.casts + 1
 
@@ -376,6 +379,8 @@ function Fishing:Record(zone, location, school, items, quantities, skill, coords
     if spot.casts == MIN_CASTS then
         self:Celebrate(key)
     end
+
+    if ns.FishingPanel then ns.FishingPanel:Caught(key, items, quantities, fresh) end
 
     return spot
 end

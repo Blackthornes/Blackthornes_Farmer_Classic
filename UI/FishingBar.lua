@@ -558,10 +558,17 @@ end
 --- Both plaques as tall as the taller one needs, so their words wrap
 --- rather than end in dots, and the bar as much taller as they grew.
 function FishingBar:FitButtons()
+    if not (self.frame and rawget(self, "cast")) then return end
     local tall = math.max(self.BUTTON_HEIGHT, self.cast.fitHeight or 0, self.lureButton.fitHeight or 0)
     self.cast:SetHeight(tall)
     self.lureButton:SetHeight(tall)
-    self.frame:SetHeight(self.HEIGHT + tall - self.BUTTON_HEIGHT)
+    -- The fishing panel's strip (UI/FishingPanel.lua) sits under the lure's
+    -- time left while it is on, and the bar grows by its height.
+    local panel = ns.FishingPanel
+    local strip = panel and panel:StripHeight() or 0
+    local folded = ns.FoldWindow and ns.FoldWindow:IsFolded(self.frame)
+    if panel and not folded then panel:PlaceStrip(self.frame, self.status) end
+    if not folded then self.frame:SetHeight(self.HEIGHT + tall - self.BUTTON_HEIGHT + strip) end
 end
 
 --- A catch came in: the Cast plaque flashes gold, a small cheer.
