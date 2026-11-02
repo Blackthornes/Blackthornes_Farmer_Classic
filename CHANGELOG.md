@@ -4,6 +4,11 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 0.10.0
+
+- A new fishing panel shows your session, your spot and every fish you've caught.
+- Various bug fixes.
+
 ## 0.9.4
 
 - Various bug fixes.
