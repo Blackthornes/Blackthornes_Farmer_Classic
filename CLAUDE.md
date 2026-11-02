@@ -544,8 +544,11 @@ mailbox closer than the bobber was opened instead): `OneKeyFishing:Aim`
 points the key at INTERACTTARGET while the soft interact target is a game
 object with the bobber's entry ID (`BOBBER_ID`, 35591) or a bobber's name
 (`OneKeyFishing.IsBobber`), else at a plain hidden button
-(`BlackthornesFarmerFishNote`) that shows "Face your bobber to reel in."
-through `OpenNote:Notice`. Looked at again on
+(`BlackthornesFarmerFishNote`) that shows, through `OpenNote:Notice`,
+"Face your bobber to reel in." when the key picks something else, or "Your
+bobber is too far to reel in. Cast again from closer." when it picks
+nothing at all (it reaches all round, so nothing means out of reach;
+2026-11-02). Looked at again on
 `PLAYER_SOFT_INTERACT_CHANGED`, or every `LOOK` seconds while the line is
 out on a client without it; the binding is set only when the aim moves.
 For the cast, the interact reach is raised (`NodeSparkle:RaiseReach(true)`)

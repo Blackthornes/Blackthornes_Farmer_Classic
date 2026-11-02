@@ -199,7 +199,15 @@ function OneKeyFishing:NoteButton()
 end
 
 function OneKeyFishing:ShowNote()
-    if ns.OpenNote then ns.OpenNote:Notice(L["Face your bobber to reel in."], 136245, 2) end
+    if not ns.OpenNote then return end
+    -- The interact key reaches all round, so when it picks nothing at all the
+    -- bobber is past its reach; when it picks something else, face the bobber.
+    local picked = Readable(Call(rawget(_G, "UnitGUID"), "softinteract"))
+    if picked == nil then
+        ns.OpenNote:Notice(L["Your bobber is too far to reel in. Cast again from closer."], 136245, 2)
+    else
+        ns.OpenNote:Notice(L["Face your bobber to reel in."], 136245, 2)
+    end
 end
 
 --- While the line is out, point the key at the bobber when you face it,
