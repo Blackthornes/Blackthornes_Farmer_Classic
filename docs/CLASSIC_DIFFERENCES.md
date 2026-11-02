@@ -89,6 +89,10 @@ used only once the character knows it, so they need no change.
   Forever has neither.
 - A fishing spot's marker is in full colour in a blue ring; Forever's stays
   grey. Fishing still marks only schools you moused over, as Forever does.
+- My Professions Only (Forever's `773be8f`) filters before the joining:
+  `MapMarkers:JoinedOn` reads the filtered `SpotsOn` and keys its cache on
+  the kinds shown. Era has no `GetProfessions`, so `ReadKnown` reads the
+  skill lines.
 - Tested in `tools/test_mapicons.lua`. Keep all of it on a catch-up.
 
 ### Camp worth on the Grind tab

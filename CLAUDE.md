@@ -567,8 +567,11 @@ mailbox closer than the bobber was opened instead): `OneKeyFishing:Aim`
 points the key at INTERACTTARGET while the soft interact target is a game
 object with the bobber's entry ID (`BOBBER_ID`, 35591) or a bobber's name
 (`OneKeyFishing.IsBobber`), else at a plain hidden button
-(`BlackthornesFarmerFishNote`) that shows "Face your bobber to reel in."
-through `OpenNote:Notice`. Looked at again on
+(`BlackthornesFarmerFishNote`) that shows, through `OpenNote:Notice`,
+"Face your bobber to reel in." when the key picks something else, or "Your
+bobber is too far to reel in. Cast again from closer." when it picks
+nothing at all (it reaches all round, so nothing means out of reach;
+2026-11-02). Looked at again on
 `PLAYER_SOFT_INTERACT_CHANGED`, or every `LOOK` seconds while the line is
 out on a client without it; the binding is set only when the aim moves.
 For the cast, the interact reach is raised (`NodeSparkle:RaiseReach(true)`)
@@ -1764,6 +1767,19 @@ close draw as one on the world map (`Gathering.Joined`), the save
 unchanged. The minimap keeps its hollow corners. Tested in
 `tools/test_markers.lua` and `tools/test_mapicons.lua`. Not yet seen in
 game.
+
+My Professions Only (a player asked, the owner said it is the default,
+2026-11-01: other characters' nodes are of no use): the world map and
+minimap markers show only herb, ore and fish spots for the gathering
+skills the character playing knows (`MapMarkers.MineOnly`, `ShownKinds`,
+`ReadKnown` from `GetProfessions` by skill line, else the skill lines,
+which is what Era gives; read again on `SKILL_LINES_CHANGED` or after
+`KNOWN_EVERY` seconds), filtered before the herbs and veins are joined
+(`MapMarkers:JoinedOn` reads `SpotsOn`). When the client won't say, every
+spot shows. Nothing saved changes. "My Professions Only:" under the
+markers on the Map & goals page (`markersMyProfessions`, on unless
+unticked, account wide, never rename it) and `/farm markers mine
+[on|off]`. Tested in `tools/test_myprofessions.lua`. Not yet seen in game.
 
 ## Quest count over quest mobs
 

@@ -139,6 +139,11 @@ suite.check("facing a vendor: the note again", overrides.F == NOTE)
 facing, facingName = nil, nil
 Fire("PLAYER_SOFT_INTERACT_CHANGED")
 suite.check("facing nothing: the note", overrides.F == NOTE)
+note:GetScript("OnClick")(note, "LeftButton")
+local far = ns.OpenNote.card
+local farLabel = far and (far.text or far.label)
+suite.check("facing nothing: says the bobber is too far", farLabel
+    and ns.Util.StripColor(farLabel:GetText()) == "Your bobber is too far to reel in. Cast again from closer.", farLabel and tostring(farLabel:GetText()))
 facing, facingName = "GameObject-0-4372-0-1234-99999-0000ABCDEF", "Fishing Bobber"
 Fire("PLAYER_SOFT_INTERACT_CHANGED")
 suite.check("a bobber known by its name reels in", overrides.F == "INTERACTTARGET")

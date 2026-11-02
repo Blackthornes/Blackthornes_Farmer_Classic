@@ -53,6 +53,16 @@ Copied over since, one at a time:
   when it docks, moves or undocks (`SharedWindow.Watch`, `DockedFrame`).
   `UI/SharedWindow.lua` is FILE_VERSION 5, the same in all five Classic
   repos.
+- `8a7fff4` Set Default under Window Position keeps Settings in the one
+  window (2026-11-02, as it is).
+- `700ed82` One Key Fishing says "Your bobber is too far to reel in. Cast
+  again from closer." when the key picks nothing (2026-11-02; only the new
+  line added to each locale).
+- `773be8f` My Professions Only map markers (2026-11-02, on unless
+  unticked). Blended with Classic's joined herbs and veins: `JoinedOn` reads
+  the filtered `SpotsOn` and keys its cache on the kinds shown, so the
+  filter runs before joining. Era has no `GetProfessions`, so the skill
+  lines answer.
 
 - `f6bccf4` The fishing panel: This Session, This Spot and Fish Log with
   small cheers (2026-11-02, `UI/FishingPanel.lua` as it is but for

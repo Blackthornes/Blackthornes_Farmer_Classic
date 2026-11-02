@@ -268,7 +268,12 @@ function SettingsUI:ResetPositions()
     db.trackerGroupX = nil
     db.trackerGroupY = nil
 
-    if ns.UI and ns.UI.frame then ns.UI:RestorePosition() end
+    -- With the search window or Settings laid into the one window, they stay
+    -- there: placed on UIParent they came loose from its frame (a player's
+    -- report, 2026-10-31). The places above are forgotten all the same.
+    local hosted = ns.FarmerTabs and ns.FarmerTabs.Hosted and ns.FarmerTabs:Hosted()
+
+    if ns.UI and ns.UI.frame and not hosted then ns.UI:RestorePosition() end
 
     if ns.TrackerUI and ns.TrackerUI.frame and ns.TrackerUI.RestorePosition then
         ns.TrackerUI:RestorePosition()
@@ -285,7 +290,7 @@ function SettingsUI:ResetPositions()
     -- The goal arrow goes back to the top middle.
     if ns.ArrowUI then ns.ArrowUI:ResetPosition() end
 
-    self:RestorePosition()
+    if not hosted then self:RestorePosition() end
 end
 
 --------------------------------------------------------------------------------
@@ -1164,6 +1169,16 @@ function SettingsUI:BuildMapPage()
     end, true)
     controls.markersMinimap:SetPoint("TOPLEFT", CONTROL_X, -2)
 
+    -- Only the spots this character's gathering skills can use (a player
+    -- asked, the owner said on by default, 2026-11-01).
+    local mineRow = pages:Row("map", 1, L["My Professions Only:"],
+        L["Shows only spots for the gathering skills this character knows."])
+
+    controls.markersMine = Widgets.CreateCheckbox(mineRow, L["On"], function(checked)
+        ns.MapMarkers:SetMineOnly(checked)
+    end, true)
+    controls.markersMine:SetPoint("TOPLEFT", CONTROL_X, -2)
+
     -- Sparkles on the node you face (the owner asked 2026-10-13).
     local sparkleRow = pages:Row("map", 1, L["Sparkles:"],
         L["Lights up the herb, ore, fishing school, chest, quest object or bobber in front of you."])
@@ -1611,6 +1626,7 @@ function SettingsUI:Refresh()
     if controls.shareDrops then controls.shareDrops:SetChecked(db.shareDrops == true) end
     controls.markersWorld:SetChecked(db.markersWorld ~= false)
     controls.markersMinimap:SetChecked(db.markersMinimap ~= false)
+    controls.markersMine:SetChecked(db.markersMyProfessions ~= false)
     controls.heatWorld:SetChecked(db.heatWorld == true)
     controls.heatMinimap:SetChecked(db.heatMinimap == true)
     controls.heatLevel:SetValue(ns.Heat:Level(), true)
