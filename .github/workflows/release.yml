@@ -86,7 +86,7 @@ jobs:
       # here shows as a warning and never undoes the upload above.
       # This one release (v0.9.1) is quiet: no Discord posts. The next tag posts as usual.
       - name: Announce on Discord
-        if: github.ref_name != 'v0.9.1'
+        if: github.ref_name != 'v0.10.1'
         continue-on-error: true
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
@@ -101,7 +101,7 @@ jobs:
       # shows as a warning and never undoes the upload above.
       # This one release (v0.9.1) is quiet: no Discord posts. The next tag posts as usual.
       - name: "Post the news in #general"
-        if: github.ref_name != 'v0.9.1'
+        if: github.ref_name != 'v0.10.1'
         continue-on-error: true
         env:
           DISCORD_GENERAL_WEBHOOK_URL: ${{ secrets.DISCORD_GENERAL_WEBHOOK_URL }}
