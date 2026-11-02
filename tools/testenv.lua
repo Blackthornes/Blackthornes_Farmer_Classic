@@ -436,6 +436,7 @@ local UI_FILES = {
     "UI/LootFeed.lua",
     "UI/OpenButton.lua",
     "UI/FishingBar.lua",
+    "UI/FishingPanel.lua",
     "UI/OneKeyFishing.lua",
     "UI/FishingCheck.lua",
     "UI/BagsFull.lua",

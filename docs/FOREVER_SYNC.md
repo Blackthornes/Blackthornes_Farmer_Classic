@@ -54,5 +54,10 @@ Copied over since, one at a time:
   `UI/SharedWindow.lua` is FILE_VERSION 5, the same in all five Classic
   repos.
 
+- `f6bccf4` The fishing panel: This Session, This Spot and Fish Log with
+  small cheers (2026-11-02, `UI/FishingPanel.lua` as it is but for
+  `PlaceStrip`, which Classic's fishing bar hands its lure line; see "The
+  fishing bar" in `docs/CLASSIC_DIFFERENCES.md`).
+
 Every catch-up reads `docs/CLASSIC_DIFFERENCES.md` first, and the PR that
 brings Forever commits over updates the line above to the newest one it took.

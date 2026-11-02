@@ -1133,6 +1133,12 @@ function SettingsUI:BuildLootPage()
         ns.OneKeyFishing:SetEnabled(checked)
     end, false)
     controls.oneKeyFishing:SetPoint("TOPLEFT", CONTROL_X, -2)
+    -- What you catch while you fish (a player asked, the owner said build it, 2026-11-02).
+    local fishPanelRow = pages:Row("loot", 2, L["Fishing Panel:"], L["Show what you catch while you fish."])
+    controls.fishingPanel = Widgets.CreateCheckbox(fishPanelRow, L["On"], function(checked)
+        ns.FishingPanel:SetEnabled(checked)
+    end, false)
+    controls.fishingPanel:SetPoint("TOPLEFT", CONTROL_X, -2)
 end
 
 --- Map and goals: what is drawn on the maps, and the goals and their arrow.
@@ -1651,6 +1657,7 @@ function SettingsUI:Refresh()
     controls.openButton:SetChecked(db.openButton ~= false)
     controls.fishingBar:SetChecked(db.fishingBar == true)
     controls.oneKeyFishing:SetChecked(db.oneKeyFishing == true)
+    controls.fishingPanel:SetChecked(db.fishingPanel == true)
     controls.autoOpen:SetChecked(db.autoOpen == true)
     controls.arrow:SetChecked(db.arrowShown == true)
     controls.tomtom:SetChecked(db.useTomTom ~= false)
