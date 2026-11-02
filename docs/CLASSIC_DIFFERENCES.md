@@ -261,3 +261,11 @@ used only once the character knows it, so they need no change.
 - Drawn at `HeatUI.CARD_SCALE` (0.6) in `UI/Heat.lua` (2026-10-30): Era's
   world map is small, and at full size the card hid much of it. Its saved
   place stays in the map's units.
+
+## The panel redraw after loot
+
+- `TrackerUI:Refresh` waits for the next frame while a loot window is read
+  (`ns.readingLoot`, set in `Core/Init.lua`'s `ReadLoot`), and calls until
+  then share one redraw (2026-11-02): pricing a long session's loot inside
+  the loot event ran past the game's time limit on a German Era client.
+  Forever may want the same fix.

@@ -3247,8 +3247,22 @@ ns.Util.OnRarity("tracker", function()
 end)
 
 --- Redraw, and show or hide to match the saved setting.
-function TrackerUI:Refresh()
+--- Inside a loot window's read (ns.readingLoot) the redraw waits for the
+--- next frame, and every call until then shares it: pricing a long
+--- session's loot inside the loot event ran past the game's time limit
+--- ("script ran too long", 2026-11-02).
+function TrackerUI:Refresh(now)
     self:Build()
+
+    if not now and ns.readingLoot and type(C_Timer) == "table" and type(C_Timer.After) == "function" then
+        if self.refreshSoon then return end
+        self.refreshSoon = true
+        C_Timer.After(0, function()
+            self.refreshSoon = nil
+            self:Refresh(true)
+        end)
+        return
+    end
 
     -- An open loot table follows the same tally.
     if ns.LootTableUI then ns.LootTableUI:Refresh() end
