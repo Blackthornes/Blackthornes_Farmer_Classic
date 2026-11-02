@@ -317,12 +317,17 @@ local function ReadLoot()
     -- One window's sources, read once for all the readers (Harvest:LootSources).
     local harvest = ns.Harvest
     if harvest then harvest.lootReading = {} end
+    -- While this is set, the panels wait for the next frame to redraw
+    -- (TrackerUI:Refresh), so the game's time limit for one event goes on
+    -- reading the window, never on drawing it.
+    ns.readingLoot = true
     for i = 1, #lootReaders do
         local entry = lootReaders[i]
         local ok, err = pcall(entry.fn, entry.owner)
         if not ok then geterrorhandler()(err) end
     end
     if harvest then harvest.lootReading = nil end
+    ns.readingLoot = nil
 end
 
 lootHasClosed = ns.RegisterEvent(ns, "LOOT_CLOSED", function() lootReadEarly = false end)
