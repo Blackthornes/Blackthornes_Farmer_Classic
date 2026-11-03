@@ -127,6 +127,13 @@ function Search:Run(query)
         if score == 0 and MatchScore(item.category:lower(), query) > 0 then
             score, why = SCORE.category, "category"
         end
+        -- The kind as the player's own language says it ("stoff").
+        if score == 0 then
+            local label = ns.DB:CategoryLabel(item)
+            if label ~= item.category and MatchScore(label:lower(), query) > 0 then
+                score, why = SCORE.category, "category"
+            end
+        end
 
         if score == 0 then
             for _, source in ipairs(item.sources) do
@@ -679,9 +686,9 @@ end
 --- `shown` is how many of its spots are listed under it, when not all.
 function Search:ItemHeader(item, shown)
     return ("%s %s"):format(
-        Util.Colored("text", item.name),
+        Util.Colored("text", ns.DB:ShowName(item)),
         Util.Colored("muted", ("(%s, %s)"):format(
-            item.category, self:SpotsText(shown or #item.sources, #item.sources))))
+            ns.DB:CategoryLabel(item), self:SpotsText(shown or #item.sources, #item.sources))))
 end
 
 --- What an empty search says. When the hide list is what emptied it, it

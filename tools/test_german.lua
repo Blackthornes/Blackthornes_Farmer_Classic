@@ -80,6 +80,9 @@ env.world.zone = "Elwynn Forest"
 suite.check("English: an English zone is itself", ns.Spots:Player().zone == "Elwynn Forest")
 suite.check("English: Fishing is Fishing", ns.Gathering.SkillOf("Fishing", { "Fishing" }) == "Fishing")
 suite.check("English: Angeln is nothing", ns.Gathering.SkillOf("Angeln", { "Fishing" }) == nil)
+local englishLinen = ns.DB:GetItem("Linen Cloth")
+suite.check("English: the shown name is the data's", ns.DB:ShowName(englishLinen) == "Linen Cloth")
+suite.check("English: the kind is the data's", ns.DB:CategoryLabel(englishLinen) == "Cloth")
 
 --------------------------------------------------------------------------------
 -- A German client
@@ -111,6 +114,29 @@ for _, result in ipairs(ns.Search:Run("leinen")) do
     if result.item == linen then found = true end
 end
 suite.check("the search finds 'leinen'", found)
+
+-- Names shown in the window are the client's (a German player saw the
+-- suggestions in English, 2026-11-03).
+suite.check("Linen Cloth shows as Leinenstoff", DB:ShowName(linen) == "Leinenstoff", DB:ShowName(linen))
+suite.check("the header names it in German", ns.Search:ItemHeader(linen):find("Leinenstoff", 1, true) ~= nil)
+local wool = DB:GetItem("Wool Cloth")
+suite.check("one not loaded shows the data's name", wool and DB:ShowName(wool) == "Wool Cloth")
+suite.check("and is not named yet", not DB:HasShownName(wool))
+ITEM_NAMES[wool.id] = "Wollstoff"
+fireEvent(ns.eventFrame, "GET_ITEM_INFO_RECEIVED", wool.id, true)
+suite.check("then shows the client's name", DB:ShowName(wool) == "Wollstoff")
+suite.check("a kind not listed shows as it is", DB:CategoryLabel({ category = "Something" }) == "Something")
+
+-- The empty search's suggestions.
+if ns.UI and ns.UI.empty then
+    _G.UnitLevel = function() return 10 end
+    ns.UI:ShowEmpty()
+    local named = false
+    for _, chip in ipairs(ns.UI.suggestChips) do
+        if chip:IsShown() and chip.itemName == "Leinenstoff" then named = true end
+    end
+    suite.check("the suggestions name Linen Cloth in German", named)
+end
 
 -- Goals: Tradeskills' Set goal passes the German name.
 bags[LINEN] = 4

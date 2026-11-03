@@ -1794,3 +1794,12 @@ L["Your best here was %s."] = "Deine beste hier war %s."
 L["Next Rate Unlock"] = "Nächste Rate"
 L["Fishing Panel:"] = "Angel-Fenster:"
 L["Show what you catch while you fish."] = "Zeigt, was du beim Angeln fängst."
+
+-- Item kinds in the search's headings.
+L["Recipe"] = "Rezept"
+L["Cooking"] = "Kochkunst"
+L["Leatherworking"] = "Lederverarbeitung"
+L["Mob drop"] = "Beute von Gegnern"
+L["Gem"] = "Edelstein"
+L["Vendor"] = "Händler"
+L["Misc"] = "Sonstiges"
