@@ -11,6 +11,7 @@ local _, ns = ...
 local DB = ns.NewModule("DB")
 
 local Util = ns.Util
+local L = ns.L
 
 -- items[lowercase name] = item; order keeps iteration stable across sessions.
 DB.items = {}
@@ -436,6 +437,54 @@ end
 --- otherwise. Read from what is kept, never from the client.
 function DB:ClientName(item)
     return item and self.clientNameOf[item] or nil
+end
+
+--- The name to show for `item`: the client's own on a client in another
+--- language, else the data's. One the client has not loaded yet is asked
+--- for once (the answer comes as GET_ITEM_INFO_RECEIVED, which
+--- `LearnClientNames` hears) and shows the data's name until then.
+function DB:ShowName(item)
+    if not item then return nil end
+    if Util.EnglishClient() then return item.name end
+    local kept = self.clientNameOf[item]
+    if kept then return kept end
+    if item.id and not self.clientNamed[item.id] then
+        self:LearnClientNames()
+        self:NoteClientName(item)
+        kept = self.clientNameOf[item]
+        if kept then return kept end
+    end
+    return item.name
+end
+
+--- True once the client has named `item` (or the client is English), so
+--- what `ShowName` gives will not change.
+function DB:HasShownName(item)
+    if not item or not item.id or Util.EnglishClient() then return true end
+    return self.clientNamed[item.id] == true
+end
+
+-- Each kind the data gives an item, written out so the language check
+-- sees every one. Read when shown, so a language loaded later still counts.
+local function CategoryLabels()
+    if not L then return {} end
+    return {
+        ["Quest item"] = L["Quest item"], ["Recipe"] = L["Recipe"],
+        ["Cooking"] = L["Cooking"], ["Leatherworking"] = L["Leatherworking"],
+        ["Herbalism"] = L["Herbalism"], ["Mob drop"] = L["Mob drop"],
+        ["Fishing"] = L["Fishing"], ["Mining"] = L["Mining"],
+        ["Elemental"] = L["Elemental"], ["Gem"] = L["Gem"],
+        ["Cloth"] = L["Cloth"], ["Vendor"] = L["Vendor"], ["Misc"] = L["Misc"],
+    }
+end
+
+--- An item's kind as the player reads it ("Stoff" for Cloth). A kind not
+--- listed shows as it is.
+function DB:CategoryLabel(item)
+    local category = item and item.category
+    if type(category) ~= "string" then return "" end
+    self.categoryLabels = self.categoryLabels or CategoryLabels()
+    return self.categoryLabels[category] or category
 end
 
 function DB:CountItems()

@@ -550,6 +550,8 @@ function UI:ShowEmpty()
     local picks = level > 0 and ns.Search:ForLevel(level) or {}
 
     for _, chip in ipairs(self.suggestChips) do chip:Hide() end
+    self.emptyWaiting = {}
+    self:WatchEmptyNames()
 
     local total = 0
     for index, item in ipairs(picks) do
@@ -565,9 +567,13 @@ function UI:ShowEmpty()
             self.suggestChips[index] = chip
         end
 
-        chip.itemName = item.name
-        chip:SetText(item.name)
-        chip:SetWidth(Theme.TextWidth("small", item.name) + 32)
+        -- The client's own name, so a German client reads "Leinenstoff".
+        -- One it has not loaded yet shows the data's name until it comes in.
+        local shown = ns.DB:ShowName(item)
+        if not ns.DB:HasShownName(item) then self.emptyWaiting[item.id] = true end
+        chip.itemName = shown
+        chip:SetText(shown)
+        chip:SetWidth(Theme.TextWidth("small", shown) + 32)
         Theme.SetItemIcon(chip.icon, item.id)
 
         chip:ClearAllPoints()
@@ -584,6 +590,21 @@ function UI:ShowEmpty()
         empty:Show()
         ns.Motion:Run(empty, "fade", 0.25, function(p) empty:SetAlpha(p) end)
     end
+end
+
+--- Draw the suggestions again once the client names one that was still
+--- loading. Only while the empty panel shows; only for those items.
+function UI:WatchEmptyNames()
+    if self.watchingEmptyNames then return end
+    self.watchingEmptyNames = true
+    ns.RegisterEvent(self, "GET_ITEM_INFO_RECEIVED", function(_, _, itemID)
+        local waiting = UI.emptyWaiting
+        local id = ns.Harvest and ns.Harvest.ReadableNumber(itemID)
+        if not (id and waiting and waiting[id]) then return end
+        if not (UI.empty and UI.empty:IsShown()) then return end
+        waiting[id] = nil
+        UI:ShowEmpty()
+    end)
 end
 
 function UI:PlaceHeadings()
@@ -810,7 +831,7 @@ function UI:AddRowHint(row)
     if not (GameTooltip and data and data.type == "source") then return end
     if not (GameTooltip.IsOwned and GameTooltip:IsOwned(row)) then
         GameTooltip:SetOwner(row, "ANCHOR_RIGHT")
-        GameTooltip:AddLine(data.source.name or data.item.name, Theme.Unpack("accent"))
+        GameTooltip:AddLine(data.source.name or ns.DB:ShowName(data.item), Theme.Unpack("accent"))
     end
     GameTooltip:AddLine(L["Click a row to put it in chat."],
         Theme.Unpack("dim"), true)
@@ -1045,9 +1066,9 @@ function UI:UpdateRow(row, data, index)
         -- and a recycled row keeps whatever the last one left on it.
         PlaceHeading(row, data.item.id and 38 or 18)
         row.heading:SetTextColor(Theme.Unpack("accent"))
-        row.heading:SetText(("%s  %s"):format(Util.ColorItemOr("accent", data.item.name, data.item.id),
+        row.heading:SetText(("%s  %s"):format(Util.ColorItemOr("accent", data.item.name, data.item.id, ns.DB:ShowName(data.item)),
             Util.Colored("muted", ("(%s, %s)"):format(
-                data.item.category, ns.Search:SpotsText(data.count, #data.item.sources)))))
+                ns.DB:CategoryLabel(data.item), ns.Search:SpotsText(data.count, #data.item.sources)))))
         row.heading:Show()
 
         -- Show on Map sits left of Goal, or at the end with no Goal.
@@ -1228,7 +1249,7 @@ function UI:OnRowClick(data, button)
     end
 
     ns.Print(("%s: %s"):format(
-        Util.Colored("accent", data.item.name), table.concat(parts, ", ")))
+        Util.Colored("accent", ns.DB:ShowName(data.item)), table.concat(parts, ", ")))
 end
 
 --------------------------------------------------------------------------------

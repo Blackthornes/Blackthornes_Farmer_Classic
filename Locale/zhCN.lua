@@ -1788,3 +1788,12 @@ L["Your best here was %s."] = "你在这里最好的是 %s。"
 L["Next Rate Unlock"] = "下一个几率"
 L["Fishing Panel:"] = "钓鱼面板："
 L["Show what you catch while you fish."] = "显示你钓鱼时钓到的东西。"
+
+-- Item kinds in the search's headings.
+L["Recipe"] = "配方"
+L["Cooking"] = "烹饪"
+L["Leatherworking"] = "制皮"
+L["Mob drop"] = "怪物掉落"
+L["Gem"] = "宝石"
+L["Vendor"] = "商人"
+L["Misc"] = "杂项"
