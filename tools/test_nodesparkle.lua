@@ -361,6 +361,36 @@ fighting = false
 NodeSparkle:ApplySettings()
 suite.check("after the fight it is", cvars.SoftTargetInteract == "3")
 
+-- The player turns the game's Interact Key off after Farmer turned it on:
+-- Farmer leaves it off from then on, and its nameplate goes back too.
+cvars.SoftTargetInteract = "0"
+before = sets
+NodeSparkle:ApplySettings()
+suite.check("an interact key the player turned off stays off", cvars.SoftTargetInteract == "0", cvars.SoftTargetInteract)
+suite.check("and is noted as theirs", ns.db.nodeSparkleCVarsLeft.SoftTargetInteract == true)
+suite.check("and nothing is kept to put back for it", ns.db.nodeSparkleCVars.SoftTargetInteract == nil)
+suite.check("its nameplate goes back as they had it", cvars.SoftTargetNameplateInteract == "0")
+NodeSparkle:ApplySettings()
+NodeSparkle:ApplySettings()
+suite.check("a loading screen later it is still off", cvars.SoftTargetInteract == "0")
+suite.check("and the other settings are untouched", cvars.SoftTargetInteractRange == "15" and cvars.SoftTargetIconGameObject == "1")
+NodeSparkle:SetEnabled(false)
+suite.check("off leaves the interact key as the player set it", cvars.SoftTargetInteract == "0")
+suite.check("and puts the rest back", cvars.SoftTargetInteractRange == "10")
+NodeSparkle:SetEnabled(true)
+suite.check("ticking the box again turns it on again", cvars.SoftTargetInteract == "3")
+suite.check("and forgets it was left", next(ns.db.nodeSparkleCVarsLeft or {}) == nil)
+
+-- Farmer turning the nameplate down itself (facing a creature) is no sign
+-- the player changed it.
+cvars.SoftTargetNameplateInteract = "0"
+NodeSparkle:ApplySettings()
+suite.check("the nameplate Farmer moves is not taken as the player's", cvars.SoftTargetNameplateInteract == "1"
+    and not (ns.db.nodeSparkleCVarsLeft and ns.db.nodeSparkleCVarsLeft.SoftTargetNameplateInteract))
+NodeSparkle:SetEnabled(false)
+cvars.SoftTargetInteract = "1"
+NodeSparkle:SetEnabled(true)
+
 -- The command and the Settings box.
 ns.HandleSlash("sparkle")
 suite.check("/farm sparkle turns it off", ns.db.nodeSparkle == false)
@@ -523,6 +553,31 @@ ns.db.nodeSparkleCVars = {}
 cvars.SoftTargetNameplateInteract = "1"
 Face("Kaja", NPC)
 suite.check("a plate the player turned on is left alone", cvars.SoftTargetNameplateInteract == "1")
+ns.db.nodeSparkleCVars = keep
+
+-- Already on before Farmer came to it, with friendly NPC nameplates off:
+-- the player's value is kept to put back, NPCs lose the plate and nodes
+-- keep it while sparkles are on.
+ns.NodeSparkle:SetEnabled(false)
+keep = ns.db.nodeSparkleCVars
+ns.db.nodeSparkleCVars = {}
+cvars.SoftTargetNameplateInteract = "1"
+cvars.nameplateShowFriendlyNPCs = "0"
+ns.NodeSparkle:SetEnabled(true)
+suite.check("a plate already on is kept to put back", ns.db.nodeSparkleCVars.SoftTargetNameplateInteract == "1")
+Face("Kaja", NPC)
+suite.check("an NPC loses the plate when friendly NPC nameplates are off", cvars.SoftTargetNameplateInteract == "0")
+Face("Copper Vein", VEIN)
+suite.check("a node still gets it", cvars.SoftTargetNameplateInteract == "1")
+cvars.nameplateShowFriendlyNPCs = "1"
+Face("Kaja", NPC)
+suite.check("with friendly NPC nameplates on it stays", cvars.SoftTargetNameplateInteract == "1")
+cvars.nameplateShowFriendlyNPCs = "0"
+Face("Kaja", NPC)
+ns.NodeSparkle:SetEnabled(false)
+suite.check("turning sparkles off puts the player's own back", cvars.SoftTargetNameplateInteract == "1")
+cvars.nameplateShowFriendlyNPCs = nil
+cvars.SoftTargetNameplateInteract = "0"
 ns.db.nodeSparkleCVars = keep
 
 -- Fishing: a cast lands past the usual reach, so the reach goes up while
