@@ -8,7 +8,9 @@
 -- "Sparkle Colors" is unticked (`nodeSparkleColors`, on unless unticked;
 -- never rename it). "Skinnable Corpses" (`nodeSparkleCorpses`, off unless
 -- ticked; never rename it) sparkles a dead beast you could skin, in your
--- Skinning's colour, until you skin it.
+-- Skinning's colour, until you skin it. "Bobber Sparkles"
+-- (`nodeSparkleBobber`, on unless unticked; never rename it) is the
+-- bobber's own switch: off, the bobber gets no beacon or sparkles.
 --
 -- The game tells addons nothing about the nodes around you: not where they
 -- are, not where they sit on screen. The one it does name is the node the
@@ -801,9 +803,17 @@ function NodeSparkle:Kind(name)
     if self:IsNode(name) then return "node" end
     if ns.Fishing and ns.Fishing.IsSchool and ns.Fishing.IsSchool(name) then return "school" end
     if self.IsChest(name) then return "chest" end
-    if self:IsBobber(name) then return "bobber" end
+    if self:IsBobber(name) then
+        if not self:BobberOn() then return nil end
+        return "bobber"
+    end
     if self:IsQuestObject(name) then return "quest" end
     return nil
+end
+
+--- Whether the bobber gets its beacon or sparkles (on unless unticked).
+function NodeSparkle:BobberOn()
+    return not (ns.db and ns.db.nodeSparkleBobber == false)
 end
 
 function NodeSparkle:IsBobber(name)
@@ -1812,12 +1822,17 @@ function NodeSparkle:SetCorpses(on)
     self:SafeRefresh()
 end
 
+function NodeSparkle:SetBobber(on)
+    ns.db.nodeSparkleBobber = on and true or false
+    self:SafeRefresh()
+end
+
 --- A corpse was just skinned: its sparkle goes.
 function NodeSparkle:Skinned(guid)
     if guid and self.shownGuid == guid then self:SafeRefresh() end
 end
 
-ns.RegisterCommand("sparkle", L["turn sparkles on or off for the node, school, chest or quest object you face (beacon, sparkles, pointer, voice, colors, corpses, icon, check)"], function(rest)
+ns.RegisterCommand("sparkle", L["turn sparkles on or off for the node, school, chest or quest object you face (beacon, sparkles, pointer, voice, colors, corpses, bobber, icon, check)"], function(rest)
     local argument = ns.Util.Trim(rest or ""):lower()
     local word, value = argument:match("^(%a+)%s*(%a*)$")
     if word == "colors" or word == "colours" then
@@ -1837,6 +1852,16 @@ ns.RegisterCommand("sparkle", L["turn sparkles on or off for the node, school, c
         else on = not NodeSparkle:CorpsesOn() end
         NodeSparkle:SetCorpses(on)
         ns.Print(on and L["corpses you can skin sparkle."] or L["corpses don't sparkle."])
+        if ns.SettingsUI then ns.SettingsUI:Refresh() end
+        return
+    end
+    if word == "bobber" then
+        local on
+        if value == "on" then on = true
+        elseif value == "off" then on = false
+        else on = not NodeSparkle:BobberOn() end
+        NodeSparkle:SetBobber(on)
+        ns.Print(on and L["your bobber lights up."] or L["your bobber stays plain."])
         if ns.SettingsUI then ns.SettingsUI:Refresh() end
         return
     end

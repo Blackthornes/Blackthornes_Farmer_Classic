@@ -915,8 +915,8 @@ L["HOW THESE ADDONS ARE MADE"] = "КАК ДЕЛАЮТСЯ ЭТИ АДДОНЫ"
 L["How these addons are made, the version, the Discord and the other Blackthornes addons"] = "Как делаются эти аддоны, версия, Discord и другие аддоны Blackthornes"
 
 -- Sparkles on the node you face (UI/NodeSparkle.lua).
-L["turn sparkles on or off for the node, school, chest or quest object you face (beacon, sparkles, pointer, voice, colors, corpses, icon, check)"] =
-    "включает или выключает искры на жиле, траве, косяке рыбы, сундуке или предмете задания перед тобой (beacon, sparkles, pointer, voice, colors, corpses, icon, check)"
+L["turn sparkles on or off for the node, school, chest or quest object you face (beacon, sparkles, pointer, voice, colors, corpses, bobber, icon, check)"] =
+    "включает или выключает искры на жиле, траве, косяке рыбы, сундуке или предмете задания перед тобой (beacon, sparkles, pointer, voice, colors, corpses, bobber, icon, check)"
 L["the game's interact icon is hidden unless you play with a controller."] = "значок взаимодействия игры скрыт, если ты не играешь с контроллером."
 L["the game's interact icon shows."] = "значок взаимодействия игры показывается."
 L["a beacon shows the spot."] = "место показывает маяк."
@@ -951,6 +951,9 @@ L["pick a voice first."] = "сначала выбери голос."
 L["the arrow, dots and beam show the way to a node."] = "стрелка, точки и луч показывают путь к жиле."
 L["corpses you can skin sparkle."] = "туши, которые можно освежевать, искрятся."
 L["corpses don't sparkle."] = "туши не искрятся."
+L["Bobber Sparkles:"] = "Искры поплавка:"
+L["your bobber lights up."] = "твой поплавок светится."
+L["your bobber stays plain."] = "твой поплавок остаётся обычным."
 L["open the kills panel first, then try again."] = "сначала открой панель убийств, потом попробуй ещё раз."
 L["Training Dummy"] = "Тренировочный манекен"
 L["%d kills of %s! You're the bane of its kind now."] = "%1$d убийств: %2$s! Теперь ты гроза их рода."
