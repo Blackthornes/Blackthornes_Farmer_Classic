@@ -1648,7 +1648,13 @@ before a mob has `Tracker.MIN_KILLS` of the player's own kills, no drop
 rate for it shows on its tooltip ("Best drops") or its loot table: not the
 shipped data's, the guild's or Classic's. Always on, no setting, never
 announced (no CHANGELOG, NEWS or What's New line). The player's own
-records are never touched; at 20 kills their own rates show. The search
+records are never touched; at 20 kills their own rates show. From then
+(2026-11-07, from Forever) the loot table's Drop Rate and Per Kill count the
+guild's corpses beside the player's, every corpse the same, only for items
+already on the player's own table (`GuildShare:LootFor`, read from
+`guildDrops`, laid out once per `GuildShare.dropsVersion`;
+`LootTableUI.Blend`); kills, counts and the tally stay the player's, and
+nothing says "guild". The search
 (where an item drops), Rankings' estimates, worth per kill "(est.)" and
 the other addons still read the shipped data. Tested in
 `tools/test_killtooltip.lua` and `tools/test_guildshare.lua`.
