@@ -419,10 +419,63 @@ do
     Check("and shows no rate until he has his own, not even the guild's", loot.rows[1].chance == nil
         and loot.rows[1].rate == nil, loot.rows[1].chance)
     Check("with no value off it", loot.rows[1].perKill == nil)
-    bob.db.tracker.mobs["Test Gnoll"] = Tally(30, 0, { ["Guild Test Fang"] = 3 })
+    -- Past twenty kills the guild's corpses count beside his in Drop Rate
+    -- and Per Kill, for the items already on his table (2026-11-04).
+    local Value = ns.Value
+    local worthOf = Value.WorthOf
+    Value.WorthOf = function(_, name) return (name == "Guild Test Fang" or name == "Guild Test Tail") and 100 or nil end
+    bob.db.tracker.mobs["Test Gnoll"] = Tally(30, 0, { ["Guild Test Fang"] = 3, ["Guild Test Tail"] = 6 })
+    GuildShare:DropsChanged()
     loot = ns.LootTableUI:Table("Test Gnoll")
-    Check("past twenty kills the rate is his own", loot.rows[1].chance == 10, loot.rows[1].chance)
-    Check("his tally was never added to", bob.db.tracker.mobs["Test Gnoll"].kills == 30)
+    local function LootRow(name)
+        for _, row in ipairs(loot.rows) do
+            if row.name == name then return row end
+        end
+    end
+    local function Near(a, b) return a and math.abs(a - b) < 0.001 end
+    local fangRow, tailRow = LootRow("Guild Test Fang"), LootRow("Guild Test Tail")
+    Check("past twenty kills the guild's corpses count beside his", Near(fangRow.chance, 13 / 70 * 100), fangRow.chance)
+    Check("an item the guild never had is spread over every kill", Near(tailRow.chance, 6 / 70 * 100), tailRow.chance)
+    Check("Per Kill follows the blended rate", Near(fangRow.perKill, 13 / 70 * 100), fangRow.perKill)
+    Check("and so does the worth a kill at the top", Near(loot.worth, 13 / 70 * 100 + 6 / 70 * 100), loot.worth)
+    Check("his kills and counts stay his own", loot.kills == 30 and fangRow.dropped == "3 of 30" and fangRow.total == "x3",
+        fangRow.dropped)
+    Check("no row is added for what only the guild had", #loot.rows == 2, #loot.rows)
+    Check("his tally was never added to", bob.db.tracker.mobs["Test Gnoll"].kills == 30
+        and bob.db.tracker.mobs["Test Gnoll"].items["Guild Test Fang"] == 3)
+    Check("the kill tally's own worth is untouched", Near(Value:FromTally("Test Gnoll"), 30),
+        Value:FromTally("Test Gnoll"))
+
+    -- A guild corpse that said how many it gave counts them.
+    bob.db.guildDrops["Test Gnoll|Redridge Mountains|Camp"].items["Guild Test Fang"].count = 20
+    GuildShare:DropsChanged()
+    loot = ns.LootTableUI:Table("Test Gnoll")
+    fangRow = LootRow("Guild Test Fang")
+    Check("a bigger stack from the guild lifts Per Kill", Near(fangRow.perKill, 13 / 70 * (23 / 13) * 100), fangRow.perKill)
+    bob.db.guildDrops["Test Gnoll|Redridge Mountains|Camp"].items["Guild Test Fang"].count = 10
+
+    -- A mob split by zone takes the guild's kills in that zone only.
+    bob.db.guildDrops["Test Gnoll|Duskwood|"] = { mob = "Test Gnoll", zone = "Duskwood", corpses = 30,
+        items = { ["Guild Test Fang"] = { name = "Guild Test Fang", count = 30, corpses = 30 } } }
+    GuildShare:DropsChanged()
+    local whole = GuildShare:LootFor("Test Gnoll")
+    local redridge = GuildShare:LootFor("Test Gnoll\tRedridge Mountains")
+    local duskwood = GuildShare:LootFor("Test Gnoll\tDuskwood")
+    Check("a whole name takes every zone", whole and whole.kills == 70 and whole.items["Guild Test Fang"].corpses == 40,
+        whole and whole.kills)
+    Check("a zone's line takes that zone only", redridge.kills == 40 and duskwood.kills == 30
+        and duskwood.items["Guild Test Fang"].corpses == 30)
+    Check("a zone with nothing from the guild gives nothing", GuildShare:LootFor("Test Gnoll\tWestfall") == nil)
+    bob.db.guildDrops["Test Gnoll|Duskwood|"] = nil
+    GuildShare:DropsChanged()
+
+    -- Off, his own numbers only.
+    GuildShare:SetOn(false)
+    loot = ns.LootTableUI:Table("Test Gnoll")
+    Check("with guild sharing off the rate is his own", LootRow("Guild Test Fang").chance == 10, LootRow("Guild Test Fang").chance)
+    Check("and so is the worth a kill", Near(loot.worth, 30), loot.worth)
+    GuildShare:SetOn(true)
+    Value.WorthOf = worthOf
 
     -- Off, the rows leave; the data stays.
     GuildShare:SetOn(false)

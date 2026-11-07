@@ -81,6 +81,10 @@ Copied over since, one at a time:
 - `e6a9531` The Top 15 window can be dragged and keeps its spot (2026-11-07,
   as it is: `rankUpX`/`rankUpY`, "Top 15 Position:" Set Default on the Kills
   page, `/farm rankup reset`).
+- `45ccea4` and its test `a5b7d3b` Guild drops blend into the loot table's
+  Drop Rate and Per Kill once the player has 20 kills of the mob (2026-11-07,
+  as they are: `GuildShare:LootFor`, `LootTableUI.Blend`; only items already
+  on the player's own table, read from `guildDrops`, nothing saved).
 
 Every catch-up reads `docs/CLASSIC_DIFFERENCES.md` first, and the PR that
 brings Forever commits over updates the line above to the newest one it took.

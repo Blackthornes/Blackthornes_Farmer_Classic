@@ -303,6 +303,7 @@ end
 --- is always answered with one), which also says whether everything arrived.
 function GuildShare:Received(state)
     state.lastRecordAt = time()
+    self:DropsChanged()
     self:PublishSoon()
     if ns.SettingsUI and ns.SettingsUI.ShareStatusChanged then pcall(ns.SettingsUI.ShareStatusChanged, ns.SettingsUI) end
     if state.confirming then return end
@@ -496,6 +497,87 @@ function GuildShare:RateFor(mob, itemName)
 end
 
 --------------------------------------------------------------------------------
+-- The guild's drops blended into a mob's loot table
+--------------------------------------------------------------------------------
+-- The owner, 2026-11-04: once a mob has the player's own MIN_KILLS, its loot
+-- table's Drop Rate and Per Kill take the guild's corpses in beside the
+-- player's, counted the same, for the items already on the player's table.
+-- Nothing is saved and nothing of the player's is changed: LootTableUI reads
+-- this and works the two columns out again.
+
+GuildShare.dropsVersion = 0
+
+--- The guild's records moved: the lookup by mob is laid out again when next asked.
+function GuildShare:DropsChanged()
+    self.dropsVersion = (self.dropsVersion or 0) + 1
+end
+
+--- The guild's records by mob name, laid out once a version.
+function GuildShare:RecordsByMob()
+    local drops = Drops()
+    local kept = self.byMob
+    if kept and kept.version == self.dropsVersion and kept.drops == drops then return kept.mobs end
+    local mobs = {}
+    for _, record in pairs(drops or {}) do
+        if type(record) == "table" and type(record.mob) == "string"
+            and type(record.corpses) == "number" and record.corpses > 0
+            and type(record.items) == "table" then
+            local list = mobs[record.mob]
+            if not list then
+                list = {}
+                mobs[record.mob] = list
+            end
+            list[#list + 1] = record
+        end
+    end
+    self.byMob = { version = self.dropsVersion, drops = drops, mobs = mobs }
+    return mobs
+end
+
+--- The guild's loot off a loot table's mob: { kills, items = { [name] =
+--- { corpses, count, counted } } }, or nil with sharing off or nothing
+--- from the guild. `key` is the tally's: a name, or one zone's line of it
+--- (Tracker.ZoneKey), which takes the guild's corpses in that zone only.
+--- Items are put together by their random suffixes as the player's are
+--- (Harvest:GroupedItems). `counted` is how many of the corpses said how
+--- many they gave (`count`).
+function GuildShare:LootFor(key)
+    if not self:On() or type(key) ~= "string" then return nil end
+    local Tracker, Harvest = ns.Tracker, ns.Harvest
+    local name, zone = key, nil
+    if Tracker and Tracker.SplitKey then name, zone = Tracker.SplitKey(key) end
+    local list = self:RecordsByMob()[name]
+    if not list then return nil end
+
+    local kills, items = 0, {}
+    for _, record in ipairs(list) do
+        if not zone or record.zone == zone then
+            kills = kills + record.corpses
+            local grouped = Harvest and Harvest.GroupedItems and Harvest:GroupedItems(record) or record.items
+            for itemName, entry in pairs(grouped) do
+                local corpses = type(entry) == "table" and tonumber(entry.corpses) or 0
+                corpses = math.min(corpses, record.corpses)
+                if type(itemName) == "string" and corpses > 0 then
+                    local into = items[itemName]
+                    if not into then
+                        into = { corpses = 0, count = 0, counted = 0 }
+                        items[itemName] = into
+                    end
+                    into.corpses = into.corpses + corpses
+                    local count = tonumber(entry.count)
+                    if count and count > 0 then
+                        into.count = into.count + count
+                        into.counted = into.counted + corpses
+                    end
+                end
+            end
+        end
+    end
+    if kills <= 0 then return nil end
+    return { kills = kills, items = items }
+end
+
+--------------------------------------------------------------------------------
 -- Settings
 --------------------------------------------------------------------------------
 
@@ -535,6 +617,7 @@ function GuildShare:Forget()
     self:SetOn(false)
     ns.db.guildDrops, ns.db.guildIn = {}, {}
     self.byId, self.bySender = {}, {}
+    self:DropsChanged()
     self:Publish()
     return count
 end
