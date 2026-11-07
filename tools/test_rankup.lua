@@ -14,6 +14,8 @@
 --      Show it opens the board as it stands.
 --   6. It holds while the mouse is over it, then fades and hides.
 --   7. Only mobs whose kill count moved are valued again.
+--   8. It can be dragged; its spot is kept and used, and Set Default
+--      (/farm rankup reset) puts it back beside the kills panel.
 
 local env = dofile(lfs_cwd .. "/tools/testenv.lua")
 local suite = env.NewSuite("rankup")
@@ -306,5 +308,19 @@ Tracker:Reset()
 Kill("Lone Wolf", 10)
 suite.check("after a reset nothing pops up", not RankUpUI:IsShown())
 suite.check("and the order is empty", #RankUp.snapshot.list == 0, #RankUp.snapshot.list)
+
+-- Drag it somewhere: the spot is kept and used from then on.
+local card = RankUpUI:Build()
+card._left, card._top = 300, 700
+card:GetScript("OnDragStart")(card)
+card:GetScript("OnDragStop")(card)
+suite.check("a drag keeps its top left", ns.db.rankUpX == 300 and ns.db.rankUpY == 700,
+    tostring(ns.db.rankUpX) .. "," .. tostring(ns.db.rankUpY))
+RankUpUI:Place()
+suite.check("and it opens there", card._point[1] == "TOPLEFT" and card._point[2] == UIParent
+    and card._point[4] == 300 and card._point[5] == 700)
+ns.HandleSlash("rankup reset")
+suite.check("reset forgets the spot", ns.db.rankUpX == nil and ns.db.rankUpY == nil)
+suite.check("and it goes back to its usual place", not (card._point[4] == 300 and card._point[5] == 700))
 
 suite.done()

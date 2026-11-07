@@ -914,6 +914,10 @@ function SettingsUI:BuildTallyPage()
     local _, topButton = CommandRow(pages, "tally", 2, L["Top 15:"], nil, L["Show"], "rankup show")
     controls.rankUpShow = topButton
 
+    local _, topResetButton = CommandRow(pages, "tally", 2, L["Top 15 Position:"], nil,
+        L["Set Default"], "rankup reset")
+    controls.rankUpReset = topResetButton
+
     -- After an auction scan (Logic/TopFarm.lua, the owner asked 2026-10-14).
     local topFarmRow = pages:Row("tally", 2, L["After an Auction Scan:"],
         L["Your top 15 updates to the new prices after a scan. Only mobs you've killed 20 times count."])

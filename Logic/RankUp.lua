@@ -365,6 +365,12 @@ ns.RegisterCommand("rankup", L["a pop-up when a mob climbs your top 15 (on/off, 
         return
     end
 
+    if argument == "reset" then
+        if ns.RankUpUI then ns.RankUpUI:ResetPlace() end
+        ns.Print(L["your top 15 is back beside the kills panel."])
+        return
+    end
+
     local sound = argument:match("^sound%s*(.-)$")
     if sound then
         if sound == "on" then

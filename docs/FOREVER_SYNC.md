@@ -78,6 +78,9 @@ Copied over since, one at a time:
   `b0357be`, `6fee325`, `a24df14` and `789c756` guild sharing answers a
   guildmate's hello after a reload, with the typed `/farm share guild
   check`. Left out: `45ccea4` (guild drops in the loot table).
+- `e6a9531` The Top 15 window can be dragged and keeps its spot (2026-11-07,
+  as it is: `rankUpX`/`rankUpY`, "Top 15 Position:" Set Default on the Kills
+  page, `/farm rankup reset`).
 
 Every catch-up reads `docs/CLASSIC_DIFFERENCES.md` first, and the PR that
 brings Forever commits over updates the line above to the newest one it took.
