@@ -85,6 +85,9 @@ Copied over since, one at a time:
   Drop Rate and Per Kill once the player has 20 kills of the mob (2026-11-07,
   as they are: `GuildShare:LootFor`, `LootTableUI.Blend`; only items already
   on the player's own table, read from `guildDrops`, nothing saved).
+- `719f15c` A switch for the bobber's beam (2026-11-07, as "Bobber
+  Sparkles:", since Classic's bobber shows the beacon or sparkles, whichever
+  look is picked; `nodeSparkleBobber`, `/farm sparkle bobber`).
 
 Every catch-up reads `docs/CLASSIC_DIFFERENCES.md` first, and the PR that
 brings Forever commits over updates the line above to the newest one it took.

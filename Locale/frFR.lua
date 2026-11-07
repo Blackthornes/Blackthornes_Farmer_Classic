@@ -913,8 +913,8 @@ L["HOW THESE ADDONS ARE MADE"] = "COMMENT CES ADDONS SONT FAITS"
 L["How these addons are made, the version, the Discord and the other Blackthornes addons"] = "Comment ces addons sont faits, la version, le Discord et les autres addons Blackthornes"
 
 -- Sparkles on the node you face (UI/NodeSparkle.lua).
-L["turn sparkles on or off for the node, school, chest or quest object you face (beacon, sparkles, pointer, voice, colors, corpses, icon, check)"] =
-    "active ou coupe les étincelles sur le gisement, le banc de poissons, le coffre ou l'objet de quête devant toi (beacon, sparkles, pointer, voice, colors, corpses, icon, check)"
+L["turn sparkles on or off for the node, school, chest or quest object you face (beacon, sparkles, pointer, voice, colors, corpses, bobber, icon, check)"] =
+    "active ou coupe les étincelles sur le gisement, le banc de poissons, le coffre ou l'objet de quête devant toi (beacon, sparkles, pointer, voice, colors, corpses, bobber, icon, check)"
 L["the game's interact icon is hidden unless you play with a controller."] = "l'icône d'interaction du jeu est cachée, sauf si tu joues à la manette."
 L["the game's interact icon shows."] = "l'icône d'interaction du jeu s'affiche."
 L["a beacon shows the spot."] = "un phare montre l'endroit."
@@ -949,6 +949,9 @@ L["pick a voice first."] = "choisis d'abord une voix."
 L["the arrow, dots and beam show the way to a node."] = "la flèche, les points et le rayon montrent le chemin vers le gisement."
 L["corpses you can skin sparkle."] = "les cadavres que tu peux dépecer brillent."
 L["corpses don't sparkle."] = "les cadavres ne brillent pas."
+L["Bobber Sparkles:"] = "Étincelles du bouchon :"
+L["your bobber lights up."] = "ton bouchon brille."
+L["your bobber stays plain."] = "ton bouchon reste simple."
 L["open the kills panel first, then try again."] = "ouvre d'abord le panneau des victimes, puis réessaie."
 L["Training Dummy"] = "Mannequin d'entraînement"
 L["%d kills of %s! You're the bane of its kind now."] = "%1$d victimes : %2$s ! Tu es maintenant le fléau de son espèce."

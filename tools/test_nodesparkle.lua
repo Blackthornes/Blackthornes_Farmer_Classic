@@ -652,6 +652,21 @@ Face("Battered Chest", VEIN)
 suite.check("a chest is white", NodeSparkle.tint == C.white)
 Face("Fishing Bobber", VEIN)
 suite.check("the bobber is white", NodeSparkle.tint == C.white)
+-- The bobber's own switch (2026-11-07).
+suite.check("bobber sparkles on by default", ns.DEFAULTS.nodeSparkleBobber == true)
+ns.HandleSlash("sparkle bobber off")
+suite.check("bobber off is saved", ns.db.nodeSparkleBobber == false)
+suite.check("the bobber gets nothing while it is off", Face("Fishing Bobber", VEIN) == "notnode"
+    and not NodeSparkle.frame:IsShown())
+Face("Battered Chest", VEIN)
+suite.check("a chest still sparkles with the bobber off", NodeSparkle.frame:IsShown())
+suite.check("the bobber is still known for reeling in", NodeSparkle:IsBobber("Fishing Bobber"))
+ns.SettingsUI:Refresh()
+suite.check("Settings shows it unticked", ns.SettingsUI.controls.nodeSparkleBobber
+    and not ns.SettingsUI.controls.nodeSparkleBobber:GetChecked())
+ns.HandleSlash("sparkle bobber on")
+suite.check("bobber on again", ns.db.nodeSparkleBobber == true)
+suite.check("and it shines", Face("Fishing Bobber", VEIN) == "shown")
 skills = { Mining = 30 }
 ns.HandleSlash("sparkle colors off")
 suite.check("colors off is saved", ns.db.nodeSparkleColors == false)

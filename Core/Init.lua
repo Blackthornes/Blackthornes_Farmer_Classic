@@ -471,6 +471,9 @@ local DEFAULTS = {
     -- off until ticked. Never rename either.
     nodeSparkleColors = true,
     nodeSparkleCorpses = false,
+    -- The bobber's beacon or sparkles, on unless unticked (2026-11-07).
+    -- Never rename it.
+    nodeSparkleBobber = true,
 
     -- The best place to farm a material, on its tooltip.
     itemTooltip = true,
