@@ -5,6 +5,9 @@
 local _, ns = ...
 
 ns.WHATS_NEW = {
+    { version = "0.11.0", lines = {
+        "The Top 15 window can be dragged anywhere and remembers its place.",
+    } },
     { version = "0.10.0", lines = {
         "A new fishing panel shows your session, your spot and every fish you've caught.",
     } },
@@ -13,9 +16,5 @@ ns.WHATS_NEW = {
         "Stack counts show on the corner of item icons.",
         "Items show a small mark and colour for what to do with them.",
         "Loot table worth shows in gold, silver and copper coins.",
-    } },
-    { version = "0.8.0", lines = {
-        "All your Blackthornes add-ons now open in one window, with a button for each add-on down the side.",
-        "The window moves beside the auction house, mailbox, vendor and trainer when you open them.",
     } },
 }
