@@ -484,7 +484,22 @@ function Share:PartnerFor(sender)
     local guildmate = ns.GuildShare and ns.GuildShare:PartnerFor(sender)
     if guildmate then return guildmate end
     -- Drops given to, or taken from, a player who opted in (Logic/Contribute.lua).
-    return ns.Contribute and ns.Contribute:PartnerFor(sender) or nil
+    local giver = ns.Contribute and ns.Contribute:PartnerFor(sender) or nil
+    if not giver then Share:NoteUnmatched(sender) end
+    return giver
+end
+
+--- Whispers from someone no sharing knows, by name as it came, for `/farm
+--- share guild check`: a guildmate's whisper whose name reads otherwise than
+--- their guild hello's shows here.
+Share.unmatched, Share.unmatchedCount = {}, 0
+function Share:NoteUnmatched(sender)
+    if type(sender) ~= "string" then return end
+    if not self.unmatched[sender] then
+        if self.unmatchedCount >= 20 then return end
+        self.unmatchedCount = self.unmatchedCount + 1
+    end
+    self.unmatched[sender] = (self.unmatched[sender] or 0) + 1
 end
 
 --- What was heard from and taken from a partner, made if new.
@@ -680,7 +695,7 @@ function Share:OnManifest(sender, manifest, channel)
     if channel ~= "WHISPER" then return end
     local state = self:PartnerFor(sender)
     if not state then return end
-    state.online, state.heardAt = true, time()
+    state.online, state.heardAt, state.manifestIn, state.manifestRefused = true, time(), time(), nil
 
     -- Either side's check syncs both ways: answered with this side's own,
     -- unless one went out a moment ago (which is what stops the two
@@ -690,7 +705,7 @@ function Share:OnManifest(sender, manifest, channel)
     if state.giveOnly then return end
 
     -- A guildmate's manifest must come from the Farmer its hello named.
-    if state.id and manifest.i ~= state.id then return end
+    if state.id and manifest.i ~= state.id then state.manifestRefused = "from another Farmer" return end
     if not self:Identify(state, manifest.i) then return end
     local held = self:Held(state)
     local want, total = {}, 0

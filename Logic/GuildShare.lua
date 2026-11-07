@@ -44,7 +44,9 @@ local Share = ns.Share
 
 GuildShare.HELLO_SECONDS = 900    -- a hello to the guild every quarter hour
 GuildShare.FIRST_HELLO = 30       -- and this long after login
-GuildShare.ANSWER_GAP = 60        -- at most one hello back a minute
+GuildShare.ANSWER_GAP = 60        -- at most one hello back a minute; answers held past it are not dropped
+GuildShare.QUIET_ANSWER = 300     -- a guildmate not heard this long has likely reloaded: answer them
+GuildShare.HEARD_US = 60          -- a hello this soon after ours arrived while they were up: they heard ours
 GuildShare.SYNC_GAP = 600         -- one guildmate synced at most this often
 GuildShare.SYNC_TIMEOUT = 600     -- a sync left this long is given up
 GuildShare.STILL_COMING = 60      -- unless records came in this recently
@@ -134,35 +136,70 @@ end
 -- Hellos
 --------------------------------------------------------------------------------
 
---- Say to the guild who this Farmer is and what it has.
-function GuildShare:Hello()
-    if not self:On() or not InGuild() or self.building then return end
+--- Say to the guild who this Farmer is and what it has. `fresh` is a copy
+--- that just loaded (login, a reload, the check) and knows nobody yet: it
+--- says so too ("N"), and every guildmate answers, heard lately or not.
+function GuildShare:Hello(fresh)
+    self.helloTried = (self.helloTried or 0) + 1
+    if not self:On() then self.helloSkipped = "sharing off" return end
+    if not InGuild() then self.helloSkipped = "not in a guild yet" return end
+    if self.building then self.helloSkipped = "still building the last one" return end
     self.building = true
     self.helloAt = time()
     Share:Build(self.me, function(manifest)
         self.building = nil
-        if not self:On() or not InGuild() then return end
-        local top = Comm.Hash(ns.Serialize.EncodeCanonical(manifest))
-        Comm:Send("G", ns.Transfer:SourceId() .. ":" .. top, "GUILD")
+        if not self:On() or not InGuild() then self.helloSkipped = "off or out of the guild while building" return end
+        local ok, err = pcall(function()
+            local top = Comm.Hash(ns.Serialize.EncodeCanonical(manifest))
+            local body = ns.Transfer:SourceId() .. ":" .. top
+            Comm:Send("G", body, "GUILD")
+            if fresh then Comm:Send("N", body, "GUILD") end
+        end)
+        if not ok then self.helloSkipped = "error: " .. tostring(err) return end
+        self.helloSent = (self.helloSent or 0) + 1
+        self.sentAt = time()
+        self.helloSkipped = nil
     end)
 end
 
---- Someone new was heard: say hello back soon, unless one just went out.
+--- Someone was heard who may not know this side: say hello back soon. At
+--- most one goes out an ANSWER_GAP; one asked for sooner waits for the gap
+--- to pass rather than being dropped, and one answer covers everyone heard
+--- while it waited (a reload used to go unanswered when two guildmates said
+--- hello within a minute of each other).
 function GuildShare:AnswerSoon()
+    if self.answerPending then return end
     local now = time()
-    if self.answerAt and now - self.answerAt < self.ANSWER_GAP then return end
-    if self.helloAt and now - self.helloAt < 20 then return end
-    self.answerAt = now
-    C_Timer.After(3 + math.random() * 10, function() GuildShare:Hello() end)
+    local wait = 3 + math.random() * 10
+    if self.answerAt and now - self.answerAt < self.ANSWER_GAP then
+        wait = wait + (self.ANSWER_GAP - (now - self.answerAt))
+    end
+    self.answerPending = true
+    C_Timer.After(wait, function()
+        GuildShare.answerPending = nil
+        GuildShare.answerAt = time()
+        GuildShare:Hello()
+    end)
 end
 
-function GuildShare:OnHello(sender, body, channel)
-    if channel ~= "GUILD" or not self:On() or Comm.IsMe(sender) then return end
+GuildShare.passed = {}   -- [sender] = why a hello was not taken, for the check
+
+--- A hello on the guild channel: "G" every quarter hour and as an answer,
+--- "N" (`fresh`) from a copy that just loaded and knows nobody.
+function GuildShare:OnHello(sender, body, channel, fresh)
+    local function Pass(why)
+        if type(sender) == "string" then self.passed[sender] = why end
+    end
+    if channel ~= "GUILD" then return Pass("not on the guild channel") end
+    if not self:On() then return Pass("guild sharing is off here") end
+    if Comm.IsMe(sender) then return Pass("read as this character") end
     local id, top = (body or ""):match("^(%x+):(%w+)$")
-    if not ValidId(id) or #top > 12 then return end
-    if id == ns.Transfer:SourceId() or LinkedAccount(id) then return end
+    if not ValidId(id) or #top > 12 then return Pass("hello not read") end
+    if id == ns.Transfer:SourceId() then return Pass("same Farmer as this one") end
+    if LinkedAccount(id) then return Pass("your other account, shared by name") end
     local senderKey = Comm.NameKey(sender)
-    if not senderKey then return end
+    if not senderKey then return Pass("no name") end
+    self.passed[sender] = nil
 
     local state = self.byId[id]
     local new = state == nil
@@ -184,9 +221,17 @@ function GuildShare:OnHello(sender, body, channel)
     if other and other ~= state then other.senderKey = nil end
     state.name, state.senderKey = sender, senderKey
     self.bySender[senderKey] = state
-    state.online, state.heardAt, state.top = true, time(), top
+    -- A copy that just loaded knows nobody: it is always answered. Someone
+    -- already known who was quiet a while, or went offline, has likely
+    -- reloaded too and is answered as well, unless our own hello went out
+    -- a moment ago, which they were up to hear (their hello is an answer
+    -- to it, not a question); or they wait up to a quarter hour.
+    local now = time()
+    local back = not state.online or not state.heardAt or now - state.heardAt > self.QUIET_ANSWER
+    local heardUs = self.sentAt and now - self.sentAt < self.HEARD_US
+    state.online, state.heardAt, state.top = true, now, top
 
-    if new then self:AnswerSoon() end
+    if fresh or ((new or back) and not heardUs) then self:AnswerSoon() end
     local held = Ledgers()[state.key]
     if not (type(held) == "table" and held.top == top) then self:Want(state) end
 end
@@ -277,7 +322,20 @@ end
 function GuildShare:PartnerFor(sender)
     if not self:On() then return nil end
     local key = Comm.NameKey(sender)
-    return key and self.bySender[key] or nil
+    if not key then return nil end
+    if self.bySender[key] then return self.bySender[key] end
+    -- A whisper can name its sender by the first name alone, or the guild
+    -- channel can: then the one guildmate heard with that first name, and
+    -- only when no other shares it.
+    local first = key:match("^(%S+)")
+    local found
+    for heard, state in pairs(self.bySender) do
+        if heard:match("^(%S+)") == first then
+            if found then return nil end
+            found = state
+        end
+    end
+    return found
 end
 
 function GuildShare:OnOffline(key)
@@ -446,7 +504,7 @@ function GuildShare:Apply()
     if self:On() then
         if not self.ticker and type(C_Timer) == "table" then
             self.ticker = C_Timer.NewTicker(self.HELLO_SECONDS, function() GuildShare:Hello() end)
-            C_Timer.After(self.FIRST_HELLO, function() GuildShare:Hello() end)
+            C_Timer.After(self.FIRST_HELLO, function() GuildShare:Hello(true) end)
         end
     else
         if self.ticker then
@@ -527,6 +585,8 @@ function GuildShare:Command(text)
     if word == "on" or word == "off" then
         self:SetOn(word == "on")
         ns.Print(word == "on" and L["sharing with your guild is on"] or L["sharing with your guild is off"])
+    elseif word == "check" then
+        ns.KeepCheck("guild check", GuildShare.Check, self)
     elseif word == "forget" then
         if (rest or ""):lower() ~= "confirm" then
             ns.Print(L["This deletes the drop rates your guild gave and turns guild sharing off. Your own kills and loot stay as they are. Type /farm share guild forget confirm to do it."])
@@ -539,8 +599,115 @@ function GuildShare:Command(text)
     end
 end
 
+--- `/farm share guild check`: what guild sharing sees, for a report. Typed
+--- only, kept as lastProbe. Says hello now too, so guildmates answer.
+function GuildShare:Check()
+    local function Line(...) ns.Print(string.format(...)) end
+    Line("guild check: sharing %s, in a guild %s, listening %s, prefix %s",
+        tostring(self:On()), tostring(InGuild()), tostring(Comm.listening == true), tostring(Comm.registered))
+    local okCount, total, online = pcall(GetNumGuildMembers)
+    if okCount then Line("guild members: %s, online %s", tostring(total), tostring(online)) end
+    Line("my name reads %q, farmer id %s", tostring(Comm.PlayerName()), tostring(ns.Transfer:SourceId()))
+    local ago = self.helloAt and (time() - self.helloAt) or nil
+    Line("this session started %s s ago", tostring(self.enabledAt and (time() - self.enabledAt)))
+    Line("hellos tried %d, sent %d, last %s s ago, building %s, timer set %s, last skip %s",
+        self.helloTried or 0, self.helloSent or 0, tostring(ago), tostring(self.building == true),
+        tostring(self.ticker ~= nil), tostring(self.helloSkipped))
+    Line("addon messages sent %d, refused %d, retried %d, waiting %d, last refusal %s",
+        Comm.sent or 0, Comm.refused or 0, Comm.retried or 0, #Comm.queue, tostring(Comm.lastRefusal))
+    Line("Farmer messages heard in all: %d", Comm.received or 0)
+    local any = false
+    for _, entry in pairs(Comm.guildHeard) do
+        any = true
+        Line("heard on guild: %q, kinds %s, %d message(s), %d s ago",
+            tostring(entry.name), entry.kinds, entry.count, time() - (entry.at or time()))
+    end
+    if not any then Line("heard on guild: nobody") end
+    for sender, why in pairs(self.passed) do Line("hello not taken from %q: %s", sender, why) end
+    for _, line in ipairs(self:WhisperLines()) do Line("%s", line) end
+    for _, line in ipairs(self:MateLines()) do Line("%s", line) end
+    if self:On() and InGuild() then
+        self.helloAt = nil
+        self:Hello(true)
+        Line("a hello was just sent to your guild")
+        -- And a whispered hello to each guildmate heard: their "A" back,
+        -- in the 30 s lines, says whispers go both ways.
+        local whispered = 0
+        for _, state in pairs(self.byId) do
+            if state.online and state.name then Share:Hello(state.name) whispered = whispered + 1 end
+        end
+        Line("a whispered hello went to %d guildmate(s)", whispered)
+        self:FollowUp()
+    end
+end
+
+GuildShare.FOLLOW_UP = 30   -- seconds the check waits before adding what came back
+
+--- After the check's hello, add what happened next to the same saved
+--- probe, so one check and a /reload a minute later tell the whole story.
+function GuildShare:FollowUp()
+    if type(C_Timer) ~= "table" then return end
+    local sentBefore, heardBefore = Comm.sent or 0, Comm.received or 0
+    C_Timer.After(self.FOLLOW_UP, function()
+        -- The check is saved once it returns, so the probe is read now.
+        local probe = type(ns.db) == "table" and ns.db.lastProbe
+        if type(probe) ~= "table" or probe.check ~= "guild check" or type(probe.lines) ~= "table" then return end
+        local function Add(...) probe.lines[#probe.lines + 1] = string.format(...) end
+        Add("%d s later: hellos tried %d, sent %d, last skip %s", GuildShare.FOLLOW_UP,
+            GuildShare.helloTried or 0, GuildShare.helloSent or 0, tostring(GuildShare.helloSkipped))
+        Add("%d s later: addon messages sent %d more (refused %d, last refusal %s), heard %d more",
+            GuildShare.FOLLOW_UP, (Comm.sent or 0) - sentBefore, Comm.refused or 0,
+            tostring(Comm.lastRefusal), (Comm.received or 0) - heardBefore)
+        local any = false
+        for _, entry in pairs(Comm.guildHeard) do
+            any = true
+            Add("%d s later: heard on guild %q, kinds %s, %d message(s)", GuildShare.FOLLOW_UP,
+                tostring(entry.name), entry.kinds, entry.count)
+        end
+        if not any then Add("%d s later: heard on guild: nobody", GuildShare.FOLLOW_UP) end
+        for sender, why in pairs(GuildShare.passed) do
+            Add("%d s later: hello not taken from %q: %s", GuildShare.FOLLOW_UP, sender, why)
+        end
+        for _, line in ipairs(GuildShare:WhisperLines()) do Add("%d s later: %s", GuildShare.FOLLOW_UP, line) end
+        for _, line in ipairs(GuildShare:MateLines()) do Add("%d s later: %s", GuildShare.FOLLOW_UP, line) end
+    end)
+end
+
+--- The check's lines on whispers: who was heard off the guild channel (the
+--- name as the game gave it), and whose whispers no sharing knew.
+function GuildShare:WhisperLines()
+    local lines = {}
+    for _, entry in pairs(Comm.otherHeard or {}) do
+        lines[#lines + 1] = string.format("heard by %s: %q, kinds %s, %d message(s), %d s ago",
+            tostring(entry.channel), tostring(entry.name), entry.kinds, entry.count, time() - (entry.at or time()))
+    end
+    if #lines == 0 then lines[1] = "heard by whisper: nobody" end
+    for sender, count in pairs(Share.unmatched or {}) do
+        lines[#lines + 1] = string.format("whispers not matched to anyone: %q, %d", sender, count)
+    end
+    return lines
+end
+
+--- The check's lines on each guildmate heard: where their sync stands.
+function GuildShare:MateLines()
+    local lines = {}
+    for _, state in pairs(self.byId) do
+        local held = Ledgers()[state.key]
+        lines[#lines + 1] = string.format(
+            "guildmate %q id %s, heard %s s ago, online %s, queued %s, syncing %s, last sync %s s ago, their manifest %s, records in %s, taken %s",
+            tostring(state.name), tostring(state.id), tostring(state.heardAt and time() - state.heardAt),
+            tostring(state.online == true), tostring(state.queued == true), tostring(self.current == state),
+            tostring(state.syncedAt and time() - state.syncedAt),
+            state.manifestIn and (state.manifestRefused or "in") or "none",
+            tostring(state.lastRecordAt ~= nil), tostring(type(held) == "table"))
+    end
+    return lines
+end
+
 function GuildShare:OnEnable()
+    self.enabledAt = time()
     Comm:On("G", function(...) GuildShare:OnHello(...) end)
+    Comm:On("N", function(sender, body, channel) GuildShare:OnHello(sender, body, channel, true) end)
     -- Share:OnEnable ran first (the TOC's order) and called Apply before this
     -- module had its handler; this starts the hellos and shows the guild's
     -- rows if it is on.

@@ -28,6 +28,10 @@
 -- round (SoftTargetInteractRange, SoftTargetInteractArc), keeping what each was in
 -- `nodeSparkleCVars` (never rename it) and putting them back when the box
 -- is unticked. Nothing is set that the player had already set that way.
+-- A setting the player turns back themselves after Farmer set it (the
+-- game's Interact Key unticked, a player's report, 2026-11-05) is theirs:
+-- Farmer notes it in `nodeSparkleCVarsLeft` (never rename it) and never sets
+-- it again, until the player ticks the sparkles box again.
 --
 -- A node is a herb or ore the data knows (a herb's own name, a vein's
 -- source name), the client's name for that herb, or any node the player
@@ -73,7 +77,10 @@ local UNIT = "softinteract"
 -- The game settings Farmer turns on, and to what.
 NodeSparkle.CVARS = {
     { name = "SoftTargetInteract", value = "3", atLeast = 3 },
-    { name = "SoftTargetNameplateInteract", value = "1", atLeast = 1 },
+    -- `moves`: Farmer turns this one back and forth itself as you face
+    -- creatures and objects (FitPlateToTarget), so a low value is no sign
+    -- the player changed it.
+    { name = "SoftTargetNameplateInteract", value = "1", atLeast = 1, moves = true },
     -- How far the interact target looks, in yards (the game's own is about
     -- 10), and how wide: 2 is all the way round you, 1 only in front. The
     -- owner asked 2026-10-13 for 30, then 100, then back to 15 once he saw
@@ -353,8 +360,18 @@ local function Saved()
     return db.nodeSparkleCVars
 end
 
+-- Settings the player turned back after Farmer set them: Farmer leaves
+-- them as they are from then on.
+local function Left()
+    local db = ns.db
+    if type(db.nodeSparkleCVarsLeft) ~= "table" then db.nodeSparkleCVarsLeft = {} end
+    return db.nodeSparkleCVarsLeft
+end
+
 --- Turn on the game settings the sparkle needs, keeping what each was.
---- Out of combat only; in a fight it waits for the fight to end.
+--- Out of combat only; in a fight it waits for the fight to end. A setting
+--- Farmer turned on that is now lower again was turned back by the
+--- player: it is left as they have it, now and later.
 function NodeSparkle:ApplySettings()
     if not ns.db or not self:IsEnabled() then return false end
     if InCombat() then
@@ -363,16 +380,33 @@ function NodeSparkle:ApplySettings()
     end
     self.applyAfterCombat = nil
 
-    local saved = Saved()
+    local saved, left = Saved(), Left()
     for _, cvar in ipairs(self.CVARS) do
-        local now = self.GetCVar(cvar.name)
-        if now ~= nil and (tonumber(now) or 0) < cvar.atLeast then
-            if saved[cvar.name] == nil then saved[cvar.name] = now end
-            self.SetCVar(cvar.name, cvar.value)
+        local name = cvar.name
+        local now = self.GetCVar(name)
+        local low = now ~= nil and (tonumber(now) or 0) < cvar.atLeast
+        if left[name] then
+            -- The player's choice: never set again.
+        elseif low and saved[name] ~= nil and not cvar.moves then
+            left[name] = true
+            saved[name] = nil
+        elseif low then
+            if saved[name] == nil then saved[name] = now end
+            self.SetCVar(name, cvar.value)
+        elseif now ~= nil and cvar.moves and saved[name] == nil then
+            -- Already on before Farmer came to it: keep the player's value
+            -- to put back, so FitPlateToTarget may take the plate off NPCs.
+            saved[name] = now
+        elseif now ~= nil and cvar.lower and saved[name] ~= nil and (tonumber(now) or 0) > cvar.atLeast then
+            -- Farmer set it higher before: bring it to what it sets now.
+            self.SetCVar(name, cvar.value)
         end
-        -- Farmer set it higher before: bring it to what it sets now.
-        if now ~= nil and cvar.lower and saved[cvar.name] ~= nil and (tonumber(now) or 0) > cvar.atLeast then
-            self.SetCVar(cvar.name, cvar.value)
+    end
+    -- With the interact key turned off by the player, its nameplate is no
+    -- use: put it back as they had it too.
+    if left.SoftTargetInteract and saved.SoftTargetNameplateInteract ~= nil then
+        if self.SetCVar("SoftTargetNameplateInteract", saved.SoftTargetNameplateInteract) then
+            saved.SoftTargetNameplateInteract = nil
         end
     end
     return true
@@ -399,6 +433,8 @@ function NodeSparkle:SetEnabled(on)
     ns.db.nodeSparkle = on and true or false
     if on then
         self.restoreAfterCombat = nil
+        -- Ticked again: the player asks for the settings once more.
+        ns.db.nodeSparkleCVarsLeft = nil
         self:ApplySettings()
         self:Refresh()
     else
@@ -1618,7 +1654,14 @@ function NodeSparkle:FitPlateToTarget()
     local guid, name, object = self:Facing()
     -- A corpse to skin keeps the plate: the sparkle hangs on it.
     local creature = guid and not object and not self:SkinnableCorpse(guid, name)
-    local want = creature and own or "1"
+    -- Facing an NPC, the plate goes back to the player's own value; when
+    -- that was already on but they show no friendly NPC nameplates, it goes
+    -- off, so an NPC gets no bar only Farmer's setting asked for.
+    local onCreature = own
+    if (tonumber(own) or 0) >= 1 and self.GetCVar("nameplateShowFriendlyNPCs") ~= "1" then
+        onCreature = "0"
+    end
+    local want = creature and onCreature or "1"
     if self.GetCVar("SoftTargetNameplateInteract") ~= want then
         self.SetCVar("SoftTargetNameplateInteract", want)
     end
@@ -1711,6 +1754,12 @@ function NodeSparkle:Check()
     if type(saved) == "table" then
         for name, value in pairs(saved) do
             ns.PrintRaw(("  kept to put back: %s = %s"):format(name, tostring(value)))
+        end
+    end
+    local left = ns.db and ns.db.nodeSparkleCVarsLeft
+    if type(left) == "table" then
+        for name in pairs(left) do
+            ns.PrintRaw(("  left as the player set it: %s"):format(name))
         end
     end
     ns.PrintRaw(("  fishing: %s, reach raised from: %s"):format(self.fishing and "yes" or "no",

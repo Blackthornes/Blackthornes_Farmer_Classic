@@ -318,8 +318,16 @@ want, records) through hooks on the partner state (`sections`, `store`,
 
 - Finding guildmates: each side says hello on the GUILD addon channel
   (`G<farmer id>:<hash of its drop records>`) 30 s after login and every
-  quarter hour (2026-10-22, a player's report), and once (at most a minute
-  apart) to someone new. A hello whose
+  quarter hour (2026-10-22, a player's report), and a hello back to
+  someone new or quiet a while (`AnswerSoon`, at most one a minute; one
+  asked for sooner waits for the minute and covers everyone heard
+  meanwhile, never dropped). A copy that just loaded (login, reload, the
+  check) also says `N<id>:<hash>` right after its `G` (2026-11-05, the
+  owner's guild saw nothing: he reloads often, and an answer held by the
+  minute rule was dropped, so after a reload nobody answered him); every
+  copy answers an `N` whatever it heard before, an older copy ignores it,
+  and a `G` heard within `HEARD_US` seconds of our own hello is taken as
+  the answer to it, not asked back. A hello whose
   hash is not the one last taken in full (`guildIn[...].top`) queues that
   guildmate; one is synced at a time, each at most every ten minutes, waited
   on while its records keep coming (`STILL_COMING`), and a
@@ -348,7 +356,9 @@ want, records) through hooks on the partner state (`sections`, `store`,
 
 A tick box under YOUR GUILD on the Sharing page, "Guild Status:" under it
 (`GuildShare:Status`, from the save; the names box shows `Share:Status`
-the same way), and `/farm share guild on|off`. Tested in `tools/test_guildshare.lua` (three accounts and an alt
+the same way), and `/farm share guild on|off`. `/farm share guild check` (typed only,
+`ns.KeepCheck`) lists who guild sharing hears, whispers too, and where
+each guildmate's sync stands (2026-11-07, from Forever). Tested in `tools/test_guildshare.lua` (three accounts and an alt
 over a pretend chat). Not yet seen in game.
 
 ## Sending drops to Blackthornes
@@ -872,6 +882,12 @@ an addon closing it on leaving a place, `SharedWindow.Close(true)`, lets it
 go back to the addon open before (`hub.byItself`, read in OnHide). Butler
 passes it from `UI:LeftVendor` and `LeftPlace` (`ButlerTabs:Closed(frame,
 byItself)`). Tested in `tools/test_sharedwindow.lua`.
+
+Folded and docked (2026-11-07, FILE_VERSION 8, from Forever): docked or
+undocked while folded with the fold gem, the sizes are worked from the
+size it opens back up to (`SharedWindow.FullSize`, FoldWindow's
+`state.width`/`state.full`), never the folded strip's, so it never opens
+squashed.
 
 Farmer's tabs are in (2026-10-30, after Butler's, Pets' and Equipment's):
 "One Window:" sits under "Combine Addon Buttons:" on the General page
@@ -1680,7 +1696,16 @@ round that icon (`NodeSparkle.Icon`, the plate's `UnitFrame.SoftTargetFrame`,
 read only) when the plate lets us read it. So while "Sparkle on nodes" (`nodeSparkle`, on unless unticked, Map & goals
 page, `/farm sparkle`) is ticked Farmer raises them out of combat, keeping
 the old values in `nodeSparkleCVars` (never rename either) and putting them
-back when unticked. A node is a herb or vein the data knows, the client's
+back when unticked. A setting the player turns back after Farmer set it
+(the game's Interact Key unticked, a player's report, 2026-11-05, from
+Forever) is theirs: the next `ApplySettings` (every loading screen) notes
+it in `nodeSparkleCVarsLeft` (never rename it) and never sets it again,
+and with the interact key off the nameplate setting goes back too; only
+ticking the sparkles box again clears it. `SoftTargetNameplateInteract`
+(`moves`) is never judged, since Farmer turns it down itself. When that
+plate was already on before Farmer came to it, its value is kept to put
+back too, and while the player shows no friendly NPC nameplates
+(`nameplateShowFriendlyNPCs`) `FitPlateToTarget` takes it off NPCs. A node is a herb or vein the data knows, the client's
 herb name, or a node the player gathered; a hidden source gets nothing.
 `/farm sparkle check` (`ns.KeepCheck`) reports what the client gives.
 Seen in game 2026-10-13 round the icon. Since then (the owner asked the

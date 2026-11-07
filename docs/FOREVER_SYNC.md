@@ -69,5 +69,15 @@ Copied over since, one at a time:
   `PlaceStrip`, which Classic's fishing bar hands its lure line; see "The
   fishing bar" in `docs/CLASSIC_DIFFERENCES.md`).
 
+- Fixes of 2026-11-05 (copied 2026-11-07, as they are): `efabe13` One
+  Window keeps its size when it docks or undocks while folded
+  (`UI/SharedWindow.lua` FILE_VERSION 8, the same in all five Classic
+  repos; Classic has no `SharedWindow.Fit`, so only Dock, Undock and Refit
+  read `FullSize`); `7232ac3` and `3c43153` sparkles leave the Interact Key
+  as the player sets it and take the interact plate off NPCs; `65b920f`,
+  `b0357be`, `6fee325`, `a24df14` and `789c756` guild sharing answers a
+  guildmate's hello after a reload, with the typed `/farm share guild
+  check`. Left out: `45ccea4` (guild drops in the loot table).
+
 Every catch-up reads `docs/CLASSIC_DIFFERENCES.md` first, and the PR that
 brings Forever commits over updates the line above to the newest one it took.
