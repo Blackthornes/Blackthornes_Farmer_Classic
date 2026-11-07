@@ -68,6 +68,16 @@ function RankUpUI:Build()
     frame:SetClampedToScreen(true)
     frame:EnableMouse(true)
 
+    -- Drag it anywhere; its top left is kept in `rankUpX`/`rankUpY`
+    -- (account wide, nil for its usual place beside the kills panel).
+    frame:SetMovable(true)
+    frame:RegisterForDrag("LeftButton")
+    frame:SetScript("OnDragStart", function(self) self:StartMoving() end)
+    frame:SetScript("OnDragStop", function(self)
+        self:StopMovingOrSizing()
+        RankUpUI:SavePlace()
+    end)
+
     local back = Theme.Fill(frame, "window", 0.94)
     Theme.Border(frame, "borderLit")
     Theme.Halo(frame, 8, 0.12)
@@ -156,7 +166,9 @@ function RankUpUI:Build()
     self.sizeGrip = Widgets.CreateSizeGrip(frame, {
         get = function() return ns.db and ns.db.rankUpScale end,
         save = function(percent) if ns.db then ns.db.rankUpScale = percent end end,
-        done = function() RankUpUI:Place() end,
+        done = function()
+            if RankUpUI:HasPlace() then RankUpUI:SavePlace() else RankUpUI:Place() end
+        end,
     })
 
     -- See-through (UI/SeeThrough.lua, `rankUpSeeThrough`).
@@ -313,12 +325,41 @@ function RankUpUI:ApplyLayout(layout, shown)
     self.layout = layout
 end
 
---- Beside the kills panel (its right, else its left when the screen ends),
---- or high in the middle when the panel is away.
+--- Whether the player dragged it somewhere of their own.
+function RankUpUI:HasPlace()
+    local db = ns.db
+    return db and tonumber(db.rankUpX) ~= nil and tonumber(db.rankUpY) ~= nil or false
+end
+
+--- Keep where its top left corner is now.
+function RankUpUI:SavePlace()
+    local frame = self.frame
+    if not (frame and ns.db) then return end
+    local ok, left, top = pcall(function() return frame:GetLeft(), frame:GetTop() end)
+    if ok and type(left) == "number" and type(top) == "number" then
+        ns.db.rankUpX, ns.db.rankUpY = left, top
+    end
+    self:Place()
+end
+
+--- Back to its usual place beside the kills panel.
+function RankUpUI:ResetPlace()
+    if ns.db then ns.db.rankUpX, ns.db.rankUpY = nil, nil end
+    self:Place()
+end
+
+--- Where the player left it, else beside the kills panel (its right, else
+--- its left when the screen ends), or high in the middle when the panel is
+--- away.
 function RankUpUI:Place()
     local frame = self.frame
     if not frame then return end
     frame:ClearAllPoints()
+
+    if self:HasPlace() then
+        frame:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", tonumber(ns.db.rankUpX), tonumber(ns.db.rankUpY))
+        return
+    end
 
     local panel = ns.TrackerUI and ns.TrackerUI.frame
     if panel and panel:IsShown() then

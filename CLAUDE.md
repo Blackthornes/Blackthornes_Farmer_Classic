@@ -1277,7 +1277,12 @@ fade; Window effects Subtle or Off show the new order at once. The sound is
 whose fanfare plays instead. "Rank-up pop-up" (`rankUpPopup`) and "Rank-up
 sound" (`rankUpSound`), both on unless unticked, and `rankUpScale` (its size
 grip) are account wide; never rename them. `/farm rankup [on|off|sound
-on|off|show]`. Tested in `tools/test_rankup.lua`. Not yet seen in game.
+on|off|show|reset]`. It can be dragged anywhere (2026-11-07, from Forever's
+`e6a9531`): its top left is kept in `rankUpX`/`rankUpY` (account wide, nil
+for its usual place beside the kills panel; never rename them,
+`RankUpUI:SavePlace`), and "Top 15 Position:" Set Default on the Kills page
+(`/farm rankup reset`, `ResetPlace`) puts it back. Tested in
+`tools/test_rankup.lua`. Not yet seen in game.
 
 ## Rankings outside dungeons only
 
