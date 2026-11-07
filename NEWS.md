@@ -23,6 +23,13 @@ tell a friend: no hype, no questions to the reader, no exclamation marks
 outside the thanks line, no dashes as punctuation, no "now you can". The
 tool prints a note for a shipped line that reads like an advert.
 
+## 0.11.0
+
+- The Top 15 window can be dragged anywhere and remembers its place.
+
+Fixes and changes:
+- Various bug fixes.
+
 ## 0.10.2
 
 Fixes and changes:
