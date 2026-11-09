@@ -276,9 +276,30 @@ end
 -- Setting and removing
 --------------------------------------------------------------------------------
 
+-- Whether the client knows an item by exactly this name. A vendor item the
+-- data never lists (Salt) is still a real item, and it must not be taken
+-- for a longer name that starts the same way (Salty Scorpid Venom).
+local function ClientKnowsName(text)
+    local fn = (type(C_Item) == "table" and C_Item.GetItemInfoInstant) or _G.GetItemInfoInstant
+    if type(fn) ~= "function" then return false end
+    local ok, id = pcall(fn, text)
+    return ok and type(id) == "number" and id > 0
+end
+
+Goals.ClientKnowsName = ClientKnowsName
+
 --- The item a typed name means: the database's own spelling when it knows
 --- it, else what you typed, as long as it looks like a name.
+--- An item ID gives that item's name.
 function Goals:ResolveItem(text)
+    -- An item ID: the data's name for it, else the client's.
+    local id = type(text) == "number" and text or tonumber(type(text) == "string" and text:match("^%s*(%d+)%s*$"))
+    if id then
+        local item = ns.DB:ByID()[id]
+        if item then return item.name end
+        return ns.DB.ClientItemName(id)
+    end
+
     text = Util.Trim(Util.StripColor(text or ""))
 
     -- An item link: [Copper Ore] out of it.
@@ -293,15 +314,26 @@ function Goals:ResolveItem(text)
     -- Tradeskills call it. The database still finds the item by it.
     if item then return byClientName and text or item.name end
 
-    -- Close enough: an alias, or the one item whose name starts with it.
+    -- An alias wins, then an item the client knows by exactly this name.
     local wanted = text:lower()
-    local matches = {}
     for entry in ns.DB:Iterate() do
         for _, alias in ipairs(entry.aliases or {}) do
             if alias:lower() == wanted then return entry.name end
         end
-        if entry.name:lower():sub(1, #wanted) == wanted then
-            matches[#matches + 1] = entry.name
+    end
+    if ClientKnowsName(text) then return text end
+
+    -- Close enough: the one item whose name starts with the whole words
+    -- typed. "Copper" finds Copper Ore, but "Salt" never finds Salty
+    -- Scorpid Venom.
+    local matches = {}
+    for entry in ns.DB:Iterate() do
+        local lowered = entry.name:lower()
+        if lowered:sub(1, #wanted) == wanted then
+            local after = lowered:sub(#wanted + 1, #wanted + 1)
+            if after == "" or after == " " then
+                matches[#matches + 1] = entry.name
+            end
         end
     end
     if #matches == 1 then return matches[1] end
