@@ -37,6 +37,24 @@ local function Field(object, key)
     return nil
 end
 
+--- True for a value the game keeps from addons (a secret). Comparing,
+--- adding or joining one raises, so a value read off a nameplate is
+--- looked at here first, and every use stays inside a pcall too.
+local function IsSecret(value)
+    local test = _G.issecretvalue
+    if type(test) ~= "function" then return false end
+    local ok, secret = pcall(test, value)
+    return not ok or secret == true
+end
+QuestMobs.IsSecret = IsSecret
+
+--- Calls fn and hands back its answer only when it is a plain value.
+local function Plain(fn)
+    local ok, value = pcall(fn)
+    if not ok or IsSecret(value) then return nil end
+    return value
+end
+
 local function Readable(value)
     return ns.Harvest and ns.Harvest.Readable(value) or nil
 end
@@ -139,14 +157,19 @@ end
 local function NameOf(plate)
     local name = Field(Field(plate, "UnitFrame"), "name")
     if type(name) ~= "table" then return nil end
-    local ok, kind = pcall(function() return name:GetObjectType() end)
-    if ok and kind == "FontString" then return name end
+    local ok, isText = pcall(function()
+        local kind = Plain(function() return name:GetObjectType() end)
+        return kind == "FontString"
+    end)
+    if ok and isText == true then return name end
     return nil
 end
 
 local function Showing(piece)
     if type(piece) ~= "table" then return false end
-    local ok, shown = pcall(function() return piece:IsShown() end)
+    local ok, shown = pcall(function()
+        return Plain(function() return piece:IsShown() end) == true
+    end)
     return ok and shown == true
 end
 
@@ -163,12 +186,14 @@ local LEVEL_FIELDS = { "LevelFrame", "levelText", "LevelText", "level", "Level" 
 
 local function LevelLike(piece)
     if not Showing(piece) then return false end
-    local ok, kind = pcall(function() return piece:GetObjectType() end)
-    if not ok or kind ~= "FontString" then return false end
-    local read, text = pcall(function() return piece:GetText() end)
-    if not read or type(text) ~= "string" then return false end
-    local same, matched = pcall(string.match, text, "^%s*[%d%?]+%+?%s*$")
-    return same and matched ~= nil
+    local ok, level = pcall(function()
+        local kind = Plain(function() return piece:GetObjectType() end)
+        if kind ~= "FontString" then return false end
+        local text = Plain(function() return piece:GetText() end)
+        if type(text) ~= "string" then return false end
+        return text:match("^%s*[%d%?]+%+?%s*$") ~= nil
+    end)
+    return ok and level == true
 end
 
 local function ScanForLevel(frame, depth)
@@ -224,11 +249,15 @@ end
 --- the count went missing (2026-11-09). Only the level's edge is read.
 -- @return anchor, gap
 local function EdgeRight(piece)
-    local ok, right = pcall(function() return piece:GetRight() end)
-    if not ok or type(right) ~= "number" then return nil end
-    local okScale, scale = pcall(function() return piece:GetEffectiveScale() end)
-    if not okScale or type(scale) ~= "number" or scale <= 0 then scale = 1 end
-    return right * scale
+    local ok, edge = pcall(function()
+        local right = Plain(function() return piece:GetRight() end)
+        if type(right) ~= "number" then return nil end
+        local scale = Plain(function() return piece:GetEffectiveScale() end)
+        if type(scale) ~= "number" or scale <= 0 then scale = 1 end
+        return right * scale
+    end)
+    if ok and type(edge) == "number" then return edge end
+    return nil
 end
 
 function QuestMobs.Anchor(plate, own)
@@ -240,8 +269,12 @@ function QuestMobs.Anchor(plate, own)
     if not levelRight or not nameRight then return name, 4 + LevelRoom() end
     local scale = 1
     if own then
-        local ok, value = pcall(function() return own:GetEffectiveScale() end)
-        if ok and type(value) == "number" and value > 0 then scale = value end
+        local ok, value = pcall(function()
+            local read = Plain(function() return own:GetEffectiveScale() end)
+            if type(read) == "number" and read > 0 then return read end
+            return nil
+        end)
+        if ok and type(value) == "number" then scale = value end
     end
     local reach = (levelRight - nameRight) / scale
     if reach < 0 or reach > 200 then return name, 4 + LevelRoom() end

@@ -94,6 +94,42 @@ label = QuestMobs:LabelFor(scanPlate)
 suite.check("a level under another name is found too", QuestMobs.RightOf(scanPlate) == lvl)
 suite.check("but the count is still tied to the name", label and label.frame._point[2] == scanPlate.UnitFrame.name)
 suite.check("past the level's room when its edge can't be read", label and label.frame._point[4] >= QuestMobs.LEVEL_ROOM)
+-- A guarded part of the plate (the cast bar) hands back a secret for
+-- IsShown and its edge: never compared, the count still shows by the name.
+local secrets = {}
+local realIsSecret = _G.issecretvalue
+_G.issecretvalue = function(v) return secrets[v] == true end
+local secretShown, secretRight = env.Secret("boolean"), env.Secret("number")
+secrets[secretShown], secrets[secretRight] = true, true
+local guarded = CreateFrame("Frame")
+local castBar = Text(); castBar.IsShown = function() return secretShown end
+castBar.GetRight = function() return secretRight end
+castBar.GetText = function() return secretRight end
+guarded.UnitFrame = env.Stub({ name = Text(), LevelFrame = castBar })
+guarded.UnitFrame.GetRegions = function() return castBar end
+guarded.UnitFrame.GetChildren = function() end
+plates.nameplate12 = guarded
+local okGuarded = pcall(Mob, "nameplate12", "Kobold Vermin", { "Kobold Vermin", "Kobold Vermin slain: 3/10" })
+label = QuestMobs:LabelFor(guarded)
+suite.check("a secret on the plate raises nothing", okGuarded)
+suite.check("and the count still shows by the name", label and label.frame._point[2] == guarded.UnitFrame.name and QuestMobs:Shown(guarded) == "3/10")
+suite.check("a secret counts as not shown", QuestMobs.RightOf(guarded) == guarded.UnitFrame.name)
+_G.issecretvalue = realIsSecret
+-- Every read off a plate's own pieces goes through Plain, so a secret is
+-- never compared, added or joined outside a pcall.
+local source = io.open("UI/QuestMobs.lua"):read("*a")
+local bare = {}
+for line in source:gmatch("[^\n]+") do
+    local read = line:find("[%w_]+:IsShown%(%)") or line:find(":GetRight%(%)") or line:find(":GetText%(%)")
+        or line:find(":GetObjectType%(%)") or line:find(":GetEffectiveScale%(%)")
+    if read and (line:find("piece:") or line:find("name:") or line:find("own:")) then
+        if not line:find("Plain%(function") then
+            bare[#bare + 1] = line
+        end
+    end
+end
+suite.check("no plate read skips Plain", #bare == 0, table.concat(bare, " | "))
+
 -- A spot the game refuses still leaves the count showing, by the plate.
 local stubborn = CreateFrame("Frame")
 stubborn.UnitFrame = { name = Text() }
