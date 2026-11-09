@@ -1774,9 +1774,14 @@ function NodeSparkle.CanLoot(guid)
     if type(can) ~= "function" then return nil end
     local ok, hasLoot = pcall(can, guid)
     if not ok then return nil end
-    hasLoot = Readable(hasLoot)
-    if type(hasLoot) ~= "boolean" then return nil end
-    return hasLoot
+    -- A secret value raises when it is tested, so test it inside a pcall.
+    local read, answer = pcall(function()
+        if hasLoot == true then return true end
+        if hasLoot == false then return false end
+        return nil
+    end)
+    if not read then return nil end
+    return answer
 end
 
 --- Did Farmer already open this body's loot window this session?
