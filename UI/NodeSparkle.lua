@@ -377,13 +377,23 @@ function NodeSparkle:LootColor()
     return self.LOOT_COLORS[self:LootColorName()]
 end
 
+-- The colours' names by client language. Kept here rather than in the
+-- locale files, since "Gold" there is money and "Blue" an item quality.
+NodeSparkle.LOOT_COLOR_WORDS = {
+    enUS = { gold = "Gold", white = "White", green = "Green", blue = "Blue", purple = "Purple", red = "Red" },
+    deDE = { gold = "Gold", white = "Weiß", green = "Grün", blue = "Blau", purple = "Lila", red = "Rot" },
+    frFR = { gold = "Doré", white = "Blanc", green = "Vert", blue = "Bleu", purple = "Violet", red = "Rouge" },
+    esES = { gold = "Dorado", white = "Blanco", green = "Verde", blue = "Azul", purple = "Morado", red = "Rojo" },
+    ruRU = { gold = "Золотой", white = "Белый", green = "Зелёный", blue = "Синий", purple = "Фиолетовый", red = "Красный" },
+    zhCN = { gold = "金色", white = "白色", green = "绿色", blue = "蓝色", purple = "紫色", red = "红色" },
+}
+NodeSparkle.LOOT_COLOR_WORDS.esMX = NodeSparkle.LOOT_COLOR_WORDS.esES
+
 --- The colour's name as the player reads it.
 function NodeSparkle.LootColorLabel(key)
-    local labels = {
-        gold = L["Gold"], white = L["White"], green = L["Green"],
-        blue = L["Blue"], purple = L["Purple"], red = L["Red"],
-    }
-    return labels[key] or labels.gold
+    local locale = type(GetLocale) == "function" and GetLocale() or "enUS"
+    local words = NodeSparkle.LOOT_COLOR_WORDS[locale] or NodeSparkle.LOOT_COLOR_WORDS.enUS
+    return words[key] or words.gold
 end
 
 local function SizeOf(value)
@@ -2137,7 +2147,7 @@ ns.RegisterCommand("lootbeacon", L["light a beam over the body you can loot (on,
             return
         end
         NodeSparkle:SetLootColor(value)
-        ns.Print(L.Format("loot beacons are %s.", NodeSparkle.LootColorLabel(value):lower()))
+        ns.Print(L.Format("loot beacon color: %s.", NodeSparkle.LootColorLabel(value)))
         if ns.SettingsUI then ns.SettingsUI:Refresh() end
         return
     end
