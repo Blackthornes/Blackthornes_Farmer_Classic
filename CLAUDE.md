@@ -525,7 +525,7 @@ A player asked, the owner said build it (2026-11-02, Forever's `f6bccf4`
 brought over as it is, words approved): a slim strip under the Fishing
 window's Cast and Add Lure (Classic: under the lure's time left,
 `FishingPanel:PlaceStrip(frame, region)`) opens a panel with three tabs.
-This Session (time, casts, catches, gold, gold an hour, with Pause and
+This Session (time, catches, gold, gold an hour, with Pause and
 Start Over), This Spot (catch rates once 20 casts are behind them, "Best
 hour here:") and Fish Log (every fish ever caught, from `fishing.spots`).
 The lifts: New Catch ("First one you've ever caught.", a fish no spot has

@@ -80,7 +80,6 @@ function FishingPanel:StartOver()
         started = Now(),
         banked = 0,
         paused = false,
-        casts = 0,
         caught = 0,
         copper = 0,
         fish = {},
@@ -189,7 +188,6 @@ function FishingPanel:Caught(key, items, quantities, fresh)
         s.fish[name] = (s.fish[name] or 0) + count
         copper = copper + PriceOf(name) * count
     end
-    s.casts = s.casts + 1
     s.copper = s.copper + copper
 
     self:NoteSpot(key, copper)
@@ -385,7 +383,7 @@ function FishingPanel:DrawStrip()
     local strip = self.strip
     if not (strip and strip:IsShown()) then return end
     local s = self:Session()
-    strip.top:SetText(L["Casts"] .. " " .. s.casts .. "   " .. L["Caught"] .. " " .. s.caught
+    strip.top:SetText(L["Caught"] .. " " .. s.caught
         .. "   " .. L["Total"] .. " " .. Coins(s.copper))
 
     local key = self:SpotKey()
@@ -465,10 +463,10 @@ function FishingPanel:Build()
     frame.head:SetPoint("TOPLEFT", PAD, -72)
     frame.head:SetPoint("TOPRIGHT", -PAD, -72)
 
-    -- Three tiles: Casts, Caught, Total.
+    -- Two tiles: Caught and Total.
     frame.tiles = {}
-    local tileWidth = math.floor((self.WIDTH - PAD * 2 - 12) / 3)
-    for i, word in ipairs({ L["Casts"], L["Caught"], L["Total"] }) do
+    local tileWidth = math.floor((self.WIDTH - PAD * 2 - 6) / 2)
+    for i, word in ipairs({ L["Caught"], L["Total"] }) do
         local tile = CreateFrame("Frame", nil, frame)
         tile:SetSize(tileWidth, 40)
         tile:SetPoint("TOPLEFT", PAD + (i - 1) * (tileWidth + 6), -94)
@@ -655,9 +653,8 @@ function FishingPanel:Draw()
     if view == "session" then
         frame.head:SetText(Clock(self:Seconds()))
         frame.head:SetAlpha(s.paused and 0.5 or 1)
-        frame.tiles[1].value:SetText(tostring(s.casts))
-        frame.tiles[2].value:SetText(tostring(s.caught))
-        CountTo(frame.tiles[3].value, s.copper)
+        frame.tiles[1].value:SetText(tostring(s.caught))
+        CountTo(frame.tiles[2].value, s.copper)
         frame.rateLabel:SetText(L["Gold an Hour"])
         local rate = self:PerHour()
         frame.rateValue:SetText(rate and Coins(rate) or "--")
@@ -668,12 +665,11 @@ function FishingPanel:Draw()
         local key = self:SpotKey()
         local summary = key and ns.Fishing and ns.Fishing:Summary(key)
         frame.head:SetText(summary and (summary.name or summary.place) or "")
-        frame.tiles[1].value:SetText(tostring(summary and summary.casts or 0))
         local caught = 0
         for _, item in ipairs(summary and summary.items or {}) do caught = caught + (item.count or 0) end
-        frame.tiles[2].value:SetText(tostring(caught))
+        frame.tiles[1].value:SetText(tostring(caught))
         local here = key and s.spots[key]
-        CountTo(frame.tiles[3].value, here and here.copper or 0)
+        CountTo(frame.tiles[2].value, here and here.copper or 0)
         if summary and not summary.rated then
             local need = ns.Fishing.MIN_CASTS or 20
             frame.rateLabel:SetText(L["Next Rate Unlock"])
