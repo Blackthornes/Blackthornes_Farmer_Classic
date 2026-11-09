@@ -154,7 +154,8 @@ end
 --- draws the name inside the health bar and the mob's level just past
 --- the bar's end, so a count laid beside the name landed on the level
 --- (a player saw "0/8" over the "6", 2026-11-05, and "1/10" over the
---- "10" again on 2026-11-08). The level's frame or text when it shows,
+--- "10" again on 2026-11-08). Read for its edge only, never anchored to
+--- (see QuestMobs.Anchor). The level's frame or text when it shows,
 --- else any short number the plate shows on its own (the level under
 --- another field name), else the name. The second answer is true when
 --- the edge is the level; nil when nothing can be read.
@@ -216,6 +217,37 @@ local function LevelRoom()
     return QuestMobs.LEVEL_ROOM
 end
 
+--- Where the count goes: always beside the plate's name (else the plate),
+--- pushed right past the level by how far the level reaches. Never
+--- anchored to the level itself: on Forever it sits on a part of the plate
+--- the game guards, and a frame tied to it can't be shown in a fight, so
+--- the count went missing (2026-11-09). Only the level's edge is read.
+-- @return anchor, gap
+local function EdgeRight(piece)
+    local ok, right = pcall(function() return piece:GetRight() end)
+    if not ok or type(right) ~= "number" then return nil end
+    local okScale, scale = pcall(function() return piece:GetEffectiveScale() end)
+    if not okScale or type(scale) ~= "number" or scale <= 0 then scale = 1 end
+    return right * scale
+end
+
+function QuestMobs.Anchor(plate, own)
+    local name = NameOf(plate)
+    if not name then return plate, 2 end
+    local edge, isLevel = QuestMobs.RightOf(plate)
+    if not isLevel or edge == name then return name, 4 + LevelRoom() end
+    local levelRight, nameRight = EdgeRight(edge), EdgeRight(name)
+    if not levelRight or not nameRight then return name, 4 + LevelRoom() end
+    local scale = 1
+    if own then
+        local ok, value = pcall(function() return own:GetEffectiveScale() end)
+        if ok and type(value) == "number" and value > 0 then scale = value end
+    end
+    local reach = (levelRight - nameRight) / scale
+    if reach < 0 or reach > 200 then return name, 4 + LevelRoom() end
+    return name, 4 + math.ceil(reach)
+end
+
 local function Label(plate)
     local entry = labels[plate]
     if entry then return entry end
@@ -239,12 +271,11 @@ function QuestMobs:Show(plate, count)
     end
     -- Looked at again each time, since the game can show the level a
     -- moment after the plate; points are set only when the spot moved.
-    local edge, isLevel = QuestMobs.RightOf(plate)
-    local anchor, gap = edge or plate, 4
-    if not edge then gap = 2 elseif not isLevel then gap = 4 + LevelRoom() end
+    local anchor, gap = QuestMobs.Anchor(plate, entry.frame)
     if entry.placed ~= anchor or entry.gap ~= gap then
         entry.frame:ClearAllPoints()
-        entry.frame:SetPoint("LEFT", anchor, "RIGHT", gap, 0)
+        local ok = pcall(entry.frame.SetPoint, entry.frame, "LEFT", anchor, "RIGHT", gap, 0)
+        if not ok then entry.frame:SetPoint("LEFT", plate, "RIGHT", 2, 0) end
         entry.placed, entry.gap = anchor, gap
     end
     local was = entry.frame:IsShown()

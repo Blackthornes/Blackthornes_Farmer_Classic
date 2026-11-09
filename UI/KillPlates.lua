@@ -286,6 +286,9 @@ function KillPlates:Place(plate, entry)
     elseif side == "right" then
         local quest = ns.QuestMobs and ns.QuestMobs.LabelFor and ns.QuestMobs:LabelFor(plate)
         if quest then frame:SetPoint("LEFT", quest.text, "RIGHT", 4, 0)
+        elseif ns.QuestMobs and ns.QuestMobs.Anchor then
+            local anchor, gap = ns.QuestMobs.Anchor(plate, frame)
+            frame:SetPoint("LEFT", anchor, "RIGHT", gap, 0)
         elseif name then frame:SetPoint("LEFT", name, "RIGHT", 4, 0)
         else frame:SetPoint("LEFT", plate, "RIGHT", 2, 0) end
     elseif side == "above" then
