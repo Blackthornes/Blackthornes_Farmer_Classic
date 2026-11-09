@@ -377,6 +377,15 @@ function NodeSparkle:LootColor()
     return self.LOOT_COLORS[self:LootColorName()]
 end
 
+--- The colour's name as the player reads it.
+function NodeSparkle.LootColorLabel(key)
+    local labels = {
+        gold = L["Gold"], white = L["White"], green = L["Green"],
+        blue = L["Blue"], purple = L["Purple"], red = L["Red"],
+    }
+    return labels[key] or labels.gold
+end
+
 local function SizeOf(value)
     value = tonumber(value)
     if not value then return 100 end
@@ -2115,5 +2124,45 @@ ns.RegisterCommand("sparkle", L["turn sparkles on or off for the node, school, c
     else on = not NodeSparkle:IsEnabled() end
     NodeSparkle:SetEnabled(on)
     ns.Print(on and L["sparkles on."] or L["sparkles off."])
+    if ns.SettingsUI then ns.SettingsUI:Refresh() end
+end)
+
+-- Loot beacons have their own settings and command (the owner, 2026-11-09).
+ns.RegisterCommand("lootbeacon", L["light a beam over the body you can loot (on, off, color, height, width)"], function(rest)
+    local argument = ns.Util.Trim(rest or ""):lower()
+    local word, value = argument:match("^(%a+)%s*(%w*)%%?$")
+    if word == "color" or word == "colour" then
+        if not NodeSparkle.LOOT_COLORS[value] then
+            ns.Print(L["pick gold, white, green, blue, purple or red."])
+            return
+        end
+        NodeSparkle:SetLootColor(value)
+        ns.Print(L.Format("loot beacons are %s.", NodeSparkle.LootColorLabel(value):lower()))
+        if ns.SettingsUI then ns.SettingsUI:Refresh() end
+        return
+    end
+    if word == "height" or word == "width" then
+        local number = tonumber(value)
+        if not number then
+            ns.Print(L["pick a size from 50 to 200."])
+            return
+        end
+        number = NodeSparkle.LootSize(number)
+        if word == "height" then
+            NodeSparkle:SetLootHeight(number)
+            ns.Print(L.Format("loot beacons are %d%% tall.", number))
+        else
+            NodeSparkle:SetLootWidth(number)
+            ns.Print(L.Format("loot beacons are %d%% wide.", number))
+        end
+        if ns.SettingsUI then ns.SettingsUI:Refresh() end
+        return
+    end
+    local on
+    if argument == "on" then on = true
+    elseif argument == "off" then on = false
+    else on = not NodeSparkle:LootOn() end
+    NodeSparkle:SetLoot(on)
+    ns.Print(on and L["loot beacons on."] or L["loot beacons off."])
     if ns.SettingsUI then ns.SettingsUI:Refresh() end
 end)

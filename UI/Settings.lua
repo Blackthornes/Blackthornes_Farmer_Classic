@@ -1148,6 +1148,46 @@ function SettingsUI:BuildLootPage()
         ns.FishingPanel:SetEnabled(checked)
     end, false)
     controls.fishingPanel:SetPoint("TOPLEFT", CONTROL_X, -2)
+    -- A beam over the body you can loot (a player asked, the owner said
+    -- build it from a mockup, 2026-11-09). UI/NodeSparkle.lua.
+    pages:Section("loot", 2, L["LOOT BEACONS"])
+
+    local Sparkle = ns.NodeSparkle
+    local beaconRow = pages:Row("loot", 2, L["Loot Beacons:"],
+        L["A beam of light rises off a body you can loot. It lights the one in front of you, then the next as you loot."])
+    controls.lootBeacon = Widgets.CreateCheckbox(beaconRow, L["On"], function(checked)
+        Sparkle:SetLoot(checked)
+    end, false)
+    controls.lootBeacon:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    local colorNames = {}
+    for i, key in ipairs(Sparkle.LOOT_COLOR_ORDER) do colorNames[i] = Sparkle.LootColorLabel(key) end
+    local colorRow = pages:Row("loot", 2, L["Beacon Color:"], nil)
+    controls.lootBeaconColor = Widgets.CreateChoice(colorRow, {
+        min = 1, max = #Sparkle.LOOT_COLOR_ORDER, step = 1, value = 1,
+        format = function(index) return colorNames[index] end,
+        onChange = function(index) Sparkle:SetLootColor(Sparkle.LOOT_COLOR_ORDER[index]) end,
+    })
+    ns.SettingsPages.FitStepper(controls.lootBeaconColor, colorNames)
+    controls.lootBeaconColor:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    local heightRow = pages:Row("loot", 2, L["Beacon Height:"], nil)
+    controls.lootBeaconHeight = Widgets.CreateStepper(heightRow, {
+        min = Sparkle.LOOT_SIZE_MIN, max = Sparkle.LOOT_SIZE_MAX, step = Sparkle.LOOT_SIZE_STEP,
+        value = 100, format = Percent,
+        onChange = function(value) Sparkle:SetLootHeight(value) end,
+    })
+    ns.SettingsPages.FitStepper(controls.lootBeaconHeight, { Percent(Sparkle.LOOT_SIZE_MAX) })
+    controls.lootBeaconHeight:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    local widthRow = pages:Row("loot", 2, L["Beacon Width:"], nil)
+    controls.lootBeaconWidth = Widgets.CreateStepper(widthRow, {
+        min = Sparkle.LOOT_SIZE_MIN, max = Sparkle.LOOT_SIZE_MAX, step = Sparkle.LOOT_SIZE_STEP,
+        value = 100, format = Percent,
+        onChange = function(value) Sparkle:SetLootWidth(value) end,
+    })
+    ns.SettingsPages.FitStepper(controls.lootBeaconWidth, { Percent(Sparkle.LOOT_SIZE_MAX) })
+    controls.lootBeaconWidth:SetPoint("TOPLEFT", CONTROL_X, -2)
 end
 
 --- Map and goals: what is drawn on the maps, and the goals and their arrow.
@@ -1653,6 +1693,12 @@ function SettingsUI:Refresh()
     controls.nodeSparkleColors:SetChecked(db.nodeSparkleColors ~= false)
     controls.nodeSparkleCorpses:SetChecked(db.nodeSparkleCorpses == true)
     controls.nodeSparkleBobber:SetChecked(db.nodeSparkleBobber ~= false)
+    controls.lootBeacon:SetChecked(db.lootBeacon == true)
+    for i, key in ipairs(ns.NodeSparkle.LOOT_COLOR_ORDER) do
+        if key == ns.NodeSparkle:LootColorName() then controls.lootBeaconColor:SetValue(i, true) end
+    end
+    controls.lootBeaconHeight:SetValue(ns.NodeSparkle:LootHeight(), true)
+    controls.lootBeaconWidth:SetValue(ns.NodeSparkle:LootWidth(), true)
     for _, name in ipairs({ "itemTooltip", "itemTooltipCraft", "killTooltip", "killTooltipDrops" }) do
         local stepper = controls[name]
         stepper:SetValue(ns.TooltipShift:Mode(stepper.isOn(), stepper.shiftKey), true)
