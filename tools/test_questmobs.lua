@@ -145,6 +145,53 @@ _G.CreateFrame, QuestMobs.Anchor = realCreate, realAnchor
 label = QuestMobs:LabelFor(stubborn)
 suite.check("a refused spot still shows the count by the plate", label and label.frame._point[2] == stubborn and QuestMobs:Shown(stubborn) == "2/10")
 
+-- In a fight the plate's edges are secret and the game can refuse a move,
+-- so a count already placed keeps its spot; out of one it follows the level.
+local fighting = false
+_G.InCombatLockdown = function() return fighting end
+levelPlate.UnitFrame.LevelFrame._right = 150
+fighting = true
+QuestMobs:Update("nameplate8")
+suite.check("in a fight the count keeps its place", label and QuestMobs:LabelFor(levelPlate).frame._point[4] == 4 + 30)
+suite.check("and still shows", QuestMobs:Shown(levelPlate) == "0/8")
+fighting = false
+QuestMobs:Update("nameplate8")
+suite.check("out of a fight it follows the level", QuestMobs:LabelFor(levelPlate).frame._point[4] == 4 + 50)
+suite.check("a count's spot is never cleared", not source:find("ClearAllPoints", 1, true))
+-- Hidden and shown again, the frame keeps its spot (a frame with no points
+-- can't be placed in a fight).
+QuestMobs:Hide(levelPlate)
+fighting = true
+QuestMobs:Update("nameplate8")
+suite.check("hidden and back in a fight, it still has its spot", QuestMobs:LabelFor(levelPlate).frame._point[4] == 4 + 50)
+fighting = false
+
+-- A plate first seen in a fight, whose spot the game refuses without a
+-- word (no error, no point), shows once the fight ends.
+local refusedPlate = CreateFrame("Frame")
+refusedPlate.UnitFrame = { name = Text() }
+plates.nameplate13 = refusedPlate
+local blocked = true
+_G.CreateFrame = function(...)
+    local f = realCreate(...)
+    f.SetPoint = function(self, ...) if not blocked then self._point = { ... } end end
+    f.GetNumPoints = function(self) return rawget(self, "_point") and 1 or 0 end
+    return f
+end
+fighting = true
+Mob("nameplate13", "Kobold Geomancer", { "Kobold Geomancer", "Kobold Geomancer slain: 0/10" })
+_G.CreateFrame = realCreate
+label = QuestMobs:LabelFor(refusedPlate)
+suite.check("a refused spot in a fight shows nothing yet", label and rawget(label.frame, "_point") == nil and QuestMobs:Shown(refusedPlate) == "0/10")
+suite.check("and is noted for the fight's end", QuestMobs.waiting == true)
+blocked, fighting = false, false
+QuestMobs:OnEnable()
+local handler = _G.BlackthornesFarmerEventFrame:GetScript("OnEvent")
+handler(_G.BlackthornesFarmerEventFrame, "PLAYER_REGEN_ENABLED")
+label = QuestMobs:LabelFor(refusedPlate)
+suite.check("the fight's end places it by the name", label and rawget(label.frame, "_point") and label.frame._point[2] == refusedPlate.UnitFrame.name)
+suite.check("and nothing waits any more", not QuestMobs.waiting)
+
 ns.HandleSlash("questcount")
 suite.check("/farm questcount turns it off", ns.db.questMobCount == false)
 suite.check("and nothing shows", QuestMobs:Update("nameplate7") == nil)

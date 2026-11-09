@@ -14,11 +14,15 @@
 -- questcount`.
 --
 -- Nothing is written on a game frame: each count is Farmer's own frame on
--- UIParent, anchored past the nameplate's level (else its name, else the
--- plate), never parented to it. Smooth play: a plate is read when it appears, and every
--- plate showing is read again once, 0.3 s after a burst of quest log
--- events; the text is set only when it changed. No OnUpdate, no ticker.
--- Every client value is read in a pcall.
+-- UIParent, anchored beside the nameplate's name and pushed past its level
+-- (else the plate itself), never parented to it. It is placed once and
+-- moved only out of a fight: in a fight the plate's edges are secret and
+-- the game can refuse the move, so a frame moved then lost its spot and
+-- never showed (1.9.2, a player's report). A spot the game refused is
+-- tried again when the fight ends. Smooth play: a plate is read when it
+-- appears, and every plate showing is read again once, 0.3 s after a
+-- burst of quest log events; the text is set only when it changed. No
+-- OnUpdate, no ticker. Every client value is read in a pcall.
 
 local _, ns = ...
 local L = ns.L
@@ -296,20 +300,58 @@ local function Label(plate)
     return entry
 end
 
+--- Whether a fight is on, read in a pcall; no when the client won't say.
+local function InCombat()
+    if type(InCombatLockdown) ~= "function" then return false end
+    local ok, value = pcall(InCombatLockdown)
+    return ok and value == true
+end
+QuestMobs.InCombat = InCombat
+
+--- How many points the frame stands on, or nil when the client won't say.
+local function Points(frame)
+    local count = Plain(function() return frame:GetNumPoints() end)
+    if type(count) == "number" then return count end
+    return nil
+end
+
+--- Put the count's frame at its spot. SetPoint("LEFT", ...) replaces the
+--- LEFT point already set, so nothing is ever cleared: the frame always
+--- keeps a spot. A spot the game refuses (no error, no point) is noted so
+--- the fight's end tries again.
+-- @return true when the frame stands somewhere
+local function Place(plate, entry, anchor, gap)
+    local ok = pcall(entry.frame.SetPoint, entry.frame, "LEFT", anchor, "RIGHT", gap, 0)
+    if not ok then
+        anchor, gap = plate, 2
+        ok = pcall(entry.frame.SetPoint, entry.frame, "LEFT", plate, "RIGHT", 2, 0)
+    end
+    if not ok or Points(entry.frame) == 0 then
+        entry.placed, entry.gap, entry.waiting = nil, nil, true
+        QuestMobs.waiting = true
+        return false
+    end
+    entry.placed, entry.gap, entry.waiting = anchor, gap, nil
+    return true
+end
+
 function QuestMobs:Show(plate, count)
     local entry = Label(plate)
     if entry.shown ~= count then
         entry.text:SetText(count)
         entry.shown = count
     end
-    -- Looked at again each time, since the game can show the level a
-    -- moment after the plate; points are set only when the spot moved.
-    local anchor, gap = QuestMobs.Anchor(plate, entry.frame)
-    if entry.placed ~= anchor or entry.gap ~= gap then
-        entry.frame:ClearAllPoints()
-        local ok = pcall(entry.frame.SetPoint, entry.frame, "LEFT", anchor, "RIGHT", gap, 0)
-        if not ok then entry.frame:SetPoint("LEFT", plate, "RIGHT", 2, 0) end
-        entry.placed, entry.gap = anchor, gap
+    if not entry.placed then
+        local anchor, gap = QuestMobs.Anchor(plate, entry.frame)
+        Place(plate, entry, anchor, gap)
+    elseif not InCombat() then
+        -- The game can show the level a moment after the plate, so the spot
+        -- is looked at again, but only out of a fight: in one the edges are
+        -- secret and a move can be refused, so the count keeps its place.
+        local anchor, gap = QuestMobs.Anchor(plate, entry.frame)
+        if entry.placed ~= anchor or entry.gap ~= gap then
+            Place(plate, entry, anchor, gap)
+        end
     end
     local was = entry.frame:IsShown()
     entry.frame:Show()
@@ -335,8 +377,9 @@ function QuestMobs:Hide(plate)
     if not entry then return end
     local was = entry.frame:IsShown()
     entry.frame:Hide()
-    entry.frame:ClearAllPoints()
-    entry.placed, entry.gap, entry.shown = nil, nil, nil
+    -- The spot is kept: a hidden frame with no points can't come back in
+    -- a fight, and the next Show checks it again out of one.
+    entry.shown, entry.waiting = nil, nil
     if was and ns.KillPlates then ns.KillPlates:QuestMoved(plate) end
 end
 
@@ -396,6 +439,13 @@ function QuestMobs:OnEnable()
     end))
     ns.RegisterEvent(self, "QUEST_LOG_UPDATE", function() QuestMobs:Soon() end)
     ns.RegisterEvent(self, "UNIT_QUEST_LOG_CHANGED", function() QuestMobs:Soon() end)
+    -- A spot the game refused in a fight is tried again once it ends.
+    ns.RegisterEvent(self, "PLAYER_REGEN_ENABLED", Safe(function()
+        if QuestMobs.waiting then
+            QuestMobs.waiting = nil
+            QuestMobs:UpdateAll()
+        end
+    end))
 end
 
 ns.RegisterCommand("questcount", L["your quest count beside quest mobs' names on or off"], function(rest)
