@@ -1845,3 +1845,12 @@ L["Puts every Blackthornes window back where it started. Your settings and data 
 L["Every window is back in its first spot."] = "Jedes Fenster ist wieder an seinem ersten Platz."
 L["put every Blackthornes window back where it started (reset)"] = "jedes Blackthornes-Fenster an seinen Anfangsplatz zurücksetzen (reset)"
 L["Type /farm windows reset to put every window back in its first spot."] = "Gib /farm windows reset ein, um jedes Fenster an seinen ersten Platz zu setzen."
+
+-- The map gem (2026-11-10)
+L["Grinding Camps"] = "Farmplätze"
+L["Gathered Nodes"] = "Gesammelte Vorkommen"
+L["FARMER MAP MARKS"] = "FARMER-KARTENMARKIERUNGEN"
+L["Farmer Map Marks"] = "Farmer-Kartenmarkierungen"
+L["Click to hide them. Right-click to pick which."] = "Klick blendet sie aus. Rechtsklick zum Auswählen."
+L["Click to show them. Right-click to pick which."] = "Klick blendet sie ein. Rechtsklick zum Auswählen."
+L["Map Button:"] = "Kartenknopf:"

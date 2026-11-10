@@ -1825,6 +1825,26 @@ wide, never rename them. `/farm lootbeacon [on|off|color <name>|height
 <n>|width <n>]`; `/farm sparkle check` has a loot beacon line. Tested in
 `tools/test_lootbeacon.lua`. Not yet seen in game.
 
+## The map gem
+
+A player found the Grind tab's swords left on the world map all session,
+and asked for one button to hide the map marks; the owner said build it
+from a mockup (2026-11-10). Camps now show only while the Grind tab is
+open, plus the camp the arrow follows (`GrindPins.TabOpen`, `Followed`,
+`Shown`; `Draw`'s key carries both). `UI/MapToggle.lua` puts a small gold
+gem (FoldGem art) at the top right of the world map, our own button, a
+child of `WorldMapFrame`; nothing on the game's map is touched. A click
+turns off every Farmer mark that is on (camps `grindPins`, gathered nodes
+`markersWorld`, kill heat `heatWorld`) and keeps which in `mapMarksKept`
+(`{ [key] = true }`); the next click puts back only those (with nothing
+kept, camps and nodes). It only flips those keys through their own
+setters, so Settings agrees. Right-click opens FARMER MAP MARKS (the
+RowMenu) with a tick for each. Grey and unlit while all are off. "Map
+Button:" on the Map & goals page (`mapButton`, on unless unticked) and
+`/farm markers button on|off` hide the gem. Account wide; never rename
+`mapButton` or `mapMarksKept`. Tested in `tools/test_maptoggle.lua` and
+`tools/test_grinding.lua`. Not yet seen in game.
+
 ## Gathered spots on the maps
 
 The world map marker where you gathered shows the item you got there (the

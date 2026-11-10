@@ -372,6 +372,20 @@ for _, camp in ipairs(onMap) do
 end
 check("not on another zone's", #GrindPins:CampsOn("Durotar") == 0 or GrindPins:CampsOn("Durotar")[1].zone == "Durotar")
 
+-- Only while the tab is open, plus the camp the arrow follows (a player
+-- found the swords left on the map all session, 2026-11-10).
+UI:ShowTab("grind")
+check("the tab open shows every camp it lists", GrindPins.TabOpen() and GrindPins:Shown() == GrindPins.camps)
+ns.Arrow:StopGrind()
+UI:Hide()
+check("the tab shut, nothing followed: no swords", not GrindPins.TabOpen() and #GrindPins:Shown() == 0)
+check("and none on the zone's map", #GrindPins:CampsOn(ZONE, nil, GrindPins:Shown()) == 0)
+ns.Arrow:Grind(campRow.camp)
+local followed = GrindPins:Shown()
+check("the tab shut, a camp followed: only that one", #followed == 1 and followed[1] == campRow.camp)
+ns.Arrow:StopGrind()
+check("let go, it goes too", #GrindPins:Shown() == 0)
+
 check("on unless turned off", GrindPins.IsOn())
 ns.HandleSlash("grind pins off")
 check("/farm grind pins off", not GrindPins.IsOn() and ns.db.grindPins == false)

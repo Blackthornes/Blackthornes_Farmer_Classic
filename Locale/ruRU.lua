@@ -1846,3 +1846,12 @@ L["Puts every Blackthornes window back where it started. Your settings and data 
 L["Every window is back in its first spot."] = "Каждое окно снова на своём первом месте."
 L["put every Blackthornes window back where it started (reset)"] = "вернуть каждое окно Blackthornes на первое место (reset)"
 L["Type /farm windows reset to put every window back in its first spot."] = "Введи /farm windows reset, чтобы вернуть каждое окно на его первое место."
+
+-- The map gem (2026-11-10)
+L["Grinding Camps"] = "Места для фарма"
+L["Gathered Nodes"] = "Собранные залежи"
+L["FARMER MAP MARKS"] = "МЕТКИ FARMER НА КАРТЕ"
+L["Farmer Map Marks"] = "Метки Farmer на карте"
+L["Click to hide them. Right-click to pick which."] = "Нажми, чтобы скрыть их. Правый клик, чтобы выбрать, какие."
+L["Click to show them. Right-click to pick which."] = "Нажми, чтобы показать их. Правый клик, чтобы выбрать, какие."
+L["Map Button:"] = "Кнопка на карте:"

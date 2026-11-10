@@ -1298,6 +1298,15 @@ function SettingsUI:BuildMapPage()
     end, true)
     controls.markersMinimap:SetPoint("TOPLEFT", CONTROL_X, -2)
 
+    -- The gold gem on the world map that hides every Farmer mark at once
+    -- (a player asked, the owner said build it, 2026-11-10).
+    local mapButtonRow = pages:Row("map", 1, L["Map Button:"], nil)
+
+    controls.mapButton = Widgets.CreateCheckbox(mapButtonRow, L["Show"], function(checked)
+        if ns.MapToggle then ns.MapToggle:SetButton(checked) end
+    end, true)
+    controls.mapButton:SetPoint("TOPLEFT", CONTROL_X, -2)
+
     -- Only the spots this character's gathering skills can use (a player
     -- asked, the owner said on by default, 2026-11-01).
     local mineRow = pages:Row("map", 1, L["My Professions Only:"],
@@ -1772,6 +1781,7 @@ function SettingsUI:Refresh()
     if controls.shareDrops then controls.shareDrops:SetChecked(db.shareDrops == true) end
     controls.markersWorld:SetChecked(db.markersWorld ~= false)
     controls.markersMinimap:SetChecked(db.markersMinimap ~= false)
+    if controls.mapButton then controls.mapButton:SetChecked(db.mapButton ~= false) end
     controls.markersMine:SetChecked(db.markersMyProfessions ~= false)
     controls.heatWorld:SetChecked(db.heatWorld == true)
     controls.heatMinimap:SetChecked(db.heatMinimap == true)
