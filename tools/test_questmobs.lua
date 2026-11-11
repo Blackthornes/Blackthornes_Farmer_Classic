@@ -157,7 +157,16 @@ suite.check("and still shows", QuestMobs:Shown(levelPlate) == "0/8")
 fighting = false
 QuestMobs:Update("nameplate8")
 suite.check("out of a fight it follows the level", QuestMobs:LabelFor(levelPlate).frame._point[4] == 4 + 50)
-suite.check("a count's spot is never cleared", not source:find("ClearAllPoints", 1, true))
+-- Only the words inside our own frame are laid out again for a new side;
+-- the frame itself never loses its point.
+local cleared = {}
+for line in source:gmatch("[^\n]+") do
+    if line:find("ClearAllPoints", 1, true) and not line:find("text.ClearAllPoints, text", 1, true)
+        and not line:find("^%s*%-%-") then
+        cleared[#cleared + 1] = line
+    end
+end
+suite.check("a count's spot is never cleared", #cleared == 0, table.concat(cleared, " | "))
 -- Hidden and shown again, the frame keeps its spot (a frame with no points
 -- can't be placed in a fight).
 QuestMobs:Hide(levelPlate)
@@ -192,6 +201,68 @@ label = QuestMobs:LabelFor(refusedPlate)
 suite.check("the fight's end places it by the name", label and rawget(label.frame, "_point") and label.frame._point[2] == refusedPlate.UnitFrame.name)
 suite.check("and nothing waits any more", not QuestMobs.waiting)
 
+-- Quest Count Position: above, below, left or right of the name. Right
+-- is where it always was, so nobody's count moves until they pick.
+suite.check("right unless picked", ns.DEFAULTS.questMobCountSide == "right" and QuestMobs:Side() == "right")
+ns.db.questMobCountSide = nil
+suite.check("a save with no pick reads as right", QuestMobs:Side() == "right")
+local sidePlate = CreateFrame("Frame")
+local healthBar = env.Stub()
+healthBar.GetBottom = function() return 80 end
+healthBar.GetEffectiveScale = function() return 1 end
+healthBar.IsShown = function() return true end
+local sideName = Text()
+sideName.GetBottom = function() return 100 end
+sideName.GetEffectiveScale = function() return 1 end
+sidePlate.UnitFrame = { name = sideName, healthBar = healthBar }
+plates.nameplate14 = sidePlate
+Mob("nameplate14", "Venture Co. Peon", { "Venture Co. Peon", "Venture Co. Peon slain: 0/9" })
+local function Point() return QuestMobs:LabelFor(sidePlate).frame._point end
+suite.check("right: past the name", Point()[2] == sideName and Point()[3] == "RIGHT" and Point()[4] > 0)
+suite.check("picking a side answers yes", QuestMobs:SetSide("left") == true)
+suite.check("left: before the name, clear of it",
+    Point()[1] == "LEFT" and Point()[2] == sideName and Point()[3] == "LEFT" and Point()[4] == -(4 + QuestMobs.WIDTH) and Point()[5] == 0)
+QuestMobs:SetSide("above")
+suite.check("above: over the name", Point()[2] == sideName and Point()[3] == "TOP" and Point()[5] > 0)
+QuestMobs:SetSide("below")
+suite.check("below: tied to the name, never to a bar", Point()[2] == sideName and Point()[3] == "BOTTOM")
+suite.check("and dropped under the bars it read", Point()[5] <= -(QuestMobs.HEIGHT / 2 + 20), Point()[5])
+suite.check("the count still shows on every side", QuestMobs:Shown(sidePlate) == "0/9")
+suite.check("a side that isn't one is left alone", QuestMobs:SetSide("sideways") == false and ns.db.questMobCountSide == "below")
+-- Bars whose edges are secret: the count still goes below, by a set drop.
+_G.issecretvalue = function(v) return secrets[v] == true end
+healthBar.GetBottom = function() return secretRight end
+QuestMobs:SetSide("right")
+local okSecret = pcall(QuestMobs.SetSide, QuestMobs, "below")
+suite.check("a secret edge raises nothing", okSecret)
+suite.check("and the count sits a set drop under the name",
+    Point()[2] == sideName and Point()[5] == -(QuestMobs.HEIGHT / 2 + QuestMobs.BELOW_ROOM), Point()[5])
+_G.issecretvalue = realIsSecret
+-- A side picked in a fight waits for the fight's end, so the frame is
+-- never moved while the game might refuse it.
+fighting = true
+QuestMobs:SetSide("left")
+suite.check("picked in a fight, the count keeps its place", Point()[3] == "BOTTOM" and QuestMobs:Shown(sidePlate) == "0/9")
+suite.check("and waits for the fight's end", QuestMobs.waiting == true)
+fighting = false
+handler(_G.BlackthornesFarmerEventFrame, "PLAYER_REGEN_ENABLED")
+suite.check("the fight's end moves it", Point()[3] == "LEFT" and Point()[4] < 0)
+-- A spot the game refuses on a side still leaves the count by the plate.
+local refusedSide = CreateFrame("Frame")
+refusedSide.UnitFrame = { name = Text() }
+plates.nameplate15 = refusedSide
+_G.CreateFrame = function(...) local f = realCreate(...); f.SetPoint = function(self, p, to, ...) if to == refusedSide.UnitFrame.name then error("blocked") end self._point = { p, to, ... } end return f end
+local okRefused = pcall(Mob, "nameplate15", "Venture Co. Peon", { "Venture Co. Peon", "Venture Co. Peon slain: 0/9" })
+_G.CreateFrame = realCreate
+label = QuestMobs:LabelFor(refusedSide)
+suite.check("a refused side raises nothing", okRefused)
+suite.check("and the count shows by the plate, on its side",
+    label and label.frame._point[2] == refusedSide and label.frame._point[3] == "LEFT" and QuestMobs:Shown(refusedSide) == "0/9")
+ns.HandleSlash("questcount above")
+suite.check("/farm questcount above picks the side", ns.db.questMobCountSide == "above" and ns.db.questMobCount == true)
+ns.HandleSlash("questcount right")
+suite.check("/farm questcount right puts it back", ns.db.questMobCountSide == "right" and Point()[3] == "RIGHT")
+
 ns.HandleSlash("questcount")
 suite.check("/farm questcount turns it off", ns.db.questMobCount == false)
 suite.check("and nothing shows", QuestMobs:Update("nameplate7") == nil)
@@ -205,6 +276,12 @@ box:GetScript("OnClick")(box)
 suite.check("unticking it turns it off", ns.db.questMobCount == false)
 box:GetScript("OnClick")(box)
 suite.check("and ticking it back on", ns.db.questMobCount == true)
+local questSide = ns.SettingsUI.controls.questMobCountSide
+suite.check("Settings shows the side picked", questSide and questSide:GetValue() == 4)
+questSide:SetValue(1)
+suite.check("the Settings choice picks the side", ns.db.questMobCountSide == "above")
+questSide:SetValue(4)
+suite.check("and puts it back", ns.db.questMobCountSide == "right")
 ns.SettingsUI:Hide()
 
 _G.C_QuestLog, _G.C_TooltipInfo = nil, nil

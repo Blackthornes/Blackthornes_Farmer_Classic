@@ -1854,7 +1854,20 @@ after quest log events. Its own frames on UIParent, anchored to the
 plate's name, never parented; only where the game lets addons read the
 plate (not in dungeons). "Quest count" on the Map & goals page
 (`questMobCount`, on unless unticked, never rename it) and `/farm
-questcount`. Tested in `tools/test_questmobs.lua`. Not yet seen in game.
+questcount`. "Quest Count Position:" under it (a player's report, the
+owner said build it 2026-11-11: it lay over the mob's level) picks Above,
+Below, Left or Right of the name (`questMobCountSide`, "right" unless
+picked, account wide, never rename it; `QuestMobs.SIDES`, `Side`,
+`SetSide`, `Spot`; `/farm questcount above|below|left|right`). The frame
+keeps one LEFT point, only ever replaced, never cleared, and is tied only
+to the name (else the plate): the level and bars can be guarded in a
+fight, so their edges are only read, in a pcall (`BelowRoom`, a set
+`BELOW_ROOM` when they won't say). A side picked in a fight waits for
+`PLAYER_REGEN_ENABLED`. The count is bright gold, a size up and outlined
+(`QuestMobs.COLOR`, `SIZE_UP`), as the kill count is. On the kill count's
+side the two never share a spot: the kill count goes past the quest count
+(`KillPlates:Place`, `QuestMoved`). Tested in `tools/test_questmobs.lua`
+and `tools/test_killplates.lua`. Not yet seen in game.
 
 ## Kill count beside mobs' nameplates
 

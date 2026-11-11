@@ -1390,6 +1390,18 @@ function SettingsUI:BuildMapPage()
     end, true)
     controls.questMobCount:SetPoint("TOPLEFT", CONTROL_X, -2)
 
+    -- Where the quest count sits by the plate (a player's report,
+    -- 2026-11-11: it lay over the mob's level).
+    local sideNames = { above = L["Above"], below = L["Below"], left = L["Left"], right = L["Right"] }
+    local questSideRow = pages:Row("map", 1, L["Quest Count Position:"], nil)
+    controls.questMobCountSide = Widgets.CreateChoice(questSideRow, {
+        min = 1, max = #ns.QuestMobs.SIDES, step = 1, value = 4,
+        format = function(index) return sideNames[ns.QuestMobs.SIDES[index]] end,
+        onChange = function(index) ns.QuestMobs:SetSide(ns.QuestMobs.SIDES[index]) end,
+    })
+    ns.SettingsPages.FitStepper(controls.questMobCountSide, sideNames)
+    controls.questMobCountSide:SetPoint("TOPLEFT", CONTROL_X, -2)
+
     -- Your kills beside a mob's nameplate (2026-10-15).
     local platesRow = pages:Row("map", 1, L["Nameplate Kills:"],
         L["Shows your kill count beside a mob's nameplate."])
@@ -1399,7 +1411,6 @@ function SettingsUI:BuildMapPage()
     controls.killPlates:SetPoint("TOPLEFT", CONTROL_X, -2)
 
     -- Where the count sits by the plate (a player asked, 2026-10-18).
-    local sideNames = { above = L["Above"], below = L["Below"], left = L["Left"], right = L["Right"] }
     local platesSideRow = pages:Row("map", 1, L["Counter Position:"], nil)
     controls.killPlatesSide = Widgets.CreateChoice(platesSideRow, {
         min = 1, max = #ns.KillPlates.SIDES, step = 1, value = 3,
@@ -1729,6 +1740,12 @@ function SettingsUI:Refresh()
         stepper:SetValue(ns.TooltipShift:Mode(stepper.isOn(), stepper.shiftKey), true)
     end
     controls.questMobCount:SetChecked(db.questMobCount ~= false)
+    do
+        local side = ns.QuestMobs:Side()
+        for index, each in ipairs(ns.QuestMobs.SIDES) do
+            if each == side then controls.questMobCountSide:SetValue(index, true) end
+        end
+    end
     controls.killPlates:SetChecked(db.killPlates ~= false)
     controls.killPlatesWorth:SetChecked(db.killPlatesWorth == true)
     do

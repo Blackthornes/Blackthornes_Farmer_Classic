@@ -13,9 +13,22 @@
 -- (`questMobCount`, on unless unticked; never rename it) and `/farm
 -- questcount`.
 --
+-- "Quest Count Position:" under it picks where it sits (a player's count
+-- sat on the mob's level, the owner said build it 2026-11-11):
+-- `questMobCountSide`, "above", "below", "left" or "right", "right" unless
+-- picked (nil reads as right, so nobody's count moved), account wide, never
+-- rename it; `/farm questcount above|below|left|right`. On the side the
+-- kill count has too, the kill count stands past this one
+-- (KillPlates:Place), so the two never sit on each other. Bright yellow, a
+-- size up, with a dark outline, as the kill count is, so it reads on any
+-- ground.
+--
 -- Nothing is written on a game frame: each count is Farmer's own frame on
--- UIParent, anchored beside the nameplate's name and pushed past its level
--- (else the plate itself), never parented to it. It is placed once and
+-- UIParent, anchored to the nameplate's name (else the plate itself), never
+-- parented to it and never to a part the game guards: on the right it is
+-- pushed past the level, below past the bars, by edges that are only read.
+-- Whatever the side, the frame stands on one point, LEFT, which each move
+-- replaces, so it is never without a spot. It is placed once and
 -- moved only out of a fight: in a fight the plate's edges are secret and
 -- the game can refuse the move, so a frame moved then lost its spot and
 -- never showed (1.9.2, a player's report). A spot the game refused is
@@ -30,6 +43,16 @@ local L = ns.L
 local QuestMobs = ns.NewModule("QuestMobs")
 
 QuestMobs.SETTLE = 0.3
+
+--- Where the count can sit by the name. Right is where it always was.
+QuestMobs.SIDES = { "above", "below", "left", "right" }
+local IS_SIDE = { above = true, below = true, left = true, right = true }
+
+--- The frame's size, and how much brighter than the theme's gold and
+--- bigger than its text the count is drawn.
+QuestMobs.WIDTH, QuestMobs.HEIGHT = 40, 16
+QuestMobs.SIZE_UP = 2
+QuestMobs.COLOR = { 1, 0.92, 0.25 }
 
 local labels = {}      -- [plate] = { frame, text, shown }
 local plateOf = {}     -- [unit token] = plate
@@ -65,6 +88,13 @@ end
 
 function QuestMobs:IsEnabled()
     return not (ns.db and ns.db.questMobCount == false)
+end
+
+--- The side picked; right for a save that never picked one.
+function QuestMobs:Side()
+    local side = ns.db and ns.db.questMobCountSide
+    if type(side) == "string" and IS_SIDE[side] then return side end
+    return "right"
 end
 
 --------------------------------------------------------------------------------
@@ -285,17 +315,90 @@ function QuestMobs.Anchor(plate, own)
     return name, 4 + math.ceil(reach)
 end
 
+local function EdgeBottom(piece)
+    local ok, edge = pcall(function()
+        local bottom = Plain(function() return piece:GetBottom() end)
+        if type(bottom) ~= "number" then return nil end
+        local scale = Plain(function() return piece:GetEffectiveScale() end)
+        if type(scale) ~= "number" or scale <= 0 then scale = 1 end
+        return bottom * scale
+    end)
+    if ok and type(edge) == "number" then return edge end
+    return nil
+end
+
+--- How far under the name the plate's bars reach, so a count below the
+--- name clears them. Forever draws the name inside the health bar with
+--- the cast bar under it. The bars are only read, never anchored to, as
+--- the level is: a part the game guards can't hold a frame in a fight.
+--- `BELOW_ROOM` when nothing can be read (always so in a fight).
+QuestMobs.BELOW_ROOM = 14
+local BARS = { "castBar", "CastBar", "healthBar", "HealthBar" }
+
+local function BelowRoom(plate, name, own)
+    local nameBottom = EdgeBottom(name)
+    if not nameBottom then return QuestMobs.BELOW_ROOM end
+    local unitFrame = Field(plate, "UnitFrame")
+    local lowest
+    for _, key in ipairs(BARS) do
+        local bar = Field(unitFrame, key)
+        local bottom = type(bar) == "table" and EdgeBottom(bar) or nil
+        if bottom and (not lowest or bottom < lowest) then lowest = bottom end
+    end
+    if not lowest then return QuestMobs.BELOW_ROOM end
+    local scale = 1
+    if own then
+        local ok, value = pcall(function()
+            local read = Plain(function() return own:GetEffectiveScale() end)
+            if type(read) == "number" and read > 0 then return read end
+            return nil
+        end)
+        if ok and type(value) == "number" then scale = value end
+    end
+    local reach = (nameBottom - lowest) / scale
+    if reach < 0 or reach > 200 then return QuestMobs.BELOW_ROOM end
+    return math.ceil(reach) + 2
+end
+
+--- Where the count's text sits in its frame on each side: against the
+--- edge nearest the name, or in the middle over and under it.
+local JUSTIFY = { left = "RIGHT", right = "LEFT", above = "CENTER", below = "CENTER" }
+
+--- The count's spot on a side: what the frame's LEFT point hangs on, the
+--- point there, and how far off. Right is the spot it always had.
+-- @return anchor, relative point, x, y
+function QuestMobs.Spot(plate, own, side)
+    if side ~= "left" and side ~= "above" and side ~= "below" then
+        local anchor, gap = QuestMobs.Anchor(plate, own)
+        return anchor, "RIGHT", gap, 0
+    end
+    local name = NameOf(plate)
+    local half, rise = QuestMobs.WIDTH / 2, QuestMobs.HEIGHT / 2 + 2
+    if side == "left" then
+        return name or plate, "LEFT", -((name and 4 or 2) + QuestMobs.WIDTH), 0
+    elseif side == "above" then
+        return name or plate, "TOP", -half, rise
+    end
+    if not name then return plate, "BOTTOM", -half, -rise end
+    return name, "BOTTOM", -half, -(QuestMobs.HEIGHT / 2 + BelowRoom(plate, name, own))
+end
+
 local function Label(plate)
     local entry = labels[plate]
     if entry then return entry end
     local frame = CreateFrame("Frame", nil, UIParent)
-    frame:SetSize(40, 16)
+    frame:SetSize(QuestMobs.WIDTH, QuestMobs.HEIGHT)
     pcall(frame.EnableMouse, frame, false)
     local text = ns.Theme.CreateLabel(frame, "normal", "accent")
     text:SetPoint("LEFT")
+    -- Bright, a size up and outlined, as the kill count is, so the numbers
+    -- read on any ground.
+    local size = (ns.Theme.sizes and ns.Theme.sizes.normal or 12) + QuestMobs.SIZE_UP
+    pcall(text.SetFont, text, ns.Theme.FONT, size, "OUTLINE")
+    pcall(text.SetTextColor, text, QuestMobs.COLOR[1], QuestMobs.COLOR[2], QuestMobs.COLOR[3])
     pcall(text.SetShadowOffset, text, 1, -1)
     frame:Hide()
-    entry = { frame = frame, text = text }
+    entry = { frame = frame, text = text, layout = "right" }
     labels[plate] = entry
     return entry
 end
@@ -320,18 +423,31 @@ end
 --- keeps a spot. A spot the game refuses (no error, no point) is noted so
 --- the fight's end tries again.
 -- @return true when the frame stands somewhere
-local function Place(plate, entry, anchor, gap)
-    local ok = pcall(entry.frame.SetPoint, entry.frame, "LEFT", anchor, "RIGHT", gap, 0)
+local function Place(plate, entry, side, anchor, relative, x, y)
+    local ok = pcall(entry.frame.SetPoint, entry.frame, "LEFT", anchor, relative, x, y)
     if not ok then
-        anchor, gap = plate, 2
-        ok = pcall(entry.frame.SetPoint, entry.frame, "LEFT", plate, "RIGHT", 2, 0)
+        -- By the plate itself, on the same side.
+        if side == "left" then anchor, relative, x, y = plate, "LEFT", -(2 + QuestMobs.WIDTH), 0
+        elseif side == "above" then anchor, relative, x, y = plate, "TOP", -QuestMobs.WIDTH / 2, QuestMobs.HEIGHT / 2 + 2
+        elseif side == "below" then anchor, relative, x, y = plate, "BOTTOM", -QuestMobs.WIDTH / 2, -(QuestMobs.HEIGHT / 2 + 2)
+        else anchor, relative, x, y = plate, "RIGHT", 2, 0 end
+        ok = pcall(entry.frame.SetPoint, entry.frame, "LEFT", anchor, relative, x, y)
     end
     if not ok or Points(entry.frame) == 0 then
-        entry.placed, entry.gap, entry.waiting = nil, nil, true
+        entry.placed, entry.gap, entry.drop, entry.side, entry.waiting = nil, nil, nil, nil, true
         QuestMobs.waiting = true
         return false
     end
-    entry.placed, entry.gap, entry.waiting = anchor, gap, nil
+    entry.placed, entry.gap, entry.drop, entry.side, entry.waiting = anchor, x, y, side, nil
+    if entry.layout ~= side then
+        -- The text is Farmer's own, on Farmer's own frame, so it can move
+        -- any time; the frame's point is the one never cleared.
+        local text, justify = entry.text, JUSTIFY[side] or "LEFT"
+        pcall(text.ClearAllPoints, text)
+        pcall(text.SetPoint, text, justify)
+        pcall(text.SetJustifyH, text, justify)
+        entry.layout = side
+    end
     return true
 end
 
@@ -341,25 +457,27 @@ function QuestMobs:Show(plate, count)
         entry.text:SetText(count)
         entry.shown = count
     end
-    if not entry.placed then
-        local anchor, gap = QuestMobs.Anchor(plate, entry.frame)
-        Place(plate, entry, anchor, gap)
-    elseif not InCombat() then
+    local side, before = self:Side(), entry.side
+    if not entry.placed or not InCombat() then
         -- The game can show the level a moment after the plate, so the spot
         -- is looked at again, but only out of a fight: in one the edges are
         -- secret and a move can be refused, so the count keeps its place.
-        local anchor, gap = QuestMobs.Anchor(plate, entry.frame)
-        if entry.placed ~= anchor or entry.gap ~= gap then
-            Place(plate, entry, anchor, gap)
+        local anchor, relative, x, y = QuestMobs.Spot(plate, entry.frame, side)
+        if entry.side ~= side or entry.placed ~= anchor or entry.gap ~= x or entry.drop ~= y then
+            Place(plate, entry, side, anchor, relative, x, y)
         end
+    elseif entry.side ~= side then
+        -- A new side picked in a fight waits for the fight's end.
+        entry.waiting = true
+        QuestMobs.waiting = true
     end
     local was = entry.frame:IsShown()
     entry.frame:Show()
-    if not was and ns.KillPlates then ns.KillPlates:QuestMoved(plate) end
+    if (not was or entry.side ~= before) and ns.KillPlates then ns.KillPlates:QuestMoved(plate) end
 end
 
 --- The count's frame and text over a plate while it shows, for the kill
---- count to sit clear of it.
+--- count to sit clear of it. Its `side` is the side it stands on.
 function QuestMobs:LabelFor(plate)
     local entry = plate and labels[plate]
     if entry and entry.frame:IsShown() then return entry end
@@ -423,6 +541,14 @@ function QuestMobs:SetEnabled(on)
     self:UpdateAll()
 end
 
+--- Pick the side. In a fight the counts showing move when it ends.
+function QuestMobs:SetSide(side)
+    if not IS_SIDE[side] then return false end
+    ns.db.questMobCountSide = side
+    self:UpdateAll()
+    return true
+end
+
 local function Safe(fn)
     return function(...)
         local ok = pcall(fn, ...)
@@ -450,6 +576,15 @@ end
 
 ns.RegisterCommand("questcount", L["your quest count beside quest mobs' names on or off"], function(rest)
     local argument = ns.Util.Trim(rest or ""):lower()
+    if IS_SIDE[argument] then
+        QuestMobs:SetSide(argument)
+        if argument == "above" then ns.Print(L["Quest count is above the name."])
+        elseif argument == "below" then ns.Print(L["Quest count is below the name."])
+        elseif argument == "left" then ns.Print(L["Quest count is left of the name."])
+        else ns.Print(L["Quest count is right of the name."]) end
+        if ns.SettingsUI then ns.SettingsUI:Refresh() end
+        return
+    end
     local on
     if argument == "on" then on = true
     elseif argument == "off" then on = false
