@@ -1816,3 +1816,9 @@ L["loot beacons are %d%% tall."] = "拾取光柱高度为 %d%%。"
 L["loot beacons are %d%% wide."] = "拾取光柱宽度为 %d%%。"
 L["loot beacons on."] = "拾取光柱已开启。"
 L["loot beacons off."] = "拾取光柱已关闭。"
+
+-- Mute All Sounds (2026-11-12)
+L["Mute All Sounds:"] = "全部静音："
+L["turn every Blackthornes sound off or back on (on/off)"] = "关闭或重新打开所有 Blackthornes 音效（on/off）"
+L["All Blackthornes sounds are off. /farm mute off turns them back on."] = "所有 Blackthornes 音效已关闭。输入 /farm mute off 可重新打开。"
+L["Blackthornes sounds are back on."] = "Blackthornes 音效已重新打开。"

@@ -1822,3 +1822,9 @@ L["loot beacons are %d%% tall."] = "las balizas de botín miden %d%% de alto."
 L["loot beacons are %d%% wide."] = "las balizas de botín miden %d%% de ancho."
 L["loot beacons on."] = "balizas de botín activadas."
 L["loot beacons off."] = "balizas de botín desactivadas."
+
+-- Mute All Sounds (2026-11-12)
+L["Mute All Sounds:"] = "Silenciar todos los sonidos:"
+L["turn every Blackthornes sound off or back on (on/off)"] = "apaga o vuelve a encender todos los sonidos de Blackthornes (on/off)"
+L["All Blackthornes sounds are off. /farm mute off turns them back on."] = "Todos los sonidos de Blackthornes están apagados. /farm mute off los vuelve a encender."
+L["Blackthornes sounds are back on."] = "Los sonidos de Blackthornes vuelven a estar encendidos."

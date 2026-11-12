@@ -1594,6 +1594,7 @@ Tracker.SOUNDS = {
 --- Play one of the addon's sound files. True if the client says it will.
 function Tracker.PlayFile(path)
     if type(PlaySoundFile) ~= "function" then return false end
+    if ns.Muted and ns.Muted() then return false end
 
     local ok, willPlay = pcall(PlaySoundFile, path, "Master")
     return (ok and willPlay) and true or false
@@ -1831,7 +1832,7 @@ function Tracker:Fanfare(line, banner, voice, sound)
     if sound and Tracker.PlayFile(sound) then return end
     if Tracker.PlayFile(Tracker.SOUNDS.unlock) then return end
 
-    if type(PlaySound) == "function" then
+    if type(PlaySound) == "function" and not (ns.Muted and ns.Muted()) then
         for _, sound in ipairs(FANFARE) do
             -- A sound the client does not have answers nil, a refused one
             -- false; either way the next one is tried.

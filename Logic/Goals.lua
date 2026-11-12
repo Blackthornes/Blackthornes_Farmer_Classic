@@ -630,7 +630,7 @@ function Goals:Finished(goal)
     -- moment ago) the drop-rates-unlocked sound, the one for big moments.
     if ns.TrackerFX and ns.TrackerFX:Say("goal") then return end
     if ns.Tracker and not ns.Tracker.PlayFile(ns.Tracker.SOUNDS.unlock)
-        and type(PlaySound) == "function" then
+        and type(PlaySound) == "function" and not (ns.Muted and ns.Muted()) then
         pcall(PlaySound, 888, "Master")
     end
 end

@@ -2341,6 +2341,22 @@ footers keep only a count or your skill, their hints on the rows' hovers.
 Tested in `tools/test_panelsnap.lua`, `test_panellook.lua`,
 `test_hidelist.lua`, `test_bagsfull.lua` and `test_opennote.lua`.
 
+## Mute All Sounds
+
+A player asked, the owner said build it (2026-11-12), in all five addons:
+one box quiets every sound every Blackthornes addon plays. "Mute All
+Sounds:" on the General page under Effects and `/farm mute [on|off]`; off unless ticked. It lives on
+the shared choices board (`UI/SharedChoices.lua`, the same file in all
+five): `SharedChoices:SetMute(on)` sets it and tells the others,
+`ns.Muted()` answers every play call, and each addon keeps it in its own
+account save as `muteSounds` and `muteSoundsAt` (never rename them). Each
+joins with a reader of those two (`Join(name, write, readMute)`), read at
+the first sound after its save loads, the newest winning, so an addon that
+was off when the box was ticked still goes quiet. Every `PlaySound` and
+`PlaySoundFile` asks `ns.Muted()` first, fallbacks too; a new sound must
+as well. Warnings still show on screen and in chat. Tested in
+`tools/test_housekit.lua`.
+
 ## Writing for players
 
 Every word a player reads (labels, buttons, tooltips, Settings rows and

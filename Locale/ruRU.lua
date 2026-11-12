@@ -1823,3 +1823,9 @@ L["loot beacons are %d%% tall."] = "высота маяков добычи: %d%%
 L["loot beacons are %d%% wide."] = "ширина маяков добычи: %d%%."
 L["loot beacons on."] = "маяки добычи включены."
 L["loot beacons off."] = "маяки добычи выключены."
+
+-- Mute All Sounds (2026-11-12)
+L["Mute All Sounds:"] = "Выключить все звуки:"
+L["turn every Blackthornes sound off or back on (on/off)"] = "выключить или снова включить все звуки Blackthornes (on/off)"
+L["All Blackthornes sounds are off. /farm mute off turns them back on."] = "Все звуки Blackthornes выключены. /farm mute off включит их снова."
+L["Blackthornes sounds are back on."] = "Звуки Blackthornes снова включены."

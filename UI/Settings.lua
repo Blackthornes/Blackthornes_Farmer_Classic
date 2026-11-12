@@ -611,6 +611,15 @@ function SettingsUI:BuildWindowsPage()
     })
     controls.effects:SetPoint("TOPLEFT", CONTROL_X, 0)
 
+    -- Mute All Sounds (a player asked, the owner said build it, 2026-11-12):
+    -- one box quiets every sound every Blackthornes addon plays. Ticked here
+    -- is ticked in all of them (UI/SharedChoices.lua).
+    local muteRow = pages:Row("general", 1, L["Mute All Sounds:"], nil)
+    controls.muteSounds = Widgets.CreateCheckbox(muteRow, L["On"], function(checked)
+        SettingsUI:SetMuteSounds(checked)
+    end, false)
+    controls.muteSounds:SetPoint("TOPLEFT", CONTROL_X, -2)
+
     -- A player asked (2026-10-28): one minimap button for every Blackthornes
     -- addon loaded. Ticked unless unticked; see UI/SharedMinimap.lua.
     local combineRow = pages:Row("general", 1, L["Combine Addon Buttons:"], nil)
@@ -1759,6 +1768,7 @@ function SettingsUI:Refresh()
         if name == level then controls.effects:SetValue(index, true) end
     end
     controls.rareSound:SetChecked(ns.TrackerFX.RareSoundOn())
+    controls.muteSounds:SetChecked(ns.Muted and ns.Muted() or false)
     if ns.RankUp then
         controls.rankUp:SetChecked(ns.RankUp.On())
         controls.rankUpSound:SetChecked(ns.RankUp.SoundOn())
@@ -2023,8 +2033,37 @@ if ns.SharedChoices then
             if ns.TomTom then ns.TomTom:SetOn(value and true or false) end
         elseif choice == "arrowRoute" then
             if ns.Travel then ns.Travel:SetOn(value and true or false) end
+        elseif choice == "muteSounds" then
+            ns.db.muteSounds = value == true
+            ns.db.muteSoundsAt = ns.SharedChoices.board.mute.at
         end
         -- Era's Farmer has no Arrow Size: an arrowSize from a sister is left alone.
         if ns.SettingsUI and ns.SettingsUI.Refresh and ns.SettingsUI.frame and ns.SettingsUI.frame:IsShown() then pcall(ns.SettingsUI.Refresh, ns.SettingsUI) end
+    end, function()
+        if not ns.db then return nil end
+        return ns.db.muteSounds == true, ns.db.muteSoundsAt
     end)
 end
+
+--- Mute All Sounds, ticked or unticked here: every Blackthornes addon goes
+--- quiet or plays again, and each keeps it in its own save.
+function SettingsUI:SetMuteSounds(on)
+    on = on == true
+    local at = ns.SharedChoices and ns.SharedChoices:SetMute(on) or nil
+    if ns.db then
+        ns.db.muteSounds = on
+        ns.db.muteSoundsAt = at
+    end
+    if self.controls and self.controls.muteSounds then self.controls.muteSounds:SetChecked(on) end
+end
+
+ns.RegisterCommand("mute", L["turn every Blackthornes sound off or back on (on/off)"], function(rest)
+    local argument = Util.Trim(rest or ""):lower()
+    local on
+    if argument == "on" then on = true
+    elseif argument == "off" then on = false
+    else on = not (ns.Muted and ns.Muted()) end
+    SettingsUI:SetMuteSounds(on)
+    ns.Print(on and L["All Blackthornes sounds are off. /farm mute off turns them back on."]
+        or L["Blackthornes sounds are back on."])
+end)

@@ -364,7 +364,7 @@ function KillGoal:Finished(goal)
 
     local said = ns.TrackerFX and ns.TrackerFX:Say("goal")
     if not said and ns.Tracker and not ns.Tracker.PlayFile(ns.Tracker.SOUNDS.unlock)
-        and type(PlaySound) == "function" then
+        and type(PlaySound) == "function" and not (ns.Muted and ns.Muted()) then
         pcall(PlaySound, 888, "Master")
     end
 

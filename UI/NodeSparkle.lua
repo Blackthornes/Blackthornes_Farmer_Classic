@@ -272,6 +272,7 @@ end
 --- `force` plays it now (Try it). True when the client will play it.
 function NodeSparkle:SayFound(guid, force)
     local voice = force and force ~= true and force or self:Voice()
+    if ns.Muted and ns.Muted() then return false end
     local id = voice ~= "ping" and self:VoiceFile(voice) or nil
     if voice == "ping" then
         if type(PlaySound) ~= "function" then return false end

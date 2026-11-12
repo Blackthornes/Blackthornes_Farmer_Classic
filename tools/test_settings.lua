@@ -265,7 +265,7 @@ end
 local covered = {
     settings = true, tracker = true, worlddrops = true, report = true, celebrate = true,
     raresound = true, voice = true, effects = true, markers = true, heat = true, tooltip = true, killcount = true, sparkle = true, lootbeacon = true, questcount = true, plates = true, numbers = true,
-    seethrough = true, transparent = true, arrow = true, openbutton = true, fishingbar = true, fishpanel = true, grind = true, trash = true, opennote = true, bagsfull = true, export = true, sisters = true, skinning = true, hide = true, unhide = true,
+    seethrough = true, transparent = true, arrow = true, openbutton = true, fishingbar = true, fishpanel = true, grind = true, trash = true, opennote = true, bagsfull = true, mute = true, export = true, sisters = true, skinning = true, hide = true, unhide = true,
 }
 for _, command in pairs(buttons) do covered[command:match("^(%S*)")] = true end
 -- Chat-only commands are typed only (the owner, 2026-10-15): the ones that
@@ -423,6 +423,20 @@ end
 
 suite.check("no control on the page clears recorded loot",
     ns.Harvest:CountCorpses() == corpses, ns.Harvest:CountCorpses())
+
+-- Mute All Sounds (2026-11-12): the box and /farm mute write the same.
+SettingsUI:SetMuteSounds(false)
+suite.check("sounds start on", not ns.Muted() and not controls.muteSounds:GetChecked())
+Toggle(controls.muteSounds)
+suite.check("ticking Mute All Sounds quiets every sound", ns.Muted() and ns.db.muteSounds == true)
+suite.check("and keeps when it was set", type(ns.db.muteSoundsAt) == "number")
+suite.check("a muted sound is not played", ns.Tracker.PlayFile("x.ogg") == false)
+ns.HandleSlash("mute off")
+suite.check("/farm mute off brings them back", not ns.Muted() and ns.db.muteSounds == false)
+suite.check("and the box follows", not controls.muteSounds:GetChecked())
+ns.HandleSlash("mute")
+suite.check("/farm mute alone flips it", ns.Muted())
+ns.HandleSlash("mute off")
 
 --------------------------------------------------------------------------------
 -- The export hint stays inside the window

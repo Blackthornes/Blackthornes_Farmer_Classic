@@ -1822,3 +1822,9 @@ L["loot beacons are %d%% tall."] = "Beute-Leuchtfeuer sind %d%% hoch."
 L["loot beacons are %d%% wide."] = "Beute-Leuchtfeuer sind %d%% breit."
 L["loot beacons on."] = "Beute-Leuchtfeuer an."
 L["loot beacons off."] = "Beute-Leuchtfeuer aus."
+
+-- Mute All Sounds (2026-11-12)
+L["Mute All Sounds:"] = "Alle Sounds stumm:"
+L["turn every Blackthornes sound off or back on (on/off)"] = "alle Blackthornes-Sounds aus- oder wieder einschalten (on/off)"
+L["All Blackthornes sounds are off. /farm mute off turns them back on."] = "Alle Blackthornes-Sounds sind aus. Mit /farm mute off schaltest du sie wieder ein."
+L["Blackthornes sounds are back on."] = "Blackthornes-Sounds sind wieder an."
