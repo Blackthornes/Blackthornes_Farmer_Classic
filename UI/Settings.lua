@@ -293,6 +293,23 @@ function SettingsUI:ResetPositions()
     if not hosted then self:RestorePosition() end
 end
 
+--- Every Blackthornes window back where it started, in every addon loaded
+--- (the owner, 2026-11-12): the one window, its docked spots, the small
+--- windows and each addon's own. Settings and data stay the same.
+function SettingsUI:ResetAllWindows()
+    local shared = ns.SharedWindow
+    if shared and shared.ResetAllSpots then
+        shared.ResetAllSpots()
+    else
+        SettingsUI:ResetPositions()
+    end
+    ns.Print(L["Every window is back in its first spot."])
+end
+
+if ns.SharedWindow and ns.SharedWindow.AddSpotReset then
+    ns.SharedWindow.AddSpotReset("Farmer", function() SettingsUI:ResetPositions() end)
+end
+
 --------------------------------------------------------------------------------
 -- Construction
 --------------------------------------------------------------------------------
@@ -683,12 +700,11 @@ function SettingsUI:BuildWindowsPage()
     end
     if after then GrowRow(trackerScaleRow, 24) end
 
-    local positionRow = pages:Row("general", 1, L["Window Positions:"],
-        L["Reset the UI windows to their defaults."])
+    local positionRow = pages:Row("general", 1, L["Window Spots:"],
+        L["Puts every Blackthornes window back where it started. Your settings and data stay the same."])
 
     local reset = Widgets.CreateButton(positionRow, L["Set Default"], function()
-        SettingsUI:ResetPositions()
-        ns.Print(L["UI windows set to defaults."])
+        ns.HandleSlash("windows reset")
     end, { width = 110, height = 20 })
     reset:SetPoint("TOPLEFT", CONTROL_X, 0)
     controls.resetPositions = reset
@@ -2066,4 +2082,12 @@ ns.RegisterCommand("mute", L["turn every Blackthornes sound off or back on (on/o
     SettingsUI:SetMuteSounds(on)
     ns.Print(on and L["All Blackthornes sounds are off. /farm mute off turns them back on."]
         or L["Blackthornes sounds are back on."])
+end)
+
+ns.RegisterCommand("windows", L["put every Blackthornes window back where it started (reset)"], function(rest)
+    if Util.Trim(rest or ""):lower() == "reset" then
+        SettingsUI:ResetAllWindows()
+    else
+        ns.Print(L["Type /farm windows reset to put every window back in its first spot."])
+    end
 end)

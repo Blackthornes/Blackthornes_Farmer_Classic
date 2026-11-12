@@ -224,6 +224,7 @@ function UI:BuildExport()
     self.exportPrev, self.exportNext = prev, nextPart
 
     frame:Hide()
+    if ns.SharedWindow and ns.SharedWindow.KeepSpot then ns.SharedWindow.KeepSpot(frame, "farmer.export") end
     return frame
 end
 

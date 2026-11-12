@@ -163,6 +163,7 @@ function UI:BuildImport()
     done:SetPoint("BOTTOMRIGHT", -PADDING, 12)
 
     frame:Hide()
+    if ns.SharedWindow and ns.SharedWindow.KeepSpot then ns.SharedWindow.KeepSpot(frame, "farmer.import") end
     return frame
 end
 

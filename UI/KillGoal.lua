@@ -214,6 +214,7 @@ function KillGoalUI:BuildNew()
     local cancel = Widgets.CreateButton(frame, L["Cancel"], function() KillGoalUI:HideNew() end, { width = 90 })
     cancel:SetPoint("RIGHT", start, "LEFT", -8, 0)
 
+    if ns.SharedWindow and ns.SharedWindow.KeepSpot then ns.SharedWindow.KeepSpot(frame, "farmer.killgoalnew") end
     return frame
 end
 
@@ -364,6 +365,7 @@ function KillGoalUI:BuildSummary()
     end, { width = 90 })
     again:SetPoint("RIGHT", done, "LEFT", -8, 0)
 
+    if ns.SharedWindow and ns.SharedWindow.KeepSpot then ns.SharedWindow.KeepSpot(frame, "farmer.killgoalsummary") end
     return frame
 end
 

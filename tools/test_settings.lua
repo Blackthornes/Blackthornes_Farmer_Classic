@@ -237,6 +237,7 @@ local buttons = {
     xpBarReset = "xpbar reset",
     statsTab = "charts",
     killGoal = "killgoal", killGoalSummary = "killgoal summary",
+    resetPositions = "windows reset",
 }
 local wrong = {}
 for key, command in pairs(buttons) do
@@ -405,6 +406,13 @@ suite.check("the search window goes back", ns.db.point == ns.DEFAULTS.point
     and ns.db.x == ns.DEFAULTS.x and ns.db.y == ns.DEFAULTS.y)
 suite.check("so does the tally", ns.db.trackerPoint == ns.DEFAULTS.trackerPoint
     and ns.db.trackerX == ns.DEFAULTS.trackerX)
+
+-- Window Spots: Set Default runs every addon's reset through the shared
+-- window, so /farm windows reset puts Farmer's own windows back too.
+ns.db.point, ns.db.x, ns.db.y = "TOPLEFT", 4000, -4000
+ns.HandleSlash("windows reset")
+suite.check("/farm windows reset puts the windows back", ns.db.point == ns.DEFAULTS.point
+    and ns.db.x == ns.DEFAULTS.x and ns.db.y == ns.DEFAULTS.y)
 
 --------------------------------------------------------------------------------
 -- Nothing here deletes data

@@ -96,6 +96,7 @@ function HiddenUI:Build()
     empty:SetText(L["Nothing hidden. Right-click a mob or an item in the search, Rankings, Grind or the kills panel to hide it, or type /farm hide and its name."])
     self.empty = empty
 
+    if ns.SharedWindow and ns.SharedWindow.KeepSpot then ns.SharedWindow.KeepSpot(frame, "farmer.hidden") end
     return frame
 end
 

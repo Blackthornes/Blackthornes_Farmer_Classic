@@ -550,6 +550,7 @@ function FishingPanel:Build()
             FishingPanel.ticker = nil
         end
     end)
+    if ns.SharedWindow and ns.SharedWindow.KeepSpot then ns.SharedWindow.KeepSpot(frame, "farmer.fishingpanel") end
     return frame
 end
 
