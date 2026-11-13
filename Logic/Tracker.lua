@@ -859,7 +859,12 @@ function Tracker:Summary(mobName)
             item.corpses = item.corpses + corpses
             if base then
                 item.suffixes = (item.suffixes or 0) + 1
-                Tracker.rollLooks[key] = Tracker.rollLooks[key] or name
+                -- The suffix that stands in is one with an icon, when
+                -- any has one.
+                local standIn = Tracker.rollLooks[key]
+                if not standIn or (not self:LookOf(standIn).icon and self:LookOf(name).icon) then
+                    Tracker.rollLooks[key] = name
+                end
             end
         end
     end
@@ -1235,6 +1240,54 @@ end
 -- colour, ID) stands in for it (Tracker:Summary). In memory only.
 Tracker.rollLooks = {}
 
+-- How long before an item whose icon the game would not give is asked again.
+Tracker.ICON_RETRY = 10
+
+-- [item ID] = when its icon was last asked for and not given. In memory only.
+Tracker.iconAsked = {}
+
+--- An item's icon by its ID, which the client knows before the item itself
+--- has loaded. Read in a pcall, as every client value is.
+function Tracker.IconByID(id)
+    id = tonumber(id)
+    if not id then return nil end
+
+    local icon
+    if type(C_Item) == "table" and type(C_Item.GetItemIconByID) == "function" then
+        local ok, value = pcall(C_Item.GetItemIconByID, id)
+        if ok then icon = ReadableIcon(value) end
+    end
+    if not icon then
+        local instant = (type(C_Item) == "table" and C_Item.GetItemInfoInstant) or GetItemInfoInstant
+        if type(instant) == "function" then
+            local ok, _, _, _, _, value = pcall(instant, id)
+            if ok then icon = ReadableIcon(value) end
+        end
+    end
+    return icon
+end
+
+--- A look the loot window gave no icon for (an item the game had not loaded
+--- yet, most often gear with a random suffix) takes it from its item ID.
+--- Asked once, then again only every ICON_RETRY seconds, so drawing a list
+--- of them costs a table read each.
+function Tracker:FillIcon(look)
+    if look.icon or not look.id then return look end
+
+    local now = (type(GetTime) == "function" and GetTime()) or 0
+    local asked = Tracker.iconAsked[look.id]
+    if asked and now - asked < Tracker.ICON_RETRY then return look end
+
+    local icon = Tracker.IconByID(look.id)
+    if icon then
+        look.icon = icon
+        Tracker.iconAsked[look.id] = nil
+    else
+        Tracker.iconAsked[look.id] = now
+    end
+    return look
+end
+
 function Tracker:LookOf(name)
     local looks = self:Looks()
     local look = looks[name]
@@ -1243,7 +1296,7 @@ function Tracker:LookOf(name)
         look = suffix and looks[suffix]
         if type(look) ~= "table" then return {} end
     end
-    return look
+    return self:FillIcon(look)
 end
 
 --- Copper in a coin slot's name: "1 Gold 2 Silver 3 Copper" is 10203.

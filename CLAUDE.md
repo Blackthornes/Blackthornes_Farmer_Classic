@@ -2015,6 +2015,21 @@ harvest check` also says whether the kill line in chat names the mob
 `tools/test_forever_npc_names.py`.
 `/farm harvest check` reports what a dungeon lets the addon read.
 
+## Loot icons
+
+A streamer's loot showed a "?" for some greens (2026-11-13, the owner said
+build it): the loot window gives no icon for an item the client has not
+loaded yet (random suffix gear mostly), and the look kept at loot
+(`tracker.looks[name]`) was never asked for again. `Tracker:LookOf` now
+fills a look with an ID and no icon from the item ID (`Tracker:FillIcon`,
+`Tracker.IconByID`: `C_Item.GetItemIconByID`, else `GetItemInfoInstant`,
+in a pcall), kept in the same `icon` field, so older "?" items mend too.
+One still not given is asked again only after `Tracker.ICON_RETRY`
+seconds (`Tracker.iconAsked`, memory only), so a redraw adds no work. In
+`Tracker:Summary` a suffix with an icon stands in for the item's own name
+(`Tracker.rollLooks`) ahead of one without. Nothing new saved, no setting,
+no new words. Tested in `tools/test_looticons.lua`. Not yet seen in game.
+
 ## Party loot
 
 A player found Farmer counted loot other players won (2026-11-13, the
