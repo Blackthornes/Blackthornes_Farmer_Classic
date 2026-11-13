@@ -1737,7 +1737,7 @@ L["the fishing bar with Cast and Add Lure (on/off)"] = "钓鱼栏，带有抛竿
 L["the fishing bar shows while a fishing pole is in your hand."] = "手里拿着鱼竿时会显示钓鱼栏。"
 L["the fishing bar is hidden."] = "钓鱼栏已隐藏。"
 L["Price Order:"] = "价格顺序："
-L["Picks which addon's price is used first when both have one."] = "两个插件都有价格时，选择先用哪一个。"
+L["Only used when Tradeskills is off. With Tradeskills on, Farmer uses the same prices Tradeskills shows."] = "仅在 Tradeskills 关闭时使用。开启 Tradeskills 时，Farmer 使用与 Tradeskills 显示相同的价格。"
 L["TSM First"] = "TSM 优先"
 L["Auctionator First"] = "Auctionator 优先"
 

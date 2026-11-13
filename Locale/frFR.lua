@@ -1743,7 +1743,7 @@ L["the fishing bar with Cast and Add Lure (on/off)"] = "la barre de pêche avec 
 L["the fishing bar shows while a fishing pole is in your hand."] = "la barre de pêche s'affiche quand tu tiens une canne à pêche."
 L["the fishing bar is hidden."] = "la barre de pêche est masquée."
 L["Price Order:"] = "Ordre des prix :"
-L["Picks which addon's price is used first when both have one."] = "Choisis quel addon donne son prix en premier quand les deux en ont un."
+L["Only used when Tradeskills is off. With Tradeskills on, Farmer uses the same prices Tradeskills shows."] = "Utilisé seulement quand Tradeskills est désactivé. Avec Tradeskills actif, Farmer utilise les mêmes prix que Tradeskills affiche."
 L["TSM First"] = "TSM d'abord"
 L["Auctionator First"] = "Auctionator d'abord"
 

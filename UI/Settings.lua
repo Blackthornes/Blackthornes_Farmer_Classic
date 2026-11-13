@@ -1054,7 +1054,7 @@ function SettingsUI:BuildLootPage()
 
     -- Which one first (the owner, 2026-10-25).
     local orderRow = pages:Row("loot", 1, L["Price Order:"],
-        L["Picks which addon's price is used first when both have one."])
+        L["Only used when Tradeskills is off. With Tradeskills on, Farmer uses the same prices Tradeskills shows."])
     local orders = { "tsm", "auctionator" }
     local orderNames = { L["TSM First"], L["Auctionator First"] }
     controls.priceOrder = Widgets.CreateChoice(orderRow, {
