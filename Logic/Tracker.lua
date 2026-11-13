@@ -530,6 +530,7 @@ function Tracker:Record(mobName, guid, items, quantities, copper, place, haul, s
     -- the corpse already gave (Ruined Leather Scraps looted, then skinned).
     -- Its amount counts; the corpse still held the item once.
     local locked = haul and haul.locked or {}
+    local grouped = Tracker.InGroup()
     -- What this window gave that is yours, for the kill goal below.
     local given = {}
     for _, name in ipairs(items or {}) do
@@ -557,10 +558,14 @@ function Tracker:Record(mobName, guid, items, quantities, copper, place, haul, s
             local yours = quantity - (tonumber(locked[name]) or 0)
             if yours > 0 then
                 given[name] = (given[name] or 0) + yours
-                if ns.Stats then ns.Stats:Loot("drops", name, yours) end
-                self.sessionLoot[name] = (self.sessionLoot[name] or 0) + yours
-                self.sessionFrom[name] = self.sessionFrom[name] or {}
-                self.sessionFrom[name][mobName] = (self.sessionFrom[name][mobName] or 0) + yours
+            end
+            -- In a group the window shows loot that may go to someone else,
+            -- so the session waits for the game's "You receive loot" line
+            -- (Tracker:OnLootChat). That covers a roll you win too.
+            if grouped then
+                self:Pend(name, mobName)
+            elseif yours > 0 then
+                self:GiveYou(name, mobName, yours)
             end
         end
     end
@@ -627,17 +632,154 @@ end
 function Tracker:AddHaul(mobName, haul)
     if type(haul) ~= "table" then return end
 
+    local grouped = Tracker.InGroup()
     for name, count in pairs(type(haul.items) == "table" and haul.items or {}) do
-        if ns.Stats then ns.Stats:Loot("drops", name, count) end
-        self.sessionLoot[name] = (self.sessionLoot[name] or 0) + count
-        if mobName then
-            self.sessionFrom[name] = self.sessionFrom[name] or {}
-            self.sessionFrom[name][mobName] = (self.sessionFrom[name][mobName] or 0) + count
+        if grouped then
+            self:Pend(name, mobName)
+        else
+            self:GiveYou(name, mobName, count)
+        end
+    end
+    -- Rolled slots off other corpses: only the game's line says you won one.
+    if grouped then
+        for name in pairs(type(haul.lockedOther) == "table" and haul.lockedOther or {}) do
+            self:Pend(name, mobName)
         end
     end
 
     self.sessionCopper = self.sessionCopper + (tonumber(haul.copper) or 0)
     if ns.Stats then ns.Stats:Coin(haul.copper) end
+end
+
+--------------------------------------------------------------------------------
+-- Party loot
+--
+-- In a party or raid the loot window shows what dropped, not what you got:
+-- an item someone else rolled for or looted first was counted as yours (a
+-- player's report, 2026-11-13). So while grouped the session's loot and
+-- Stats' gold count only what the game's own chat line says you received
+-- ("You receive loot: [Item]x2."), matched to an item a loot window showed.
+-- Drop rates and kill tallies still read the window, and solo play is as
+-- it was.
+--------------------------------------------------------------------------------
+
+--- How long an item seen in a loot window waits for its chat line (a roll
+--- can take a while), and how long a chat line waits for its window.
+Tracker.PEND_FOR = 300
+Tracker.LINE_WAIT = 3
+
+Tracker.pending = {}
+Tracker.lines = {}
+
+--- In a party or raid? Only a plain true says so.
+function Tracker.InGroup()
+    if type(IsInGroup) ~= "function" then return false end
+    local ok, grouped = pcall(IsInGroup)
+    if not ok then return false end
+    local fine, yes = pcall(function() return grouped == true end)
+    return fine and yes == true
+end
+
+--- The game's "You receive loot" lines turned into patterns, the one with a
+--- count first. Built from the client's own words, so every language reads.
+local lootPatterns, lootWords
+local function Pattern(format)
+    if type(format) ~= "string" or format == "" then return nil end
+    -- Which capture is the item and which the count, in the order the words
+    -- put them ("%2$d x %1$s" in some languages).
+    local order, plain = {}, 0
+    for place, kind in format:gmatch("%%(%d*)%$?([sd])") do
+        plain = plain + 1
+        order[#order + 1] = { slot = tonumber(place) or plain, kind = kind }
+    end
+    local text = format:gsub("%%%d+%$", "%%")
+    text = text:gsub("[%^%$%(%)%.%[%]%*%+%-%?]", "%%%0")
+    local pattern = text:gsub("%%s", "(.+)"):gsub("%%d", "(%%d+)")
+    local item, count
+    for i, entry in ipairs(order) do
+        if entry.kind == "s" then item = item or i else count = count or i end
+    end
+    if not item then return nil end
+    return { pattern = "^" .. pattern .. "$", item = item, count = count }
+end
+
+function Tracker.LootPatterns()
+    local many, one = rawget(_G, "LOOT_ITEM_SELF_MULTIPLE"), rawget(_G, "LOOT_ITEM_SELF")
+    local words = tostring(many) .. "\n" .. tostring(one)
+    if lootPatterns and lootWords == words then return lootPatterns end
+    lootPatterns, lootWords = {}, words
+    local multiple = Pattern(many)
+    if multiple and multiple.count then lootPatterns[#lootPatterns + 1] = multiple end
+    local single = Pattern(one)
+    if single then lootPatterns[#lootPatterns + 1] = single end
+    return lootPatterns
+end
+
+--- The item name and count a "You receive loot" line names, or nil.
+function Tracker.ParseLootLine(message)
+    if not ns.Harvest.Readable(message) or type(message) ~= "string" then return nil end
+    for _, entry in ipairs(Tracker.LootPatterns()) do
+        local found = { pcall(string.match, message, entry.pattern) }
+        if found[1] and found[2] then
+            local link = found[entry.item + 1]
+            local name = type(link) == "string" and (link:match("%[(.-)%]") or link)
+            local count = entry.count and tonumber(found[entry.count + 1]) or 1
+            if name and name ~= "" and count and count > 0 then return name, count end
+        end
+    end
+    return nil
+end
+
+local function Now()
+    return (type(GetTime) == "function" and GetTime()) or 0
+end
+
+--- Yours: into the session's loot and Stats' gold, under `mobName`.
+function Tracker:GiveYou(name, mobName, count)
+    count = tonumber(count) or 0
+    if count <= 0 then return end
+    if ns.Stats then ns.Stats:Loot("drops", name, count) end
+    self.sessionLoot[name] = (self.sessionLoot[name] or 0) + count
+    if mobName then
+        self.sessionFrom[name] = self.sessionFrom[name] or {}
+        self.sessionFrom[name][mobName] = (self.sessionFrom[name][mobName] or 0) + count
+    end
+end
+
+--- A loot window showed `name` while grouped: it counts once a chat line
+--- says it is yours. A line that came first is taken now.
+function Tracker:Pend(name, mobName)
+    if type(name) ~= "string" then return end
+    local now = Now()
+    self.pending[name] = { mob = mobName, at = now }
+    for i = #self.lines, 1, -1 do
+        local line = self.lines[i]
+        if now - line.at > Tracker.LINE_WAIT then
+            table.remove(self.lines, i)
+        elseif line.name == name then
+            table.remove(self.lines, i)
+            self:GiveYou(name, mobName, line.count)
+        end
+    end
+end
+
+--- A chat loot line. Only your own lines match the patterns.
+function Tracker:OnLootChat(message)
+    -- Solo, the window already counted it.
+    if not Tracker.InGroup() then return false end
+    local name, count = Tracker.ParseLootLine(message)
+    if not name then return false end
+    local now = Now()
+    local waiting = self.pending[name]
+    if waiting and now - (tonumber(waiting.at) or 0) <= Tracker.PEND_FOR then
+        self:GiveYou(name, waiting.mob, count)
+        if ns.TrackerUI then ns.TrackerUI:Refresh() end
+        return true
+    end
+    -- No window yet: hold it a moment, in case the window is read after.
+    self.lines[#self.lines + 1] = { name = name, count = count, at = now }
+    while #self.lines > 20 do table.remove(self.lines, 1) end
+    return false
 end
 
 --- A pocket you picked: no kill and no drop rate, but its coin and items
@@ -953,6 +1095,8 @@ function Tracker:Reset()
     self.areaLooted = {}
     self.sessionLoot = {}
     self.sessionFrom = {}
+    self.pending = {}
+    self.lines = {}
     self.sessionCopper = 0
     self.recent = {}
     self.current = nil
@@ -1190,6 +1334,9 @@ function Tracker:LootedItems(anySource)
             if rest > 0 and not locked then
                 if not name then self:NoteLook(slot, text, slotIcon) end
                 haul.items[text] = (haul.items[text] or 0) + rest
+            elseif rest > 0 then
+                haul.lockedOther = haul.lockedOther or {}
+                haul.lockedOther[text] = true
             end
         end
     end
@@ -1631,6 +1778,10 @@ function Tracker:OnEnable()
     if not ns.Harvest:Capabilities().usable then return end
 
     ns.OnLootWindow(self, function() Tracker:OnLoot() end)
+    ns.RegisterEvent(self, "CHAT_MSG_LOOT", function(_, _, message)
+        local ok, err = pcall(Tracker.OnLootChat, Tracker, message)
+        if not ok then ns.Debug("loot line:", tostring(err)) end
+    end)
 end
 
 --------------------------------------------------------------------------------

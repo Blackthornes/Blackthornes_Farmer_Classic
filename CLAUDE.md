@@ -2015,6 +2015,23 @@ harvest check` also says whether the kill line in chat names the mob
 `tools/test_forever_npc_names.py`.
 `/farm harvest check` reports what a dungeon lets the addon read.
 
+## Party loot
+
+A player found Farmer counted loot other players won (2026-11-13, the
+owner said build it): in a party or raid the loot window shows what
+dropped, not what you got. While `Tracker.InGroup()` (`IsInGroup` in a
+pcall, only a plain true), each item a loot window shows is noted
+(`Tracker:Pend`, also rolled slots off other corpses, `haul.lockedOther`)
+and the session's loot, `sessionFrom` and Stats' "drops" gold take it only
+when the game's own "You receive loot" chat line names it
+(`CHAT_MSG_LOOT`, `Tracker:OnLootChat`; patterns built from
+`LOOT_ITEM_SELF_MULTIPLE` and `LOOT_ITEM_SELF`, numbered word orders read,
+`Tracker.ParseLootLine`), within `PEND_FOR` (300) seconds, so a roll won
+counts; a line that comes first waits `LINE_WAIT` seconds for its window.
+Drop rates, kill tallies, coin and the kill goal still read the window, and
+solo play is unchanged (`Tracker:GiveYou`). Nothing saved, no setting, no
+new words. Tested in `tools/test_partyloot.lua`.
+
 ## What's New
 
 The owner asked (2026-10-12) for the Discord #general post to show in game,
