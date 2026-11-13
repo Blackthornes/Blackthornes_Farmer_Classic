@@ -1078,9 +1078,9 @@ function SettingsUI:BuildLootPage()
     -- The TSM price read instead of DBMarket (a player asked, the owner
     -- said build it, 2026-11-13). Saved when the box loses the keyboard.
     local sourceRow = pages:Row("loot", 1, L["TSM Price Source:"],
-        L["The TSM price to use, like DBMarket or DBMinBuyout. You can also type one of your own TSM custom prices."])
+        L["The TSM price to use, like DBRecent or DBMarket. You can also type one of your own TSM custom prices."])
     GrowRow(sourceRow, 26)
-    local source = Widgets.CreateSearchBox(sourceRow, "DBMarket", nil, nil, { plain = true })
+    local source = Widgets.CreateSearchBox(sourceRow, "DBRecent", nil, nil, { plain = true })
     source:SetPoint("TOPLEFT", 0, -26)
     source:SetWidth(COLUMN_WIDTH)
     source:SetHeight(20)
@@ -1802,7 +1802,7 @@ function SettingsUI:Refresh()
         box.editBox:EnableMouse(on)
         controls.tsmSourceRow:SetAlpha(on and 1 or 0.4)
         controls.tsmSourceNote:SetText(ns.Value:TSMSourceRefused()
-            and L["TSM doesn't know that price. Using DBMarket."] or "")
+            and L["TSM doesn't know that price. Using DBRecent."] or "")
     end
     controls.worldDrops:SetChecked(db.worldDrops ~= false)
     controls.rankingsOutside:SetChecked(db.rankingsOutside == true)

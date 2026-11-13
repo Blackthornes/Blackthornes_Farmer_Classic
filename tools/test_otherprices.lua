@@ -2,7 +2,7 @@
 -- loaded (the owner asked 2026-10-12).
 --
 -- What matters: Tradeskills always wins when it is loaded; without it TSM's
--- DBMarket comes first, then Auctionator's; greys stay vendor only and the
+-- DBRecent comes first, then Auctionator's; greys stay vendor only and the
 -- vendor price still wins when higher; unticked, neither is asked; a bad
 -- answer or an error is no price; and an answer is kept for a minute.
 
@@ -50,8 +50,8 @@ suite.check("asked with Farmer's caller ID", aucAsked[1] == "Blackthornes_Farmer
 
 InstallTSM(); Forget()
 suite.check("with both, TSM is named", Value:PriceSource() == "tsm")
-suite.check("TSM's DBMarket comes first", Value:AuctionPrice(5637) == 400, Value:AuctionPrice(5637))
-suite.check("asked for DBMarket by item string", tsmAsked[1] == "DBMarket i:5637", tsmAsked[1])
+suite.check("TSM's DBRecent comes first", Value:AuctionPrice(5637) == 400, Value:AuctionPrice(5637))
+suite.check("asked for DBRecent by item string", tsmAsked[1] == "DBRecent i:5637", tsmAsked[1])
 suite.check("Auctionator fills what TSM lacks", Value:AuctionPrice(2589) == 77)
 
 local before = #tsmAsked
@@ -94,29 +94,33 @@ Forget()
 suite.check("a negative number is no price", Value:AuctionPrice(5637) == nil)
 
 -- TSM Price Source (a player asked, the owner said build it, 2026-11-13).
-local reads, valid = {}, { DBRecent = true, ["dbmarket*1.1"] = true }
+local reads, valid = {}, { DBMarket = true, DBMinBuyout = true, ["dbmarket*1.1"] = true }
+local noRecent = {}
 _G.TSM_API = {
     GetCustomPriceValue = function(source, item)
         reads[#reads + 1] = source
-        if source == "DBRecent" then return 777 end
-        if source == "DBMarket" then return 400 end
+        if source == "DBRecent" then return not noRecent[item] and 400 or nil end
+        if source == "DBMinBuyout" then return 777 end
+        if source == "DBMarket" then return 500 end
         return nil
     end,
     IsCustomPriceValid = function(text) return valid[text] == true end,
 }
 Value:SetTSMSource(nil)
-suite.check("no source typed reads DBMarket", Value:OtherPrice(6001) == 400 and reads[#reads] == "DBMarket")
-Value:SetTSMSource("  DBRecent ")
-suite.check("a typed source is kept trimmed", ns.db.tsmPriceSource == "DBRecent")
-suite.check("and it is read", Value:OtherPrice(6001) == 777 and reads[#reads] == "DBRecent", reads[#reads])
+suite.check("no source typed reads DBRecent", Value:OtherPrice(6001) == 400 and reads[#reads] == "DBRecent")
+noRecent["i:6002"] = true
+suite.check("no DBRecent price falls back to DBMarket", Value:OtherPrice(6002) == 500 and reads[#reads] == "DBMarket", reads[#reads])
+Value:SetTSMSource("  DBMinBuyout ")
+suite.check("a typed source is kept trimmed", ns.db.tsmPriceSource == "DBMinBuyout")
+suite.check("and it is read", Value:OtherPrice(6001) == 777 and reads[#reads] == "DBMinBuyout", reads[#reads])
 suite.check("a known source is not refused", not Value:TSMSourceRefused())
 Value:SetTSMSource("dbmarket*1.1")
-suite.check("a source with no price falls back to DBMarket", Value:OtherPrice(6001) == 400 and reads[#reads] == "DBMarket")
+suite.check("a source with no price falls back to DBRecent", Value:OtherPrice(6001) == 400 and reads[#reads] == "DBRecent")
 Value:SetTSMSource("NotAPrice")
 suite.check("a source TSM doesn't know is refused", Value:TSMSourceRefused())
-suite.check("and reads DBMarket", Value:OtherPrice(6001) == 400 and reads[#reads] == "DBMarket")
+suite.check("and reads DBRecent", Value:OtherPrice(6001) == 400 and reads[#reads] == "DBRecent")
 Value:SetTSMSource("")
-suite.check("an empty box saves nothing", ns.db.tsmPriceSource == nil and Value:TSMSource() == "DBMarket")
+suite.check("an empty box saves nothing", ns.db.tsmPriceSource == nil and Value:TSMSource() == "DBRecent")
 _G.TSM_API.IsCustomPriceValid = nil
 Value:SetTSMSource("NotAPrice")
 suite.check("without the check call it is tried as typed", Value:TSMSource() == "NotAPrice")

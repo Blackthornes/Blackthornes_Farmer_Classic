@@ -74,7 +74,7 @@ after an auction scan"). Nothing is copied, nothing is written back, and there i
 Tradeskills itself fills gaps from TradeSkillMaster, then Auctionator
 (2026-10-12; the owner allowed naming both in public). Without Tradeskills,
 Farmer reads them itself (`Value:OtherPrice`: `TSM_API.GetCustomPriceValue
-("DBMarket", "i:<id>")`, then `Auctionator.API.v1.GetAuctionPriceByItemID
+("DBRecent", "i:<id>")`, then `Auctionator.API.v1.GetAuctionPriceByItemID
 ("Blackthornes_Farmer", id)`, in a pcall, kept 60 s), "TSM and Auctionator"
 on the Loot page (`otherPriceAddons`, on unless unticked, never rename it;
 `tools/test_otherprices.lua`); with none of them, the vendor price.
@@ -84,11 +84,13 @@ reads as TSM; account wide, never rename it; `Value:PriceOrder`,
 `SetPriceOrder` forgets the kept answers). Tradeskills has the same choice
 for its own order. "TSM Price Source:" under that (a player asked, the
 owner said build it, 2026-11-13) names the TSM price `FromTSM` reads:
-DBMinBuyout, DBRecent or the player's own TSM custom price
-(`tsmPriceSource`, account wide, nil or empty reads DBMarket, never rename
-it; `Value:TSMSource`, `SetTSMSource` clears `otherCache`). A source
-`TSM_API.IsCustomPriceValid` refuses, or one with no price for an item,
-falls back to DBMarket, and the note under the box says so. Greyed while
+DBMarket, DBMinBuyout or the player's own TSM custom price
+(`tsmPriceSource`, account wide, nil or empty reads DBRecent, the owner's
+pick the same day; never rename it; `Value:TSMSource`, `SetTSMSource`
+clears `otherCache`). A source `TSM_API.IsCustomPriceValid` refuses, or
+one with no price for an item, falls back to DBRecent, and the note under
+the box says so; an item DBRecent has no price for reads DBMarket quietly
+(`TSM_FALLBACK_SOURCE`), so a price never goes blank. Greyed while
 `otherPriceAddons` is off. Forever's Tradeskills has the same box and key (Tradeskills Classic not yet). Tested in
 `tools/test_otherprices.lua`. Tradeskills'
 `CLAUDE.md` asks its side to keep that global, `Prices` and `GetValue(itemID)`

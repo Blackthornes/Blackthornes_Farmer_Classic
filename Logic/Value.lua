@@ -57,22 +57,24 @@ end
 -- Read only, inside a pcall, through each addon's own API, with no TOC
 -- dependency. Tradeskills, when loaded, already asks them itself for items
 -- it has not priced, so they are read here only without it:
---   TSM_API.GetCustomPriceValue("DBMarket", "i:<itemID>")
+--   TSM_API.GetCustomPriceValue("DBRecent", "i:<itemID>")
 --   Auctionator.API.v1.GetAuctionPriceByItemID("Blackthornes_Farmer", itemID)
 -- TSM first unless the player picked Auctionator first ("Price Order:",
 -- `priceOrder`, "tsm" or nil, else "auctionator"; the owner 2026-10-26).
 -- "TSM Price Source:" (a player asked, the owner said build it, 2026-11-13)
--- names the TSM price read instead of DBMarket: DBMinBuyout, DBRecent or
+-- names the TSM price read instead of DBRecent: DBMarket, DBMinBuyout or
 -- one of the player's own TSM custom prices (`tsmPriceSource`, account
--- wide, nil or empty for DBMarket, never rename it). A source TSM says is
--- not valid (TSM_API.IsCustomPriceValid), or one that gives no price for an
--- item, falls back to DBMarket.
+-- wide, nil or empty for DBRecent, never rename it; the owner, 2026-11-13).
+-- A source TSM says is not valid (TSM_API.IsCustomPriceValid), or one that
+-- gives no price for an item, falls back to DBRecent, and when DBRecent has
+-- none either, quietly to DBMarket, so a price never goes blank.
 -- Prices are read many times a draw, so each answer is kept
 -- OTHER_CACHE_FOR seconds.
 
 Value.OTHER_CACHE_FOR = 60
 Value.OTHER_MAX_PRICE = 1e11   -- above this is not a price (10 million gold)
-Value.TSM_DEFAULT_SOURCE = "DBMarket"
+Value.TSM_DEFAULT_SOURCE = "DBRecent"
+Value.TSM_FALLBACK_SOURCE = "DBMarket"   -- when DBRecent has no price for an item
 local otherCache = {}          -- [itemID] = { copper or false, at }
 local sourceValid = {}         -- [source text] = true or false
 
@@ -92,7 +94,7 @@ local function TSMCall()
     return api.GetCustomPriceValue
 end
 
---- The TSM source the player typed, trimmed, or nil for DBMarket.
+--- The TSM source the player typed, trimmed, or nil for DBRecent.
 function Value:TSMSourceTyped()
     local text = ns.db and ns.db.tsmPriceSource
     if type(text) ~= "string" then return nil end
@@ -115,7 +117,7 @@ function Value:TSMSourceValid(text)
     return sourceValid[text]
 end
 
---- The TSM source read: the player's own when TSM knows it, else DBMarket.
+--- The TSM source read: the player's own when TSM knows it, else DBRecent.
 function Value:TSMSource()
     local text = self:TSMSourceTyped()
     if text and self:TSMSourceValid(text) then return text end
@@ -128,7 +130,7 @@ function Value:TSMSourceRefused()
     return text ~= nil and TSMCall() ~= nil and not self:TSMSourceValid(text)
 end
 
---- Save the TSM source (nil or empty for DBMarket) and forget kept prices.
+--- Save the TSM source (nil or empty for DBRecent) and forget kept prices.
 function Value:SetTSMSource(text)
     if not ns.db then return end
     if type(text) == "string" then text = text:match("^%s*(.-)%s*$") end
@@ -183,6 +185,7 @@ function Value:OtherPrice(itemID)
             copper = Copper(pcall(tsm, source, "i:" .. itemID))
         end
         return copper or Copper(pcall(tsm, Value.TSM_DEFAULT_SOURCE, "i:" .. itemID))
+            or Copper(pcall(tsm, Value.TSM_FALLBACK_SOURCE, "i:" .. itemID))
     end
     local function FromAuctionator()
         return auctionator and Copper(pcall(auctionator, "Blackthornes_Farmer", itemID)) or nil
