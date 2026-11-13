@@ -93,5 +93,36 @@ _G.TSM_API.GetCustomPriceValue = function() return -1 end
 Forget()
 suite.check("a negative number is no price", Value:AuctionPrice(5637) == nil)
 
+-- TSM Price Source (a player asked, the owner said build it, 2026-11-13).
+local reads, valid = {}, { DBRecent = true, ["dbmarket*1.1"] = true }
+_G.TSM_API = {
+    GetCustomPriceValue = function(source, item)
+        reads[#reads + 1] = source
+        if source == "DBRecent" then return 777 end
+        if source == "DBMarket" then return 400 end
+        return nil
+    end,
+    IsCustomPriceValid = function(text) return valid[text] == true end,
+}
+Value:SetTSMSource(nil)
+suite.check("no source typed reads DBMarket", Value:OtherPrice(6001) == 400 and reads[#reads] == "DBMarket")
+Value:SetTSMSource("  DBRecent ")
+suite.check("a typed source is kept trimmed", ns.db.tsmPriceSource == "DBRecent")
+suite.check("and it is read", Value:OtherPrice(6001) == 777 and reads[#reads] == "DBRecent", reads[#reads])
+suite.check("a known source is not refused", not Value:TSMSourceRefused())
+Value:SetTSMSource("dbmarket*1.1")
+suite.check("a source with no price falls back to DBMarket", Value:OtherPrice(6001) == 400 and reads[#reads] == "DBMarket")
+Value:SetTSMSource("NotAPrice")
+suite.check("a source TSM doesn't know is refused", Value:TSMSourceRefused())
+suite.check("and reads DBMarket", Value:OtherPrice(6001) == 400 and reads[#reads] == "DBMarket")
+Value:SetTSMSource("")
+suite.check("an empty box saves nothing", ns.db.tsmPriceSource == nil and Value:TSMSource() == "DBMarket")
+_G.TSM_API.IsCustomPriceValid = nil
+Value:SetTSMSource("NotAPrice")
+suite.check("without the check call it is tried as typed", Value:TSMSource() == "NotAPrice")
+_G.TSM_API = nil
+suite.check("without TSM nothing is refused", not Value:TSMSourceRefused())
+Value:SetTSMSource(nil)
+
 _G.TSM_API, _G.Auctionator, _G.GetTime = nil, nil, nil
 suite.done()

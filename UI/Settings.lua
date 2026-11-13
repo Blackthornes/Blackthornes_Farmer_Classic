@@ -68,6 +68,16 @@ SettingsUI.OLD_PAGES = { windows = "general", advanced = "general" }
 -- Layout helpers
 --------------------------------------------------------------------------------
 
+--- A wrapping line of small text under a row's control, for a status.
+local function StatusText(row, y)
+    local text = Theme.CreateLabel(row, "tiny", "muted")
+    text:SetPoint("TOPLEFT", 0, y)
+    text:SetWidth(COLUMN_WIDTH)
+    text:SetJustifyH("LEFT")
+    if text.SetWordWrap then text:SetWordWrap(true) end
+    return text
+end
+
 --- Make room in a row for a second line of controls under its first, the
 --- description moving down by `by`. Call it before anything changes the
 --- row's description.
@@ -1065,6 +1075,31 @@ function SettingsUI:BuildLootPage()
     ns.SettingsPages.FitStepper(controls.priceOrder, orderNames)
     controls.priceOrder:SetPoint("TOPLEFT", CONTROL_X, -2)
 
+    -- The TSM price read instead of DBMarket (a player asked, the owner
+    -- said build it, 2026-11-13). Saved when the box loses the keyboard.
+    local sourceRow = pages:Row("loot", 1, L["TSM Price Source:"],
+        L["The TSM price to use, like DBMarket or DBMinBuyout. You can also type one of your own TSM custom prices."])
+    GrowRow(sourceRow, 26)
+    local source = Widgets.CreateSearchBox(sourceRow, "DBMarket", nil, nil, { plain = true })
+    source:SetPoint("TOPLEFT", 0, -26)
+    source:SetWidth(COLUMN_WIDTH)
+    source:SetHeight(20)
+    source.editBox:HookScript("OnEditFocusLost", function(box)
+        local text = box:GetText()
+        if (text or "") ~= (ns.db and ns.db.tsmPriceSource or "") then
+            ns.Value:SetTSMSource(text)
+            SettingsUI:Refresh()
+        end
+    end)
+    source.editBox:HookScript("OnEscapePressed", function()
+        source:SetText(ns.db and ns.db.tsmPriceSource or "")
+    end)
+    controls.tsmSourceRow = sourceRow
+    controls.tsmPriceSource = source
+    -- Says so when TSM doesn't know what was typed.
+    GrowRow(sourceRow, 18)
+    controls.tsmSourceNote = StatusText(sourceRow, -50)
+
     -- How often green gear and better drops, by mob level (2026-10-13).
     pages:Section("loot", 1, L["WORLD DROPS"])
 
@@ -1518,16 +1553,6 @@ function SettingsUI:BuildMapPage()
     controls.heatLevel:SetPoint("TOPLEFT", CONTROL_X, -2)
 end
 
---- A wrapping line of small text under a row's control, for a status.
-local function StatusText(row, y)
-    local text = Theme.CreateLabel(row, "tiny", "muted")
-    text:SetPoint("TOPLEFT", 0, y)
-    text:SetWidth(COLUMN_WIDTH)
-    text:SetJustifyH("LEFT")
-    if text.SetWordWrap then text:SetWordWrap(true) end
-    return text
-end
-
 --- Sharing: kills, drop rates and gathering with your other account.
 function SettingsUI:BuildSharingPage()
     local controls = self.controls
@@ -1766,7 +1791,19 @@ function SettingsUI:Refresh()
     end
     controls.hideSkinning:SetChecked(db.hideSkinning ~= false)
     controls.otherPriceAddons:SetChecked(db.otherPriceAddons ~= false)
-    controls.priceOrder:SetValue(db.priceOrder == "auctionator" and 2 or 1, true)
+    controls.priceOrder:SetValue(ns.Value:PriceOrder() == "auctionator" and 2 or 1, true)
+    do
+        local on = db.otherPriceAddons ~= false
+        local box = controls.tsmPriceSource
+        if not (box.editBox.HasFocus and box.editBox:HasFocus()) then
+            box:SetText(db.tsmPriceSource or "")
+        end
+        if not on then box:ClearFocus() end
+        box.editBox:EnableMouse(on)
+        controls.tsmSourceRow:SetAlpha(on and 1 or 0.4)
+        controls.tsmSourceNote:SetText(ns.Value:TSMSourceRefused()
+            and L["TSM doesn't know that price. Using DBMarket."] or "")
+    end
     controls.worldDrops:SetChecked(db.worldDrops ~= false)
     controls.rankingsOutside:SetChecked(db.rankingsOutside == true)
     controls.rankingsSkipUncommon:SetChecked(db.rankingsSkipUncommon == true)
