@@ -142,10 +142,10 @@ end
 function Moments.ChanceOf(mobName, item, mob, before)
     local DB = ns.DB
     if DB and DB.ByName then
-        for _, entry in ipairs(DB:ByName()[mobName] or {}) do
-            local source = entry.source
-            if entry.item and entry.item.name == item and source and Number(source.chance)
-                and (source.kind == nil or source.kind == "mob") then
+        for _, source in ipairs(DB:ByName()[mobName] or {}) do
+            local found = DB:ItemOf(source)
+            if found and found.name == item and Number(source.chance)
+                and DB.KindOf(source) == "mob" then
                 local chance = Number(source.chance) / 100
                 if chance > 0 then return chance end
             end

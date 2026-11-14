@@ -109,8 +109,8 @@ suite.check("and a Skinning chip", skinChip)
 
 local skinSource = false
 for _, entries in pairs(DB:ByName()) do
-    for _, entry in ipairs(entries) do
-        if entry.source.kind == "skinning" or DB:FromSkinning(entry.item) then skinSource = true end
+    for _, source in ipairs(entries) do
+        if source.kind == "skinning" or DB:FromSkinning(DB:ItemOf(source)) then skinSource = true end
     end
 end
 suite.check("the mob index Rankings reads has no skinning", not skinSource)

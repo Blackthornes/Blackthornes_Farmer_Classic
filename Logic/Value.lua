@@ -573,15 +573,15 @@ function Value:FromDatabase(mobName)
     local rows = ns.DB:ByName()[name] or {}
     if zone then
         local here = {}
-        for _, entry in ipairs(rows) do
-            if entry.source and entry.source.zone == zone then here[#here + 1] = entry end
+        for _, source in ipairs(rows) do
+            if source.zone == zone then here[#here + 1] = source end
         end
         if #here > 0 then rows = here end
     end
 
-    for _, entry in ipairs(rows) do
-        local item, source = entry.item, entry.source
-        if source.chance and not seen[item.name] then
+    for _, source in ipairs(rows) do
+        local item = ns.DB:ItemOf(source)
+        if item and source.chance and not seen[item.name] then
             seen[item.name] = true
 
             local unit, from = self:WorthOf(item.name, item.id)

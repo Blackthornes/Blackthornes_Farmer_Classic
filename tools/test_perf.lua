@@ -23,8 +23,8 @@ for item in DB:Iterate() do
         if type(source.name) == "string" then
             walked = walked + 1
             local found = false
-            for _, entry in ipairs(DB:ByName()[source.name] or {}) do
-                if entry.item == item and entry.source == source then found = true end
+            for _, indexed in ipairs(DB:ByName()[source.name] or {}) do
+                if indexed == source and DB:ItemOf(indexed) == item then found = true end
             end
             if not found then mismatch = mismatch or (item.name .. " / " .. source.name) end
         end
@@ -35,10 +35,17 @@ suite.check("every named source is in the index", mismatch == nil, mismatch)
 suite.check("and nothing else is", walked == indexed, walked .. " vs " .. indexed)
 suite.check("the index is kept between calls", DB:ByName() == DB:ByName())
 
+-- A hide change lays the names out again, but keeps the source-to-item map.
+local map = DB.sourceItem
+DB:Hide("item", "Perf Test Nothing")
+DB:ByName()
+suite.check("a hide change keeps the item map", DB.sourceItem == map)
+DB:Unhide("item", "Perf Test Nothing")
+
 DB:RegisterItem({ name = "Perf Test Fang", id = 990001, category = "Leather",
     sources = { { kind = "mob", name = "Perf Test Wolf", zone = "Elwynn Forest", minLevel = 5, chance = 40 } } })
 local wolf = DB:ByName()["Perf Test Wolf"]
-suite.check("a source added later is indexed", wolf and #wolf == 1 and wolf[1].item.name == "Perf Test Fang")
+suite.check("a source added later is indexed", wolf and #wolf == 1 and DB:ItemOf(wolf[1]).name == "Perf Test Fang")
 
 _G.C_Item = {
     GetItemInfo = function(id)

@@ -810,9 +810,9 @@ function Stats:Luck(view)
     for mobName, mob in pairs(mobs) do
         local rated = false
         local seen = {}
-        for _, entry in ipairs(ns.DB:ByName()[mobName] or {}) do
-            local item, source = entry.item, entry.source
-            if source.chance and CREATURE_KINDS[source.kind or "mob"] and not seen[item.name]
+        for _, source in ipairs(ns.DB:ByName()[mobName] or {}) do
+            local item = ns.DB:ItemOf(source)
+            if item and source.chance and CREATURE_KINDS[ns.DB.KindOf(source)] and not seen[item.name]
                 and not ns.DB:HidesItem(item.name) then
                 seen[item.name] = true
                 rated = true

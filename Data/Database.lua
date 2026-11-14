@@ -501,18 +501,25 @@ function DB:CountSources()
     return total
 end
 
---- Every source by the name of its mob or node: [name] = { { item, source },
---- ... }, items in registration order and each item's sources in order, as
---- walking Iterate would find them. Built on first use and again only after
---- a source is added, so valuing a mob no longer walks the whole database.
+--- Every source by the name of its mob or node: [name] = { source, ... },
+--- items in registration order and each item's sources in order, as walking
+--- Iterate would find them. DB:ItemOf(source) gives the item a source is on.
+--- Built on first use and again only after a source is added or the hide
+--- list moves, so valuing a mob no longer walks the whole database. The lists
+--- hold the source rows themselves, not a small table for each pair, and the
+--- map back to items is only laid out again when a source is added.
 function DB:ByName()
-    local stamp = self.changes .. ":" .. self.hiddenVersion
+    local changes = self.changes or 0
+    local stamp = changes .. ":" .. self.hiddenVersion
     if self.byName and self.byNameAt == stamp then return self.byName end
 
+    local mapNew = self.sourceItemAt ~= changes or not self.sourceItem
+    local sourceItem = mapNew and {} or self.sourceItem
     local byName = {}
     for _, key in ipairs(self.order) do
         local item = self.items[key]
         for _, source in ipairs(item.sources or {}) do
+            if mapNew then sourceItem[source] = item end
             local name = source.name
             if type(name) == "string" and not self:HidesSource(source, item) then
                 local list = byName[name]
@@ -520,13 +527,21 @@ function DB:ByName()
                     list = {}
                     byName[name] = list
                 end
-                list[#list + 1] = { item = item, source = source }
+                list[#list + 1] = source
             end
         end
     end
 
+    if mapNew then self.sourceItem, self.sourceItemAt = sourceItem, changes end
     self.byName, self.byNameAt = byName, stamp
     return byName
+end
+
+--- The item a source row belongs to, from the index ByName lays out.
+function DB:ItemOf(source)
+    if not source then return nil end
+    if not self.sourceItem or self.sourceItemAt ~= (self.changes or 0) then self:ByName() end
+    return self.sourceItem[source]
 end
 
 --------------------------------------------------------------------------------

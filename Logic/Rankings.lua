@@ -26,10 +26,9 @@ local CREATURE_KINDS = { mob = true, skinning = true }
 
 --- Every mob name the database gives a drop rate for.
 local function RatedMobs(names)
-    for name, entries in pairs(ns.DB:ByName()) do
-        for _, entry in ipairs(entries) do
-            local source = entry.source
-            if source.chance and CREATURE_KINDS[source.kind or "mob"] then
+    for name, sources in pairs(ns.DB:ByName()) do
+        for _, source in ipairs(sources) do
+            if source.chance and CREATURE_KINDS[ns.DB.KindOf(source)] then
                 names[name] = true
                 break
             end
@@ -45,10 +44,9 @@ function Rankings:Spot(mobName)
     local name, zone = ns.Tracker.SplitKey(mobName)
     local best, here
 
-    for _, entry in ipairs(ns.DB:ByName()[name] or {}) do
-        local source = entry.source
+    for _, source in ipairs(ns.DB:ByName()[name] or {}) do
         -- Classic's generated rows are for the search (Data_ClassicDrops).
-        if CREATURE_KINDS[source.kind or "mob"] and not source.searchOnly then
+        if CREATURE_KINDS[ns.DB.KindOf(source)] and not source.searchOnly then
             if not best or (source.minLevel or 0) < (best.minLevel or 0) then
                 best = source
             end
@@ -290,9 +288,8 @@ function Rankings:InDungeon(mobName)
     end
 
     local any = false
-    for _, entry in ipairs(ns.DB:ByName()[name] or {}) do
-        local source = entry.source
-        if CREATURE_KINDS[source.kind or "mob"] then
+    for _, source in ipairs(ns.DB:ByName()[name] or {}) do
+        if CREATURE_KINDS[ns.DB.KindOf(source)] then
             if not SourceInside(source) then return false end
             any = true
         end
