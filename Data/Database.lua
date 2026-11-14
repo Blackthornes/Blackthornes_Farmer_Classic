@@ -123,19 +123,33 @@ end
 -- Same creature or node, same zone, same subzone. Compared case-insensitively
 -- because the two sides come from different places: the seed files are typed
 -- by hand and the harvested ones come back from the client.
+-- Lower case names, kept once each. Loading the data compares every new row
+-- with the rows already on its item, which lowered the same few thousand
+-- names and zones over and over and left the copies for the collector.
+local lowered = {}
+local function Lower(text)
+    local low = lowered[text]
+    if not low then
+        low = text:lower()
+        lowered[text] = low
+    end
+    return low
+end
+DB.Lower = Lower
+
 local function SameSpot(item, source)
     if type(source.name) ~= "string" or source.name == "" then return nil end
 
-    local name = source.name:lower()
-    local zone = source.zone:lower()
-    local location = (source.location or ""):lower()
+    local name = Lower(source.name)
+    local zone = Lower(source.zone)
+    local location = Lower(source.location or "")
 
     for index, existing in ipairs(item.sources) do
         if type(existing.name) == "string"
-            and existing.name:lower() == name
+            and Lower(existing.name) == name
             and type(existing.zone) == "string"
-            and existing.zone:lower() == zone
-            and (existing.location or ""):lower() == location then
+            and Lower(existing.zone) == zone
+            and Lower(existing.location or "") == location then
             return index, existing
         end
     end
@@ -150,15 +164,15 @@ end
 local function SameMob(item, source)
     if type(source.name) ~= "string" or source.name == "" then return nil end
 
-    local name = source.name:lower()
-    local zone = source.zone:lower()
+    local name = Lower(source.name)
+    local zone = Lower(source.zone)
     local classic = source.provenance == DB.DEFAULT_PROVENANCE
 
     for index, existing in ipairs(item.sources) do
         if type(existing.name) == "string"
-            and existing.name:lower() == name
+            and Lower(existing.name) == name
             and type(existing.zone) == "string"
-            and existing.zone:lower() == zone
+            and Lower(existing.zone) == zone
             -- A generated row gives way to any row already there, the
             -- hand-typed ones included, and a measured row takes its place.
             and (source.searchOnly or (existing.searchOnly and not classic)) then
