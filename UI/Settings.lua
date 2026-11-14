@@ -1402,6 +1402,15 @@ function SettingsUI:BuildMapPage()
     ns.SettingsPages.FitStepper(controls.questMobCountSide, sideNames)
     controls.questMobCountSide:SetPoint("TOPLEFT", CONTROL_X, -2)
 
+    -- Only your own quests, not what your group's still want (a player
+    -- asked, the owner said build it, 2026-11-14).
+    local questMineRow = pages:Row("map", 1, L["Only My Quests:"],
+        L["Shows only what your own quests still need, not your group's."])
+    controls.questMobCountMine = Widgets.CreateCheckbox(questMineRow, L["On"], function(checked)
+        ns.QuestMobs:SetMineOnly(checked)
+    end, true)
+    controls.questMobCountMine:SetPoint("TOPLEFT", CONTROL_X, -2)
+
     -- Your kills beside a mob's nameplate (2026-10-15).
     local platesRow = pages:Row("map", 1, L["Nameplate Kills:"],
         L["Shows your kill count beside a mob's nameplate."])
@@ -1740,6 +1749,7 @@ function SettingsUI:Refresh()
         stepper:SetValue(ns.TooltipShift:Mode(stepper.isOn(), stepper.shiftKey), true)
     end
     controls.questMobCount:SetChecked(db.questMobCount ~= false)
+    controls.questMobCountMine:SetChecked(db.questMobCountMine == true)
     do
         local side = ns.QuestMobs:Side()
         for index, each in ipairs(ns.QuestMobs.SIDES) do

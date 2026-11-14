@@ -17,7 +17,10 @@
 -- sat on the mob's level, the owner said build it 2026-11-11):
 -- `questMobCountSide`, "above", "below", "left" or "right", "right" unless
 -- picked (nil reads as right, so nobody's count moved), account wide, never
--- rename it; `/farm questcount above|below|left|right`. On the side the
+-- rename it; `/farm questcount above|below|left|right`. In a group the
+-- tooltip also lists what each group member's quest still wants; "Only My
+-- Quests:" (`questMobCountMine`, off unless ticked, never rename it;
+-- `/farm questcount mine [on|off]`) leaves those out. On the side the
 -- kill count has too, the kill count stands past this one
 -- (KillPlates:Place), so the two never sit on each other. Bright yellow, a
 -- size up, with a dark outline, as the kill count is, so it reads on any
@@ -90,6 +93,12 @@ function QuestMobs:IsEnabled()
     return not (ns.db and ns.db.questMobCount == false)
 end
 
+--- True while the count shows only the player's own quests, not the
+--- group's (`questMobCountMine`, off unless ticked).
+function QuestMobs:MineOnly()
+    return ns.db and ns.db.questMobCountMine == true or false
+end
+
 --- The side picked; right for a save that never picked one.
 function QuestMobs:Side()
     local side = ns.db and ns.db.questMobCountSide
@@ -110,17 +119,62 @@ function QuestMobs.CountIn(text)
     return ("%d/%d"):format(have, need)
 end
 
---- The count off the mob's tooltip lines, the game's own answer.
-local function FromTooltip(unit)
+-- The tooltip line types the game gives (Enum.TooltipDataLineType).
+local LINE_QUEST_TITLE, LINE_QUEST_PLAYER = 17, 18
+
+--- A name as it is said in a group: the realm left off.
+local function Short(name)
+    if type(name) ~= "string" then return nil end
+    return (name:match("^([^%-]+)") or name)
+end
+
+--- The names of the others in the group, realm left off, or an empty set.
+local function GroupNames()
+    local names = {}
+    if type(UnitName) ~= "function" then return names end
+    local function Note(unit)
+        local ok, name = pcall(UnitName, unit)
+        name = ok and Short(Readable(name)) or nil
+        if name then names[name] = true end
+    end
+    for index = 1, 4 do Note("party" .. index) end
+    for index = 1, 40 do Note("raid" .. index) end
+    return names
+end
+
+--- The player's own name, or nil.
+local function MyName()
+    if type(UnitName) ~= "function" then return nil end
+    local ok, name = pcall(UnitName, "player")
+    return ok and Short(Readable(name)) or nil
+end
+
+--- The count off the mob's tooltip lines, the game's own answer. In a
+--- group a line naming a group member comes before what that member's
+--- quest still wants; with `mineOnly` those counts are left out.
+local function FromTooltip(unit, mineOnly)
     local get = Field(_G.C_TooltipInfo, "GetUnit")
     if type(get) ~= "function" then return nil end
     local ok, data = pcall(get, unit)
     local lines = ok and Field(data, "lines")
     if type(lines) ~= "table" then return nil end
+    local me, others = nil, nil
+    if mineOnly then me, others = MyName(), GroupNames() end
+    local mine = true
     -- The first line is the name; a count on any later one is a quest's.
     for index = 2, #lines do
-        local count = QuestMobs.CountIn(Readable(Field(lines[index], "leftText")))
-        if count then return count end
+        local line = lines[index]
+        local text = Readable(Field(line, "leftText"))
+        local kind = ns.Harvest and ns.Harvest.ReadableNumber and ns.Harvest.ReadableNumber(Field(line, "type")) or nil
+        if mineOnly and kind == LINE_QUEST_TITLE then
+            mine = true
+        elseif mineOnly and (kind == LINE_QUEST_PLAYER
+            or (type(text) == "string" and others[Short(text)])) then
+            mine = (me ~= nil and Short(text) == me)
+        else
+            local count = QuestMobs.CountIn(text)
+            if count and (mine or not mineOnly) then return count end
+        end
     end
     return nil
 end
@@ -165,7 +219,7 @@ function QuestMobs:CountFor(unit)
         local read, player = pcall(UnitIsPlayer, unit)
         if read and type(player) == "boolean" and player then return nil end
     end
-    local count = FromTooltip(unit)
+    local count = FromTooltip(unit, self:MineOnly())
     if count then return count end
     local name
     if type(UnitName) == "function" then
@@ -541,6 +595,11 @@ function QuestMobs:SetEnabled(on)
     self:UpdateAll()
 end
 
+function QuestMobs:SetMineOnly(on)
+    ns.db.questMobCountMine = on and true or false
+    self:UpdateAll()
+end
+
 --- Pick the side. In a fight the counts showing move when it ends.
 function QuestMobs:SetSide(side)
     if not IS_SIDE[side] then return false end
@@ -582,6 +641,18 @@ ns.RegisterCommand("questcount", L["your quest count beside quest mobs' names on
         elseif argument == "below" then ns.Print(L["Quest count is below the name."])
         elseif argument == "left" then ns.Print(L["Quest count is left of the name."])
         else ns.Print(L["Quest count is right of the name."]) end
+        if ns.SettingsUI then ns.SettingsUI:Refresh() end
+        return
+    end
+    local mine = argument:match("^mine%s*(%a*)$")
+    if mine then
+        local on
+        if mine == "on" then on = true
+        elseif mine == "off" then on = false
+        else on = not QuestMobs:MineOnly() end
+        QuestMobs:SetMineOnly(on)
+        ns.Print(on and L["Quest count shows only your own quests."]
+            or L["Quest count shows your group's quests too."])
         if ns.SettingsUI then ns.SettingsUI:Refresh() end
         return
     end

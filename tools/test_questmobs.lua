@@ -22,7 +22,10 @@ _G.UnitIsPlayer = function(unit) return units[unit] and units[unit].player or fa
 _G.C_NamePlate = { GetNamePlateForUnit = function(unit) return plates[unit] end }
 _G.C_TooltipInfo = { GetUnit = function(unit)
     local lines = {}
-    for i, text in ipairs(units[unit] and units[unit].lines or {}) do lines[i] = { leftText = text } end
+    for i, text in ipairs(units[unit] and units[unit].lines or {}) do
+        if type(text) == "table" then lines[i] = { leftText = text[1], type = text[2] }
+        else lines[i] = { leftText = text } end
+    end
     return { lines = lines }
 end }
 
@@ -283,6 +286,36 @@ suite.check("the Settings choice picks the side", ns.db.questMobCountSide == "ab
 questSide:SetValue(4)
 suite.check("and puts it back", ns.db.questMobCountSide == "right")
 ns.SettingsUI:Hide()
+
+-- In a group the tooltip names each member before what their quest still
+-- wants. By default those counts show; "Only My Quests:" leaves them out.
+units.player = { name = "Mira", guid = "Player-1-0000" }
+units.party1 = { name = "Ana-Stormreach", guid = "Player-1-0002" }
+local partyLines = { "Bristleback", { "Thorny Hides", 17 }, { "Ana", 18 }, { "Bristleback slain: 4/10", 8 } }
+suite.check("off by default", ns.DEFAULTS.questMobCountMine == false and QuestMobs:MineOnly() == false)
+suite.check("a group member's count shows by default", Mob("nameplate20", "Bristleback", partyLines) == "4/10")
+QuestMobs:SetMineOnly(true)
+suite.check("only my quests leaves a group member's count out", Mob("nameplate20", "Bristleback", partyLines) == nil)
+suite.check("a member named without a type line still counts as theirs",
+    Mob("nameplate21", "Bristleback", { "Bristleback", "Ana", "Bristleback slain: 4/10" }) == nil)
+suite.check("my own count still shows", Mob("nameplate22", "Bristleback",
+    { "Bristleback", { "Thorny Hides", 17 }, { "Mira", 18 }, { "Bristleback slain: 2/10", 8 }, { "Ana", 18 }, { "Bristleback slain: 4/10", 8 } }) == "2/10")
+suite.check("a count with no name before it is mine", Mob("nameplate23", "Bristleback",
+    { "Bristleback", { "Thorny Hides", 17 }, { "Bristleback slain: 6/10", 8 } }) == "6/10")
+suite.check("a new quest title starts over as mine", Mob("nameplate24", "Bristleback",
+    { "Bristleback", { "Ana", 18 }, { "Bristleback slain: 4/10", 8 }, { "Other Quest", 17 }, { "Bristleback slain: 1/3", 8 } }) == "1/3")
+ns.SettingsUI:Show(); ns.SettingsUI:Refresh()
+suite.check("the Settings box shows it on", ns.SettingsUI.controls.questMobCountMine:GetChecked() == true)
+ns.HandleSlash("questcount mine off")
+suite.check("/farm questcount mine off turns it off", ns.db.questMobCountMine == false)
+ns.HandleSlash("questcount mine")
+suite.check("/farm questcount mine flips it", ns.db.questMobCountMine == true)
+suite.check("the Settings box follows the command", ns.SettingsUI.controls.questMobCountMine:GetChecked() == true)
+local mineBox = ns.SettingsUI.controls.questMobCountMine
+mineBox:GetScript("OnClick")(mineBox)
+suite.check("unticking the box turns it off", ns.db.questMobCountMine == false)
+ns.SettingsUI:Hide()
+units.player, units.party1 = nil, nil
 
 _G.C_QuestLog, _G.C_TooltipInfo = nil, nil
 suite.done()

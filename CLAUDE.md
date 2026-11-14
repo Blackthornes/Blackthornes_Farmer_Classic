@@ -1864,7 +1864,13 @@ to the name (else the plate): the level and bars can be guarded in a
 fight, so their edges are only read, in a pcall (`BelowRoom`, a set
 `BELOW_ROOM` when they won't say). A side picked in a fight waits for
 `PLAYER_REGEN_ENABLED`. The count is bright gold, a size up and outlined
-(`QuestMobs.COLOR`, `SIZE_UP`), as the kill count is. On the kill count's
+(`QuestMobs.COLOR`, `SIZE_UP`), as the kill count is. In a group the tooltip lists what each
+member's quest still wants after a line naming them (type 18, else a
+group member's name); by default those show, and "Only My Quests:" under
+it (a player asked, the owner said build it 2026-11-14;
+`questMobCountMine`, off unless ticked, account wide, never rename it;
+`/farm questcount mine [on|off]`) counts only the player's own (a quest
+title line starts over as the player's). On the kill count's
 side the two never share a spot: the kill count goes past the quest count
 (`KillPlates:Place`, `QuestMoved`). Tested in `tools/test_questmobs.lua`
 and `tools/test_killplates.lua`. Not yet seen in game.
