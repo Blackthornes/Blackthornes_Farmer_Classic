@@ -128,7 +128,7 @@ _G.TSM_API = nil
 suite.check("without TSM nothing is refused", not Value:TSMSourceRefused())
 Value:SetTSMSource(nil)
 
--- TSM Gear Source (a player asked, the owner said build it, 2026-11-14).
+-- TSM BoE Price Source (a player asked, the owner said build it, 2026-11-14).
 local CLASS, BIND = { [7001] = 4, [7002] = 2, [7003] = 7, [7004] = 4 }, { [7001] = 2, [7002] = 1, [7003] = 0 }
 local oldItem = _G.C_Item
 _G.C_Item = {

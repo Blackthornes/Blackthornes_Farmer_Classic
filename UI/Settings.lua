@@ -1103,7 +1103,7 @@ function SettingsUI:BuildLootPage()
     -- A second TSM price for gear that binds when worn (a player asked, the
     -- owner said build it, 2026-11-14). Empty reads the box above, whose
     -- source shows dim in it.
-    local gearRow = pages:Row("loot", 1, L["TSM Gear Source:"],
+    local gearRow = pages:Row("loot", 1, L["TSM BoE Price Source:"],
         L["Used for gear that binds when worn. Leave it empty to use your TSM Price Source."])
     GrowRow(gearRow, 26)
     local gear = Widgets.CreateSearchBox(gearRow, "DBRecent", nil, nil, { plain = true })

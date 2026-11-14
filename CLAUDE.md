@@ -93,7 +93,7 @@ the box says so; an item DBRecent has no price for reads DBMarket quietly
 (`TSM_FALLBACK_SOURCE`), so a price never goes blank. Greyed while
 `otherPriceAddons` is off. Forever's Tradeskills has the same box and key (Tradeskills Classic not yet). Tested in
 `tools/test_otherprices.lua`.
-"TSM Gear Source:" under it (a player asked, the owner said build it,
+"TSM BoE Price Source:" under it (a player asked, the owner said build it,
 2026-11-14) names a second TSM price for gear that binds when worn
 (`Value.IsBoEGear`: item class 2 or 4, bind type 2; `tsmGearPriceSource`,
 account wide, nil or empty reads the TSM Price Source; never rename it;

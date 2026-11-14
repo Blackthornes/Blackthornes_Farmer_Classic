@@ -68,7 +68,7 @@ end
 -- A source TSM says is not valid (TSM_API.IsCustomPriceValid), or one that
 -- gives no price for an item, falls back to DBRecent, and when DBRecent has
 -- none either, quietly to DBMarket, so a price never goes blank.
--- "TSM Gear Source:" under it (a player asked, the owner said build it,
+-- "TSM BoE Price Source:" under it (a player asked, the owner said build it,
 -- 2026-11-14) names a second TSM price for gear that binds when worn
 -- (item class 2 or 4, bind type 2; `Value.IsBoEGear`), so trade goods and
 -- gear can read different prices (`tsmGearPriceSource`, account wide, nil
