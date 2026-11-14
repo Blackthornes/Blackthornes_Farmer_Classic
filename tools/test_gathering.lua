@@ -622,7 +622,7 @@ if env.HasHarvested() then
     for item in live.DB:Iterate() do
         if item.category == "Herbalism" or item.category == "Mining" then
             for _, source in ipairs(item.sources) do
-                if source.provenance == "forever" and source.kind == "mob" then
+                if source.provenance == "forever" and live.DB.KindOf(source) == "mob" then
                     credited[#credited + 1] = item.name .. " on " .. tostring(source.name)
                 end
             end

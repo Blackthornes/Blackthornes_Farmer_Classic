@@ -440,7 +440,7 @@ function Spots:Candidates(itemName)
     for _, source in ipairs(item and item.sources or {}) do
         Add({
             name = source.name or ns.DB:KindLabel(source.kind),
-            kind = source.kind,
+            kind = ns.DB.KindOf(source),
             zone = source.zone,
             location = source.location,
             coords = source.coords,

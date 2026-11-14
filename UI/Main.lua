@@ -1124,7 +1124,7 @@ function UI:UpdateRow(row, data, index)
 
     local source = data.source
 
-    local tint = KIND_COLORS[source.kind]
+    local tint = KIND_COLORS[ns.DB.KindOf(source)]
     if tint then
         row.kindChip:SetColorTexture(tint[1], tint[2], tint[3], 0.16)
         row.kindEdge:SetColorTexture(tint[1], tint[2], tint[3], 0.9)

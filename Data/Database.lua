@@ -183,7 +183,9 @@ function DB:AddSource(item, source)
         return nil
     end
 
-    source.kind = source.kind or "mob"
+    -- A mob row leaves kind empty: DB.KindOf reads it as "mob". Most rows
+    -- are mobs, and a ninth field would double each row's table in memory.
+    if source.kind == "mob" then source.kind = nil end
     -- An item the data names a skinning spot for comes from skinning, also
     -- where it was looted (a skin opens a loot window too): DB:FromSkinning.
     if source.kind == "skinning" then item.fromSkinning = true end
@@ -758,7 +760,14 @@ function DB:Iterate()
     end
 end
 
+--- A source's kind. A mob row keeps none (DB:AddSource), so every reader
+--- that compares or groups by kind goes through this.
+function DB.KindOf(source)
+    return source and source.kind or "mob"
+end
+
 function DB:KindLabel(kind)
+    kind = kind or "mob"
     return self.KIND_LABEL[kind] or kind
 end
 
@@ -775,7 +784,8 @@ DB.KIND_TAG = {
 }
 
 function DB:KindTag(kind)
-    return self.KIND_TAG[kind] or string.upper(kind or "?")
+    kind = kind or "mob"
+    return self.KIND_TAG[kind] or string.upper(kind)
 end
 
 --- "Durnholde Keep, 80.6 45.2" -- whichever parts are known.

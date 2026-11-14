@@ -304,12 +304,12 @@ function Search:FoundItems()
                 -- A Classic row is no reason to leave your own spot out:
                 -- yours shows and the Classic one goes (WithYourSpots).
                 if type(have) == "table" and have.provenance ~= "classic" then
-                    entry.has[SpotKey(have.kind, have.name, have.zone)] = true
+                    entry.has[SpotKey(ns.DB.KindOf(have), have.name, have.zone)] = true
                 end
             end
             extra[known.name] = entry
         end
-        local key = SpotKey(source.kind, source.name, source.zone)
+        local key = SpotKey(ns.DB.KindOf(source), source.name, source.zone)
         if entry.has[key] then return end
         entry.has[key] = true
         entry.mine[key] = true
@@ -441,7 +441,7 @@ function Search:WithYourSpots(item)
     for k, v in pairs(item) do copy[k] = v end
     local sources = {}
     for _, source in ipairs(item.sources or {}) do
-        local key = ("%s|%s|%s"):format(source.kind or "", (source.name or ""):lower(), (source.zone or ""):lower())
+        local key = ("%s|%s|%s"):format(ns.DB.KindOf(source), (source.name or ""):lower(), (source.zone or ""):lower())
         if not (source.provenance == "classic" and entry.mine[key]) then sources[#sources + 1] = source end
     end
     for _, source in ipairs(entry.sources) do sources[#sources + 1] = source end
@@ -777,7 +777,7 @@ function Search:BuildRows(query, opts)
         if opts.kind then
             local kept = {}
             for _, source in ipairs(sources) do
-                if source.kind == opts.kind then
+                if ns.DB.KindOf(source) == opts.kind then
                     kept[#kept + 1] = source
                 end
             end
@@ -833,9 +833,10 @@ function Search:KindsInResults(query)
 
     for _, result in ipairs(self:Run(query)) do
         for _, source in ipairs(result.sources or result.item.sources) do
-            if not seen[source.kind] then
-                seen[source.kind] = true
-                order[#order + 1] = source.kind
+            local kind = ns.DB.KindOf(source)
+            if not seen[kind] then
+                seen[kind] = true
+                order[#order + 1] = kind
             end
         end
     end

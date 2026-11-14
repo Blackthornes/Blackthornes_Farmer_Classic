@@ -215,7 +215,7 @@ for _, kind in ipairs(Search:KindsInResults("barrens")) do
     local expected = 0
     for _, result in ipairs(Search:Run("barrens")) do
         for _, source in ipairs(result.sources or result.item.sources) do
-            if source.kind == kind then expected = expected + 1 break end
+            if ns.DB.KindOf(source) == kind then expected = expected + 1 break end
         end
     end
 
@@ -223,7 +223,7 @@ for _, kind in ipairs(Search:KindsInResults("barrens")) do
     local shown, wrong = 0, 0
     for _, row in ipairs(rows) do
         if row.type == "item" then shown = shown + 1 end
-        if row.type == "source" and row.source.kind ~= kind then wrong = wrong + 1 end
+        if row.type == "source" and ns.DB.KindOf(row.source) ~= kind then wrong = wrong + 1 end
     end
 
     suite.check(("%s: its chip shows its items"):format(kind),
