@@ -795,6 +795,7 @@ function Widgets.CreateSearchBox(parent, placeholder, onChange, onAccept, opts)
     local hint = Theme.CreateLabel(holder, "normal", "dim")
     hint:SetPoint("LEFT", inset, 0)
     hint:SetText(placeholder or "")
+    holder.hint = hint
 
     -- Clears what you typed in one click, and only shows when there is
     -- something to clear.

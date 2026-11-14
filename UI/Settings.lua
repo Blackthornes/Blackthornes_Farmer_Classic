@@ -1100,6 +1100,31 @@ function SettingsUI:BuildLootPage()
     GrowRow(sourceRow, 18)
     controls.tsmSourceNote = StatusText(sourceRow, -50)
 
+    -- A second TSM price for gear that binds when worn (a player asked, the
+    -- owner said build it, 2026-11-14). Empty reads the box above, whose
+    -- source shows dim in it.
+    local gearRow = pages:Row("loot", 1, L["TSM Gear Source:"],
+        L["Used for gear that binds when worn. Leave it empty to use your TSM Price Source."])
+    GrowRow(gearRow, 26)
+    local gear = Widgets.CreateSearchBox(gearRow, "DBRecent", nil, nil, { plain = true })
+    gear:SetPoint("TOPLEFT", 0, -26)
+    gear:SetWidth(COLUMN_WIDTH)
+    gear:SetHeight(20)
+    gear.editBox:HookScript("OnEditFocusLost", function(box)
+        local text = box:GetText()
+        if (text or "") ~= (ns.db and ns.db.tsmGearPriceSource or "") then
+            ns.Value:SetTSMGearSource(text)
+            SettingsUI:Refresh()
+        end
+    end)
+    gear.editBox:HookScript("OnEscapePressed", function()
+        gear:SetText(ns.db and ns.db.tsmGearPriceSource or "")
+    end)
+    controls.tsmGearRow = gearRow
+    controls.tsmGearPriceSource = gear
+    GrowRow(gearRow, 18)
+    controls.tsmGearNote = StatusText(gearRow, -50)
+
     -- How often green gear and better drops, by mob level (2026-10-13).
     pages:Section("loot", 1, L["WORLD DROPS"])
 
@@ -1803,6 +1828,16 @@ function SettingsUI:Refresh()
         controls.tsmSourceRow:SetAlpha(on and 1 or 0.4)
         controls.tsmSourceNote:SetText(ns.Value:TSMSourceRefused()
             and L["TSM doesn't know that price. Using DBRecent."] or "")
+        local gear = controls.tsmGearPriceSource
+        if not (gear.editBox.HasFocus and gear.editBox:HasFocus()) then
+            gear:SetText(db.tsmGearPriceSource or "")
+        end
+        if gear.hint then gear.hint:SetText(ns.Value:TSMSource()) end
+        if not on then gear:ClearFocus() end
+        gear.editBox:EnableMouse(on)
+        controls.tsmGearRow:SetAlpha(on and 1 or 0.4)
+        controls.tsmGearNote:SetText(ns.Value:TSMGearSourceRefused()
+            and L["TSM doesn't know that price. Using your TSM Price Source."] or "")
     end
     controls.worldDrops:SetChecked(db.worldDrops ~= false)
     controls.rankingsOutside:SetChecked(db.rankingsOutside == true)

@@ -68,6 +68,14 @@ end
 -- A source TSM says is not valid (TSM_API.IsCustomPriceValid), or one that
 -- gives no price for an item, falls back to DBRecent, and when DBRecent has
 -- none either, quietly to DBMarket, so a price never goes blank.
+-- "TSM Gear Source:" under it (a player asked, the owner said build it,
+-- 2026-11-14) names a second TSM price for gear that binds when worn
+-- (item class 2 or 4, bind type 2; `Value.IsBoEGear`), so trade goods and
+-- gear can read different prices (`tsmGearPriceSource`, account wide, nil
+-- or empty for the TSM Price Source, never rename it). One TSM refuses, or
+-- one with no price for an item, falls back to the TSM Price Source and
+-- then as above. Gear whose bind type the client hasn't loaded yet reads
+-- the TSM Price Source and is not kept, so it is asked again.
 -- Prices are read many times a draw, so each answer is kept
 -- OTHER_CACHE_FOR seconds.
 
@@ -100,6 +108,16 @@ function Value:TSMSourceTyped()
     if type(text) ~= "string" then return nil end
     text = text:match("^%s*(.-)%s*$")
     if text == "" or text:lower() == Value.TSM_DEFAULT_SOURCE:lower() then return nil end
+    return text
+end
+
+--- The TSM gear source the player typed, trimmed, or nil to use the TSM
+--- Price Source.
+function Value:TSMGearSourceTyped()
+    local text = ns.db and ns.db.tsmGearPriceSource
+    if type(text) ~= "string" then return nil end
+    text = text:match("^%s*(.-)%s*$")
+    if text == "" then return nil end
     return text
 end
 
@@ -140,6 +158,51 @@ function Value:SetTSMSource(text)
     sourceValid = {}
 end
 
+--- True while a typed gear source is one TSM says it doesn't know.
+function Value:TSMGearSourceRefused()
+    local text = self:TSMGearSourceTyped()
+    return text ~= nil and TSMCall() ~= nil and not self:TSMSourceValid(text)
+end
+
+--- The TSM source read for gear that binds when worn, or nil when it is
+--- the TSM Price Source.
+function Value:TSMGearSource()
+    local text = self:TSMGearSourceTyped()
+    if text and self:TSMSourceValid(text) and text ~= self:TSMSource() then return text end
+    return nil
+end
+
+--- Save the TSM gear source (nil or empty for the TSM Price Source) and
+--- forget kept prices.
+function Value:SetTSMGearSource(text)
+    if not ns.db then return end
+    if type(text) == "string" then text = text:match("^%s*(.-)%s*$") end
+    if text == "" then text = nil end
+    ns.db.tsmGearPriceSource = text
+    otherCache = {}
+    sourceValid = {}
+end
+
+--- true for gear that binds when worn, false for anything else, nil while
+--- the client hasn't loaded the item's bind type.
+function Value.IsBoEGear(itemID)
+    if type(itemID) ~= "number" then return false end
+    local instant = (C_Item and C_Item.GetItemInfoInstant) or rawget(_G, "GetItemInfoInstant")
+    if type(instant) ~= "function" then return nil end
+    local ok, _, _, _, _, _, classID = pcall(instant, itemID)
+    if not ok then return nil end
+    classID = tonumber(classID)
+    if classID == nil then return nil end
+    if classID ~= 2 and classID ~= 4 then return false end
+    local info = (C_Item and C_Item.GetItemInfo) or rawget(_G, "GetItemInfo")
+    if type(info) ~= "function" then return nil end
+    local got = { pcall(info, itemID) }
+    if not got[1] then return nil end
+    local bindType = tonumber(got[15])
+    if bindType == nil then return nil end
+    return bindType == 2
+end
+
 local function AuctionatorCall()
     local addon = rawget(_G, "Auctionator")
     local api = type(addon) == "table" and type(addon.API) == "table" and addon.API.v1
@@ -178,10 +241,20 @@ function Value:OtherPrice(itemID)
     end
 
     local source = tsm and self:TSMSource()
+    local gearSource = tsm and self:TSMGearSource()
+    local keep = true
     local function FromTSM()
         if not tsm then return nil end
         local copper
-        if source ~= Value.TSM_DEFAULT_SOURCE then
+        if gearSource then
+            local boe = Value.IsBoEGear(itemID)
+            if boe then
+                copper = Copper(pcall(tsm, gearSource, "i:" .. itemID))
+            elseif boe == nil then
+                keep = false
+            end
+        end
+        if not copper and source ~= Value.TSM_DEFAULT_SOURCE then
             copper = Copper(pcall(tsm, source, "i:" .. itemID))
         end
         return copper or Copper(pcall(tsm, Value.TSM_DEFAULT_SOURCE, "i:" .. itemID))
@@ -197,7 +270,7 @@ function Value:OtherPrice(itemID)
     else
         copper = FromTSM() or FromAuctionator()
     end
-    otherCache[itemID] = { copper or false, now }
+    if keep then otherCache[itemID] = { copper or false, now } end
     return copper
 end
 

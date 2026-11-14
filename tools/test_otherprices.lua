@@ -128,5 +128,55 @@ _G.TSM_API = nil
 suite.check("without TSM nothing is refused", not Value:TSMSourceRefused())
 Value:SetTSMSource(nil)
 
+-- TSM Gear Source (a player asked, the owner said build it, 2026-11-14).
+local CLASS, BIND = { [7001] = 4, [7002] = 2, [7003] = 7, [7004] = 4 }, { [7001] = 2, [7002] = 1, [7003] = 0 }
+local oldItem = _G.C_Item
+_G.C_Item = {
+    GetItemInfoInstant = function(id) return id, "", "", "", 0, CLASS[id] end,
+    GetItemInfo = function(id)
+        if not BIND[id] then return nil end
+        return "item", nil, 2, 1, 1, "", "", 1, "", "", 0, CLASS[id], 0, BIND[id]
+    end,
+}
+suite.check("BoE armor is BoE gear", Value.IsBoEGear(7001) == true)
+suite.check("bind on pickup is not", Value.IsBoEGear(7002) == false)
+suite.check("a trade good is not", Value.IsBoEGear(7003) == false)
+suite.check("gear not loaded yet can't say", Value.IsBoEGear(7004) == nil)
+reads = {}
+_G.TSM_API = {
+    GetCustomPriceValue = function(source, item)
+        reads[#reads + 1] = source
+        if source == "DBRecent" then return 400 end
+        if source == "DBMinBuyout" then return 777 end
+        if source == "DBMarket" then return 500 end
+        return nil
+    end,
+    IsCustomPriceValid = function(text) return valid[text] == true end,
+}
+Value:SetTSMSource(nil)
+Value:SetTSMGearSource("   ")
+suite.check("an empty gear box saves nothing", ns.db.tsmGearPriceSource == nil and Value:TSMGearSource() == nil)
+suite.check("so gear reads the TSM Price Source", Value:OtherPrice(7001) == 400 and reads[#reads] == "DBRecent")
+Value:SetTSMGearSource(" DBMarket ")
+suite.check("a gear source is kept trimmed", ns.db.tsmGearPriceSource == "DBMarket")
+suite.check("BoE gear reads it", Value:OtherPrice(7001) == 500 and reads[#reads] == "DBMarket", reads[#reads])
+suite.check("a trade good doesn't", Value:OtherPrice(7003) == 400 and reads[#reads] == "DBRecent")
+suite.check("bind on pickup gear doesn't", Value:OtherPrice(7002) == 400 and reads[#reads] == "DBRecent")
+suite.check("gear not loaded yet reads the TSM Price Source", Value:OtherPrice(7004) == 400)
+CLASS[7004], BIND[7004] = 4, 2
+suite.check("and isn't kept, so it is asked again", Value:OtherPrice(7004) == 500)
+Value:SetTSMSource("DBMinBuyout")
+suite.check("the main box still prices trade goods", Value:OtherPrice(7003) == 777)
+suite.check("while gear keeps its own", Value:OtherPrice(7001) == 500)
+Value:SetTSMGearSource("dbmarket*1.1")
+suite.check("a gear source with no price falls back to the TSM Price Source", Value:OtherPrice(7001) == 777)
+Value:SetTSMGearSource("NotAPrice")
+suite.check("a gear source TSM doesn't know is refused", Value:TSMGearSourceRefused())
+suite.check("and reads the TSM Price Source", Value:OtherPrice(7001) == 777)
+Value:SetTSMGearSource(nil)
+Value:SetTSMSource(nil)
+suite.check("the main box is never touched by the gear box", ns.db.tsmPriceSource == nil)
+_G.C_Item = oldItem
+
 _G.TSM_API, _G.Auctionator, _G.GetTime = nil, nil, nil
 suite.done()
