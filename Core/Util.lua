@@ -322,3 +322,64 @@ function Util.ForgetRarity()
     qualityByID, qualityByName, requested, missedAt = {}, {}, {}, {}
     hexOfQuality = {}
 end
+
+--------------------------------------------------------------------------------
+-- Letting old entries go
+--
+-- Tables of corpses opened this session grew all session long. A corpse is
+-- gone from the world long before half an hour, so an entry that old can go.
+-- Each new entry looks at a few of the oldest and lets go of those past the
+-- age, so nothing runs on a timer and no frame does much. Session tables only:
+-- nothing saved goes through this.
+--------------------------------------------------------------------------------
+
+local function Now()
+    if type(GetTime) ~= "function" then return nil end
+    local ok, now = pcall(GetTime)
+    if ok and type(now) == "number" then return now end
+    return nil
+end
+
+--- A first in, first out list of keys with when each came in.
+-- forget(key) is called for each key let go.
+function Util.NewAging(seconds, forget, perStep)
+    local aging = { keys = {}, times = {}, head = 1, seconds = seconds,
+        perStep = perStep or 4, forget = forget }
+
+    function aging:Add(key, now)
+        now = now or Now()
+        if key == nil or not now then return end
+        local n = #self.keys + 1
+        self.keys[n], self.times[n] = key, now
+        self:Sweep(now)
+    end
+
+    function aging:Sweep(now)
+        now = now or Now()
+        if not now then return end
+        local done = 0
+        while done < self.perStep do
+            local at = self.times[self.head]
+            if not at or now - at < self.seconds then break end
+            local key = self.keys[self.head]
+            self.keys[self.head], self.times[self.head] = false, false
+            self.head = self.head + 1
+            done = done + 1
+            pcall(self.forget, key)
+        end
+        -- Shift down now and then, so the lists don't keep their dead front.
+        if self.head > 64 and self.head * 2 > #self.keys then
+            local keys, times = {}, {}
+            for i = self.head, #self.keys do
+                keys[#keys + 1], times[#times + 1] = self.keys[i], self.times[i]
+            end
+            self.keys, self.times, self.head = keys, times, 1
+        end
+    end
+
+    function aging:Clear()
+        self.keys, self.times, self.head = {}, {}, 1
+    end
+
+    return aging
+end

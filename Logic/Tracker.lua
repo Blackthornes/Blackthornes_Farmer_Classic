@@ -73,6 +73,21 @@ Tracker.sessionZones = {}
 -- session: skinning one later is not a kill of its own.
 Tracker.areaLooted = {}
 
+-- Corpses opened or area looted are let go after this many seconds: the body
+-- is long gone. Session only, nothing saved. A kill goal's corpse[3] and a
+-- later skin both happen while the body is still there.
+Tracker.CORPSE_KEEP = 1800
+
+function Tracker:Aging()
+    if not self.aging then
+        self.aging = ns.Util.NewAging(Tracker.CORPSE_KEEP, function(guid)
+            Tracker.corpses[guid] = nil
+            Tracker.areaLooted[guid] = nil
+        end)
+    end
+    return self.aging
+end
+
 -- Also this session only: how much of each item came off corpses (your kills,
 -- the rest of an area loot, corpses you only skinned), and the order mobs
 -- were last killed in, so the panel can put the latest on top.
@@ -461,7 +476,10 @@ function Tracker:Record(mobName, guid, items, quantities, copper, place, haul, s
 
     if newKill then
         corpse = {}
-        if guid then self.corpses[guid] = corpse end
+        if guid then
+            self.corpses[guid] = corpse
+            self:Aging():Add(guid)
+        end
 
         mob.kills = mob.kills + 1
         self.session[mobName] = (self.session[mobName] or 0) + 1
@@ -1098,6 +1116,7 @@ function Tracker:Reset()
     self.currentKey = nil
     self.corpses = {}
     self.areaLooted = {}
+    if self.aging then self.aging:Clear() end
     self.sessionLoot = {}
     self.sessionFrom = {}
     self.pending = {}
@@ -1463,7 +1482,10 @@ function Tracker:OnLoot()
     -- them is remembered, so skinning one later is not taken for a kill
     -- whose drops nobody counted (EmptyOwnKill).
     for _, source in ipairs(ns.Harvest:LootSources()) do
-        if source ~= guid then self.areaLooted[source] = true end
+        if source ~= guid and not self.areaLooted[source] then
+            self.areaLooted[source] = true
+            self:Aging():Add(source)
+        end
     end
 
     -- A corpse skinned without being opened first this session (another

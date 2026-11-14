@@ -366,12 +366,30 @@ end
 --- Every other corpse the open window names is marked shown, unless it
 --- was opened itself. Read before the corpse is judged, so the corpse
 --- being opened is never marked by its own window.
+---
+--- Corpses opened or shown this session are let go after OPENED_KEEP
+--- seconds: the body is long gone by then. Session only, nothing saved.
+Harvest.OPENED_KEEP = 1800
+
+function Harvest:Aging()
+    if not self.aging then
+        self.aging = ns.Util.NewAging(Harvest.OPENED_KEEP, function(guid)
+            Harvest.opened[guid] = nil
+            Harvest.shown[guid] = nil
+        end)
+    end
+    return self.aging
+end
+
 function Harvest:NoteShown(guid)
     -- Without the corpse's own guid it could be any of them.
     if not guid then return end
     for _, source in ipairs(self:LootSources()) do
         if source ~= guid and not self.opened[source] and Harvest.NpcID(source) then
-            self.shown[source] = true
+            if not self.shown[source] then
+                self.shown[source] = true
+                self:Aging():Add(source)
+            end
         end
     end
 end
@@ -1242,7 +1260,10 @@ function Harvest:RecordCorpse()
         end
 
         corpse = { record = record, items = {} }
-        if guid then self.opened[guid] = corpse end
+        if guid then
+            self.opened[guid] = corpse
+            self:Aging():Add(guid)
+        end
     end
 
     -- An item in two slots of one corpse is one corpse that held it, not two.
@@ -1606,6 +1627,7 @@ function Harvest:Reset()
     self.records = {}
     self.opened = {}
     self.shown = {}
+    if self.aging then self.aging:Clear() end
     self.skipped = 0
     self.dirty = true
     self.changes = (self.changes or 0) + 1
