@@ -89,5 +89,31 @@ Copied over since, one at a time:
   Sparkles:", since Classic's bobber shows the beacon or sparkles, whichever
   look is picked; `nodeSparkleBobber`, `/farm sparkle bobber`).
 
+- Fixes of 2026-11-08 to 11-14 (copied 2026-11-15): `665b9b3` the fishing
+  panel drops its cast count (the fishing bar part left out, see
+  `docs/CLASSIC_DIFFERENCES.md`); `fd66758` goals keep the item named;
+  `b738ee0` Confirm buttons say Confirm; `a25a1c7` party loot counts only
+  what the game says you got; `38ed7f5` a missing loot icon is filled from
+  the item's ID; `b8f75d3`, `242d9e4`, `d731e35` and `0b570a7` lighter
+  lookups and old opened corpses let go after half an hour.
+- `39a961d`, `eec855b`, `e53d2e7` and `7d11272` Loot Beacons (2026-11-15,
+  with an on-screen beam where Era gives a body no plate).
+- `5e934b9` Node Sound is not taken: Classic already says what you found
+  (`nodeVoice`).
+- `13724ba` Mute All Sounds (2026-11-15; `UI/SharedChoices.lua` the same in
+  all five Classic repos; Farmer Classic's choices leave out Arrow Size).
+- `165712e` windows remember where they were dragged, and "Window Spots:"
+  Set Default (2026-11-15; `UI/SharedWindow.lua` FILE_VERSION 9 and
+  `UI/WhatsNew.lua` FILE_VERSION 7, the same in all five Classic repos).
+- `c1a260c`, `ac6cb6e`, `95f85fe`, `d547d07`, `73d3aa8` and `7cb96d4` the
+  quest count's place and "Only My Quests:" (2026-11-15, with Classic's
+  own rule for Era's level line, see "The quest count" in
+  `docs/CLASSIC_DIFFERENCES.md`).
+- `3a4cd7b`, `072e5be`, `4399743`, `98e959a` and `de7e555` the Price Order
+  note and the TSM Price Source and TSM BoE Price Source boxes (2026-11-15,
+  as they are).
+- Not taken yet: `974998c` the world map gem that hides marks (a mockup
+  first).
+
 Every catch-up reads `docs/CLASSIC_DIFFERENCES.md` first, and the PR that
 brings Forever commits over updates the line above to the newest one it took.

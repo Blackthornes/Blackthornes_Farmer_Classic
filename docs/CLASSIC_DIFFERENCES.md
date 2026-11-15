@@ -269,3 +269,21 @@ used only once the character knows it, so they need no change.
   then share one redraw (2026-11-02): pricing a long session's loot inside
   the loot event ran past the game's time limit on a German Era client.
   Forever may want the same fix.
+
+## Changes taken 2026-11-15
+
+- Loot beacons: Era gives most bodies no nameplate, so with none the beam
+  shows on screen as the sparkles do, with no pointer arrow.
+- The fishing panel's cast count went (Forever's `665b9b3`), but the part of
+  that commit for Forever's fishing bar was left out, since Classic's
+  fishing bar is its own (see "The fishing bar").
+- Node Sound: Classic's own "say what you found" (`nodeVoice`) stays;
+  Forever's node sound was not taken.
+- Mute All Sounds: Farmer Classic's shared choices still leave out Arrow
+  Size; Classic's `SayFound` asks `ns.Muted()` too.
+- The quest count: on Era the level sits beside the bar, on a line of its
+  own, so "Right" keeps the count beside the name
+  (`QuestMobs.OnNameLine`); Forever pushes it past the level, which shares
+  the name's line there.
+- TSM Price Source and TSM BoE Price Source: Tradeskills Classic does not
+  have the same boxes yet.
