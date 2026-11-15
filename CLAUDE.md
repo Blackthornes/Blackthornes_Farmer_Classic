@@ -1864,7 +1864,10 @@ to the name (else the plate): the level and bars can be guarded in a
 fight, so their edges are only read, in a pcall (`BelowRoom`, a set
 `BELOW_ROOM` when they won't say). A side picked in a fight waits for
 `PLAYER_REGEN_ENABLED`. The count is bright gold, a size up and outlined
-(`QuestMobs.COLOR`, `SIZE_UP`), as the kill count is. In a group the tooltip lists what each
+(`QuestMobs.COLOR`, `SIZE_UP`), as the kill count is. On Right it is pushed
+past the level only when the level sits on the name's line, as on
+Forever's plate; Era's level beside the bar, on a line of its own, leaves
+it right beside the name (`QuestMobs.OnNameLine`, Classic only). In a group the tooltip lists what each
 member's quest still wants after a line naming them (type 18, else a
 group member's name); by default those show, and "Only My Quests:" under
 it (a player asked, the owner said build it 2026-11-14;

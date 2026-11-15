@@ -348,11 +348,33 @@ local function EdgeRight(piece)
     return nil
 end
 
+--- Era's plate (Classic only) puts the name over the bar and the level
+--- beside the bar, on a line of its own, so a level whose middle sits
+--- more than half the name's height off the name's middle is no reason to
+--- push the count along. Forever's, on the name's line, still is.
+local function Middle(piece)
+    local ok, top, bottom = pcall(function()
+        return Plain(function() return piece:GetTop() end), Plain(function() return piece:GetBottom() end)
+    end)
+    if not ok or type(top) ~= "number" or type(bottom) ~= "number" then return nil end
+    local scale = Plain(function() return piece:GetEffectiveScale() end)
+    if type(scale) ~= "number" or scale <= 0 then scale = 1 end
+    return (top + bottom) / 2 * scale, (top - bottom) * scale
+end
+
+function QuestMobs.OnNameLine(level, name)
+    local levelMid = Middle(level)
+    local nameMid, nameTall = Middle(name)
+    if not levelMid or not nameMid then return true end
+    return math.abs(levelMid - nameMid) <= math.max(nameTall or 0, 8) / 2
+end
+
 function QuestMobs.Anchor(plate, own)
     local name = NameOf(plate)
     if not name then return plate, 2 end
     local edge, isLevel = QuestMobs.RightOf(plate)
     if not isLevel or edge == name then return name, 4 + LevelRoom() end
+    if not QuestMobs.OnNameLine(edge, name) then return name, 4 end
     local levelRight, nameRight = EdgeRight(edge), EdgeRight(name)
     if not levelRight or not nameRight then return name, 4 + LevelRoom() end
     local scale = 1

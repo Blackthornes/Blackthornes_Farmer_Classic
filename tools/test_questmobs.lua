@@ -317,5 +317,16 @@ suite.check("unticking the box turns it off", ns.db.questMobCountMine == false)
 ns.SettingsUI:Hide()
 units.player, units.party1 = nil, nil
 
+-- Era's plate puts the level beside the bar, under the name's line: the
+-- count stays right beside the name, with no room left for a level.
+local function Box(top, bottom, right)
+    return { GetTop = function() return top end, GetBottom = function() return bottom end,
+        GetRight = function() return right end, GetEffectiveScale = function() return 1 end }
+end
+local eraName, eraLevel = Box(120, 108, 150), Box(100, 88, 190)
+suite.check("a level on another line is not on the name's line", QuestMobs.OnNameLine(eraLevel, eraName) == false)
+suite.check("a level on the name's line is", QuestMobs.OnNameLine(Box(119, 109, 190), eraName) == true)
+suite.check("a level whose spot can't be read counts as on the line", QuestMobs.OnNameLine({}, eraName) == true)
+
 _G.C_QuestLog, _G.C_TooltipInfo = nil, nil
 suite.done()
