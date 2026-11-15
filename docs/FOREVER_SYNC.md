@@ -112,8 +112,9 @@ Copied over since, one at a time:
 - `3a4cd7b`, `072e5be`, `4399743`, `98e959a` and `de7e555` the Price Order
   note and the TSM Price Source and TSM BoE Price Source boxes (2026-11-15,
   as they are).
-- Not taken yet: `974998c` the world map gem that hides marks (a mockup
-  first).
+- `974998c` the world map gem that hides every Farmer mark, and camps only
+  while the Grind tab is open (2026-11-15, as it is, after the owner saw a
+  mockup; "Map Button:" on the Map & goals page).
 
 Every catch-up reads `docs/CLASSIC_DIFFERENCES.md` first, and the PR that
 brings Forever commits over updates the line above to the newest one it took.
