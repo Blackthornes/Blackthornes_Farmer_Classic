@@ -23,6 +23,16 @@ tell a friend: no hype, no questions to the reader, no exclamation marks
 outside the thanks line, no dashes as punctuation, no "now you can". The
 tool prints a note for a shipped line that reads like an advert.
 
+## 0.12.0
+
+- Loot Beacons put a beam over a body that still has loot.
+- A map button hides every Farmer mark on the world map.
+- Mute All Sounds quiets every Blackthornes sound at once.
+- Windows remember where you drag them.
+
+Fixes and changes:
+- Various bug fixes.
+
 ## 0.11.0
 
 - The Top 15 window can be dragged anywhere and remembers its place.

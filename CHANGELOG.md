@@ -4,6 +4,14 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 0.12.0
+
+- Loot Beacons put a beam over a body that still has loot.
+- A map button hides every Farmer mark on the world map.
+- Mute All Sounds quiets every Blackthornes sound at once.
+- Windows remember where you drag them.
+- Various bug fixes.
+
 ## 0.11.0
 
 - The Top 15 window can be dragged anywhere and remembers its place.
