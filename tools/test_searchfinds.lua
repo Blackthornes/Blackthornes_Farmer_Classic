@@ -118,7 +118,7 @@ local twice = 0
 for _, result in ipairs(Search:Run("linen cloth")) do
     if result.item.name == "Linen Cloth" then
         for _, source in ipairs(result.item.sources) do
-            if source.kind == first.kind and source.name == first.name and source.zone == first.zone then
+            if ns.DB.KindOf(source) == ns.DB.KindOf(first) and source.name == first.name and source.zone == first.zone then
                 twice = twice + 1
             end
         end

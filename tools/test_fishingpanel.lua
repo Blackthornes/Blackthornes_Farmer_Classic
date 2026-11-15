@@ -4,7 +4,7 @@
 --   1. Off unless ticked; Settings and /farm fishpanel turn it on and off,
 --      and the strip under the Fishing window's buttons takes no room while off.
 --   2. A fish never caught at any spot is new: it is cheered once, and only then.
---   3. A cast counts toward the session: casts, catches and fish.
+--   3. A cast counts toward the session: catches and fish.
 --   4. Pause holds the clock and the counts; Start Over clears them.
 --   5. Best hour at a spot is kept once enough time is behind it, and a
 --      better hour is cheered once.
@@ -42,7 +42,7 @@ suite.check("/farm fishpanel alone flips it", Panel:Enabled() == true)
 Panel:SetEnabled(false)
 Panel:StartOver()
 Fishing:Record("Elwynn Forest", "Goldshire", nil, { FISH }, nil, 20)
-suite.check("nothing counted while off", Panel:Session().casts == 0 and #cheers == 0)
+suite.check("nothing counted while off", Panel:Session().caught == 0 and #cheers == 0)
 
 -- 2. New fish. FISH is now caught at a spot, so only OTHER is new.
 Panel:SetEnabled(true)
@@ -60,7 +60,7 @@ suite.check("a second one is not cheered", #cheers == 1)
 
 -- 3. Counts.
 local s = Panel:Session()
-suite.check("casts counted", s.casts == 2, s.casts)
+suite.check("the session keeps no cast count", s.casts == nil)
 suite.check("catches counted", s.caught == 2 and s.fish[OTHER] == 2)
 Fishing:Record("Elwynn Forest", "Goldshire", nil, { FISH }, { [FISH] = 3 }, 20)
 suite.check("a stack counts each fish", s.caught == 5 and s.fish[FISH] == 3, s.caught)
@@ -72,12 +72,12 @@ Panel:TogglePause()
 now = now + 500
 suite.check("pause holds the clock", Panel:Seconds() == before)
 Fishing:Record("Elwynn Forest", "Goldshire", nil, { FISH }, nil, 20)
-suite.check("pause holds the counts", Panel:Session().casts == 3)
+suite.check("pause holds the counts", Panel:Session().caught == 5)
 Panel:TogglePause()
 now = now + 10
 suite.check("the clock runs again", Panel:Seconds() == before + 10)
 Panel:StartOver()
-suite.check("Start Over clears the session", Panel:Session().casts == 0 and Panel:Session().caught == 0)
+suite.check("Start Over clears the session", Panel:Session().caught == 0)
 
 -- 5. Best hour at a spot.
 ns.db.fishingPanelBest = nil

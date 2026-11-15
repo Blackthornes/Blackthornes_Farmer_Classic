@@ -17,8 +17,10 @@
 -- yes 2026-10-18, since it covered another nameplate addon's text):
 -- `killPlatesSide`, "above", "below", "left" or "right", "left" unless
 -- picked, account wide, never rename it. Above sits over the name, below
--- under the health and cast bars, right past the quest count, so none of
--- them covers the plate's own text.
+-- under the health and cast bars, so none of them covers the plate's own
+-- text. On the side the quest count sits too ("Quest Count Position",
+-- right unless picked) it stands past the quest count, further from the
+-- name, so the two never sit on each other.
 --
 -- Which mobs: the same as the tooltip. A creature you can attack, or one
 -- you have killed; never a player, a pet or a critter, and never a hidden
@@ -269,8 +271,9 @@ local function LowestBar(plate)
     return nil
 end
 
---- Lays the count out on the side picked. Right goes past the quest
---- count when one shows, so the two never sit on each other.
+--- Lays the count out on the side picked. On the side the quest count
+--- stands too, it goes past the quest count, further from the name, so
+--- the two never sit on each other.
 function KillPlates:Place(plate, entry)
     local side = self:Side()
     local frame, text = entry.frame, entry.text
@@ -280,12 +283,21 @@ function KillPlates:Place(plate, entry)
     text:SetPoint(justify)
     pcall(text.SetJustifyH, text, justify)
     local name = NameText(plate)
-    if side == "left" then
+    local quest = ns.QuestMobs and ns.QuestMobs.LabelFor and ns.QuestMobs:LabelFor(plate)
+    if quest and quest.side ~= side then quest = nil end
+    entry.beside = quest and true or nil
+    if quest then
+        if side == "left" then frame:SetPoint("RIGHT", quest.text, "LEFT", -4, 0)
+        elseif side == "right" then frame:SetPoint("LEFT", quest.text, "RIGHT", 4, 0)
+        elseif side == "above" then frame:SetPoint("BOTTOM", quest.text, "TOP", 0, 1)
+        else frame:SetPoint("TOP", quest.text, "BOTTOM", 0, -1) end
+    elseif side == "left" then
         if name then frame:SetPoint("RIGHT", name, "LEFT", -4, 0)
         else frame:SetPoint("RIGHT", plate, "LEFT", -2, 0) end
     elseif side == "right" then
-        local quest = ns.QuestMobs and ns.QuestMobs.LabelFor and ns.QuestMobs:LabelFor(plate)
-        if quest then frame:SetPoint("LEFT", quest.text, "RIGHT", 4, 0)
+        if ns.QuestMobs and ns.QuestMobs.Anchor then
+            local anchor, gap = ns.QuestMobs.Anchor(plate, frame)
+            frame:SetPoint("LEFT", anchor, "RIGHT", gap, 0)
         elseif name then frame:SetPoint("LEFT", name, "RIGHT", 4, 0)
         else frame:SetPoint("LEFT", plate, "RIGHT", 2, 0) end
     elseif side == "above" then
@@ -309,12 +321,15 @@ function KillPlates:Show(plate, text)
     entry.frame:Show()
 end
 
---- The quest count over this plate came or went: on the right, the
---- count moves to stay clear of it.
+--- The quest count over this plate came, went or changed sides: the
+--- count moves when it stood past it, or now shares its side.
 function KillPlates:QuestMoved(plate)
     local entry = plate and labels[plate]
-    if not entry or not entry.placed or self:Side() ~= "right" then return end
-    self:Place(plate, entry)
+    if not entry or not entry.placed then return end
+    local quest = ns.QuestMobs and ns.QuestMobs.LabelFor and ns.QuestMobs:LabelFor(plate)
+    if entry.beside or (quest and quest.side == self:Side()) then
+        self:Place(plate, entry)
+    end
 end
 
 --- The count's frame and text over a plate, for the tests.

@@ -1745,6 +1745,7 @@ end
 function TrackerFX:Say(kind)
     local id = TrackerFX.VOICE[kind]
     if not id or not TrackerFX.VoiceOn() or type(PlaySoundFile) ~= "function" then return false end
+    if ns.Muted and ns.Muted() then return false end
 
     local now = type(GetTime) == "function" and GetTime() or self.clock
     local last = self.saidAt[kind]

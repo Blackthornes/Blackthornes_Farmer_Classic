@@ -1163,7 +1163,7 @@ end
 --- How long a first click on Clear waits for the second, in seconds.
 TrackerUI.CLEAR_ARMED = 4
 
---- A Clear panel button: the first click asks "Click Again", a second within
+--- A Clear panel button: the first click asks "Confirm", a second within
 --- CLEAR_ARMED seconds empties what the panel shows (Session:Clear). Only
 --- the view goes; every tally, rate and ranking stays. Used on the panel and
 --- in Settings.
@@ -1180,9 +1180,9 @@ function TrackerUI.ClearButton(parent, width, height)
     local function Arm(on, at)
         button.armed, armedAt = on, at
         if button.SetText then
-            button:SetText(on and L["Click Again"] or L["Clear"])
+            button:SetText(on and L["Confirm"] or L["Clear"])
         elseif button.label then
-            button.label:SetText(on and L["Click Again"] or L["Clear"])
+            button.label:SetText(on and L["Confirm"] or L["Clear"])
         end
     end
 
@@ -1215,7 +1215,7 @@ function TrackerUI.ClearButton(parent, width, height)
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
         GameTooltip:AddLine(L["Clear panel"])
         GameTooltip:AddLine(L["Starts fresh. Your kill counts and Rankings stay."], 1, 1, 1, true)
-        GameTooltip:AddLine(self.armed == true and L["Click again to clear."] or L["Click twice to clear."],
+        GameTooltip:AddLine(self.armed == true and L["Click Confirm to clear."] or L["Click twice to clear."],
             0.6, 0.6, 0.6)
         GameTooltip:Show()
     end)

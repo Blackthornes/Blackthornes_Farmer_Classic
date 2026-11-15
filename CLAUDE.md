@@ -74,12 +74,33 @@ after an auction scan"). Nothing is copied, nothing is written back, and there i
 Tradeskills itself fills gaps from TradeSkillMaster, then Auctionator
 (2026-10-12; the owner allowed naming both in public). Without Tradeskills,
 Farmer reads them itself (`Value:OtherPrice`: `TSM_API.GetCustomPriceValue
-("DBMarket", "i:<id>")`, then `Auctionator.API.v1.GetAuctionPriceByItemID
+("DBRecent", "i:<id>")`, then `Auctionator.API.v1.GetAuctionPriceByItemID
 ("Blackthornes_Farmer", id)`, in a pcall, kept 60 s), "TSM and Auctionator"
 on the Loot page (`otherPriceAddons`, on unless unticked, never rename it;
-`tools/test_otherprices.lua`), asking TSM first unless "Price Order:" there
-says Auctionator First (`priceOrder`, "tsm" unless picked, never rename it;
-the owner, 2026-10-25; Tradeskills has the same choice); with none of them, the vendor price. Tradeskills'
+`tools/test_otherprices.lua`); with none of them, the vendor price.
+"Price Order:" under it (the owner, 2026-10-26) picks TSM First (the
+default) or Auctionator First (`priceOrder`, "tsm" or "auctionator", nil
+reads as TSM; account wide, never rename it; `Value:PriceOrder`,
+`SetPriceOrder` forgets the kept answers). Tradeskills has the same choice
+for its own order. "TSM Price Source:" under that (a player asked, the
+owner said build it, 2026-11-13) names the TSM price `FromTSM` reads:
+DBMarket, DBMinBuyout or the player's own TSM custom price
+(`tsmPriceSource`, account wide, nil or empty reads DBRecent, the owner's
+pick the same day; never rename it; `Value:TSMSource`, `SetTSMSource`
+clears `otherCache`). A source `TSM_API.IsCustomPriceValid` refuses, or
+one with no price for an item, falls back to DBRecent, and the note under
+the box says so; an item DBRecent has no price for reads DBMarket quietly
+(`TSM_FALLBACK_SOURCE`), so a price never goes blank. Greyed while
+`otherPriceAddons` is off. Forever's Tradeskills has the same box and key (Tradeskills Classic not yet). Tested in
+`tools/test_otherprices.lua`.
+"TSM BoE Price Source:" under it (a player asked, the owner said build it,
+2026-11-14) names a second TSM price for gear that binds when worn
+(`Value.IsBoEGear`: item class 2 or 4, bind type 2; `tsmGearPriceSource`,
+account wide, nil or empty reads the TSM Price Source; never rename it;
+`Value:TSMGearSource`, `SetTSMGearSource` clears `otherCache`). A gear
+source TSM refuses, or one with no price for an item, falls back to the TSM
+Price Source; gear whose bind type the client hasn't loaded yet reads the
+TSM Price Source and isn't kept. Forever's Tradeskills has the same box and key (Tradeskills Classic not yet). Tradeskills'
 `CLAUDE.md` asks its side to keep that global, `Prices` and `GetValue(itemID)`
 stable; if Farmer needs more from it, change both repos together.
 
@@ -525,7 +546,7 @@ A player asked, the owner said build it (2026-11-02, Forever's `f6bccf4`
 brought over as it is, words approved): a slim strip under the Fishing
 window's Cast and Add Lure (Classic: under the lure's time left,
 `FishingPanel:PlaceStrip(frame, region)`) opens a panel with three tabs.
-This Session (time, casts, catches, gold, gold an hour, with Pause and
+This Session (time, catches, gold, gold an hour, with Pause and
 Start Over), This Spot (catch rates once 20 casts are behind them, "Best
 hour here:") and Fish Log (every fish ever caught, from `fishing.spots`).
 The lifts: New Catch ("First one you've ever caught.", a fish no spot has
@@ -1782,6 +1803,47 @@ account wide, never rename it; `/farm sparkle bobber [on|off]`. Unticked,
 `NodeSparkle:Kind` gives the bobber nothing, so no beacon or sparkles;
 `IsBobber`, the reach and One Key Fishing are untouched.
 Tested in `tools/test_nodesparkle.lua`.
+Loot beacons (a player asked on Discord, the owner said build it from a
+mockup, 2026-11-09): a beam over the body the interact key picks while it
+still has loot, with settings of its own. `NodeSparkle:LootableCorpse`: a
+dead `Creature-` guid, not hidden, `CanLootUnit` read in a pcall (a
+secret answer tested in a pcall too), else not opened yet
+(`Harvest.opened`, `Tracker.corpses`). It beats the skinnable sparkle;
+once looted, the skinnable sparkle takes over, and the body is looked at
+again `LOOT_AGAIN` after `LOOT_CLOSED` (looting does not move the soft
+target). Its plate stays on (`FitPlateToTarget`); with no plate (Era
+has none for most bodies) the beam shows on screen as the sparkles do,
+with no pointer arrow. The CVars follow
+`Active()` (sparkles or loot beacons on), so it works with sparkles off;
+the fishing reach still follows the sparkles box. LOOT BEACONS on the
+Loot page: "Loot Beacons:" (`lootBeacon`, off unless ticked), "Beacon
+Color:" (`lootBeaconColor`, nil for gold; Gold, White, Green, Blue,
+Purple, Red, `LOOT_COLORS`, the words in `LOOT_COLOR_WORDS` by client),
+"Beacon Height:" and "Beacon Width:" (`lootBeaconHeight`,
+`lootBeaconWidth`, 50 to 200 in steps of 25, nil for 100). All account
+wide, never rename them. `/farm lootbeacon [on|off|color <name>|height
+<n>|width <n>]`; `/farm sparkle check` has a loot beacon line. Tested in
+`tools/test_lootbeacon.lua`. Not yet seen in game.
+
+## The map gem
+
+A player found the Grind tab's swords left on the world map all session,
+and asked for one button to hide the map marks; the owner said build it
+from a mockup (2026-11-10). Camps now show only while the Grind tab is
+open, plus the camp the arrow follows (`GrindPins.TabOpen`, `Followed`,
+`Shown`; `Draw`'s key carries both). `UI/MapToggle.lua` puts a small gold
+gem (FoldGem art) at the top right of the world map, our own button, a
+child of `WorldMapFrame`; nothing on the game's map is touched. A click
+turns off every Farmer mark that is on (camps `grindPins`, gathered nodes
+`markersWorld`, kill heat `heatWorld`) and keeps which in `mapMarksKept`
+(`{ [key] = true }`); the next click puts back only those (with nothing
+kept, camps and nodes). It only flips those keys through their own
+setters, so Settings agrees. Right-click opens FARMER MAP MARKS (the
+RowMenu) with a tick for each. Grey and unlit while all are off. "Map
+Button:" on the Map & goals page (`mapButton`, on unless unticked) and
+`/farm markers button on|off` hide the gem. Account wide; never rename
+`mapButton` or `mapMarksKept`. Tested in `tools/test_maptoggle.lua` and
+`tools/test_grinding.lua`. Not yet seen in game.
 
 ## Gathered spots on the maps
 
@@ -1833,7 +1895,29 @@ after quest log events. Its own frames on UIParent, anchored to the
 plate's name, never parented; only where the game lets addons read the
 plate (not in dungeons). "Quest count" on the Map & goals page
 (`questMobCount`, on unless unticked, never rename it) and `/farm
-questcount`. Tested in `tools/test_questmobs.lua`. Not yet seen in game.
+questcount`. "Quest Count Position:" under it (a player's report, the
+owner said build it 2026-11-11: it lay over the mob's level) picks Above,
+Below, Left or Right of the name (`questMobCountSide`, "right" unless
+picked, account wide, never rename it; `QuestMobs.SIDES`, `Side`,
+`SetSide`, `Spot`; `/farm questcount above|below|left|right`). The frame
+keeps one LEFT point, only ever replaced, never cleared, and is tied only
+to the name (else the plate): the level and bars can be guarded in a
+fight, so their edges are only read, in a pcall (`BelowRoom`, a set
+`BELOW_ROOM` when they won't say). A side picked in a fight waits for
+`PLAYER_REGEN_ENABLED`. The count is bright gold, a size up and outlined
+(`QuestMobs.COLOR`, `SIZE_UP`), as the kill count is. On Right it is pushed
+past the level only when the level sits on the name's line, as on
+Forever's plate; Era's level beside the bar, on a line of its own, leaves
+it right beside the name (`QuestMobs.OnNameLine`, Classic only). In a group the tooltip lists what each
+member's quest still wants after a line naming them (type 18, else a
+group member's name); by default those show, and "Only My Quests:" under
+it (a player asked, the owner said build it 2026-11-14;
+`questMobCountMine`, off unless ticked, account wide, never rename it;
+`/farm questcount mine [on|off]`) counts only the player's own (a quest
+title line starts over as the player's). On the kill count's
+side the two never share a spot: the kill count goes past the quest count
+(`KillPlates:Place`, `QuestMoved`). Tested in `tools/test_questmobs.lua`
+and `tools/test_killplates.lua`. Not yet seen in game.
 
 ## Kill count beside mobs' nameplates
 
@@ -2014,6 +2098,38 @@ harvest check` also says whether the kill line in chat names the mob
 (`Harvest:NoteKillLine`). Tested in `tools/test_namemob.lua` and
 `tools/test_forever_npc_names.py`.
 `/farm harvest check` reports what a dungeon lets the addon read.
+
+## Loot icons
+
+A streamer's loot showed a "?" for some greens (2026-11-13, the owner said
+build it): the loot window gives no icon for an item the client has not
+loaded yet (random suffix gear mostly), and the look kept at loot
+(`tracker.looks[name]`) was never asked for again. `Tracker:LookOf` now
+fills a look with an ID and no icon from the item ID (`Tracker:FillIcon`,
+`Tracker.IconByID`: `C_Item.GetItemIconByID`, else `GetItemInfoInstant`,
+in a pcall), kept in the same `icon` field, so older "?" items mend too.
+One still not given is asked again only after `Tracker.ICON_RETRY`
+seconds (`Tracker.iconAsked`, memory only), so a redraw adds no work. In
+`Tracker:Summary` a suffix with an icon stands in for the item's own name
+(`Tracker.rollLooks`) ahead of one without. Nothing new saved, no setting,
+no new words. Tested in `tools/test_looticons.lua`. Not yet seen in game.
+
+## Party loot
+
+A player found Farmer counted loot other players won (2026-11-13, the
+owner said build it): in a party or raid the loot window shows what
+dropped, not what you got. While `Tracker.InGroup()` (`IsInGroup` in a
+pcall, only a plain true), each item a loot window shows is noted
+(`Tracker:Pend`, also rolled slots off other corpses, `haul.lockedOther`)
+and the session's loot, `sessionFrom` and Stats' "drops" gold take it only
+when the game's own "You receive loot" chat line names it
+(`CHAT_MSG_LOOT`, `Tracker:OnLootChat`; patterns built from
+`LOOT_ITEM_SELF_MULTIPLE` and `LOOT_ITEM_SELF`, numbered word orders read,
+`Tracker.ParseLootLine`), within `PEND_FOR` (300) seconds, so a roll won
+counts; a line that comes first waits `LINE_WAIT` seconds for its window.
+Drop rates, kill tallies, coin and the kill goal still read the window, and
+solo play is unchanged (`Tracker:GiveYou`). Nothing saved, no setting, no
+new words. Tested in `tools/test_partyloot.lua`.
 
 ## What's New
 
@@ -2288,6 +2404,22 @@ footers keep only a count or your skill, their hints on the rows' hovers.
 Tested in `tools/test_panelsnap.lua`, `test_panellook.lua`,
 `test_hidelist.lua`, `test_bagsfull.lua` and `test_opennote.lua`.
 
+## Mute All Sounds
+
+A player asked, the owner said build it (2026-11-12), in all five addons:
+one box quiets every sound every Blackthornes addon plays. "Mute All
+Sounds:" on the General page under Effects and `/farm mute [on|off]`; off unless ticked. It lives on
+the shared choices board (`UI/SharedChoices.lua`, the same file in all
+five): `SharedChoices:SetMute(on)` sets it and tells the others,
+`ns.Muted()` answers every play call, and each addon keeps it in its own
+account save as `muteSounds` and `muteSoundsAt` (never rename them). Each
+joins with a reader of those two (`Join(name, write, readMute)`), read at
+the first sound after its save loads, the newest winning, so an addon that
+was off when the box was ticked still goes quiet. Every `PlaySound` and
+`PlaySoundFile` asks `ns.Muted()` first, fallbacks too; a new sound must
+as well. Warnings still show on screen and in chat. Tested in
+`tools/test_housekit.lua`.
+
 ## Writing for players
 
 Every word a player reads (labels, buttons, tooltips, Settings rows and
@@ -2362,3 +2494,22 @@ is in every addon's notes; keep them the same.
 - **The client is WoW: Forever, a retail engine** (`## Interface: 16001`,
   modern Lua), not 1.12. Read client values inside a pcall; instances hand out
   secret values that raise when touched.
+
+## Window spots
+
+A player asked, the owner said build it (2026-11-12), in all five
+addons: windows remember where they were dragged. `UI/SharedWindow.lua`
+(FILE_VERSION 9; `UI/WhatsNew.lua` FILE_VERSION 7) keeps the one
+window's spot beside each game window it docks to, once the player drags
+it there (`SharedWindow.Dropped`, account wide in every save as
+`oneWindowDockSpots[place]`), and small windows signed up with
+`SharedWindow.KeepSpot(frame, key)` keep their top left in
+`windowSpots[key] = { x, y }`, kept on screen when placed again. Never
+rename either. "Window
+Spots:" Set Default on the General page (Tradeskills: its look page) and
+`windows reset` on each addon's command run `SharedWindow.ResetAllSpots`,
+which clears both keys and calls each addon's own reset
+(`SharedWindow.AddSpotReset(name, fn)`); sizes, settings and data stay.
+Chat says "Every window is back in its first spot." Tested in
+`tools/test_sharedwindow.lua` and each addon's settings test
+(Tradeskills: `tools/test_resetwindows.lua`).

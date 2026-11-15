@@ -243,6 +243,39 @@ suite.check("right: past the quest count when one shows", quest and to == quest.
 ns.QuestMobs:Hide(namePlate)
 p1, to = Anchor()
 suite.check("and back by the name when it goes", to == nameText)
+-- Both counts on one side never share a spot: the kill count goes past
+-- the quest count, whichever side that is.
+local function Full() return KillPlates:LabelOf(namePlate).frame._point end
+for _, case in ipairs({
+    { "left", "RIGHT", "LEFT" }, { "right", "LEFT", "RIGHT" },
+    { "above", "BOTTOM", "TOP" }, { "below", "TOP", "BOTTOM" },
+}) do
+    local side = case[1]
+    ns.QuestMobs:SetSide(side)
+    KillPlates:SetSide(side)
+    ns.QuestMobs:Show(namePlate, "0/9")
+    quest = ns.QuestMobs:LabelFor(namePlate)
+    local point = Full()
+    suite.check(side .. ": the kill count goes past the quest count",
+        quest and point[1] == case[2] and point[2] == quest.text and point[3] == case[3], tostring(point[1]))
+    ns.QuestMobs:Hide(namePlate)
+    suite.check(side .. ": and back to its own spot when the quest count goes", Full()[2] ~= quest.text)
+end
+-- On different sides each keeps its own spot.
+ns.QuestMobs:SetSide("right")
+KillPlates:SetSide("left")
+ns.QuestMobs:Show(namePlate, "0/9")
+quest = ns.QuestMobs:LabelFor(namePlate)
+suite.check("on different sides the kill count stays by the name", Full()[1] == "RIGHT" and Full()[2] == nameText)
+-- The quest count moving onto the kill count's side pushes it along.
+ns.QuestMobs:SetSide("left")
+ns.QuestMobs:Show(namePlate, "0/9")     -- what reading the plate again does
+suite.check("a quest count moved to its side pushes the kill count past it", Full()[2] == quest.text and Full()[1] == "RIGHT")
+ns.QuestMobs:SetSide("right")
+ns.QuestMobs:Show(namePlate, "0/9")
+suite.check("and moved away, it goes back by the name", Full()[2] == nameText)
+ns.QuestMobs:Hide(namePlate)
+KillPlates:SetSide("right")
 KillPlates:SetSide("sideways")
 suite.check("a side that isn't one is left alone", ns.db.killPlatesSide == "right")
 ns.SettingsUI:Show()

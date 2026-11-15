@@ -58,8 +58,9 @@ ns.DB.ByName = function(self)
     for mob, list in pairs(RATES) do
         local entries = {}
         for _, row in ipairs(list) do
-            entries[#entries + 1] = { item = { name = row[1], id = row[2] },
-                source = { name = mob, chance = row[3], kind = "mob" } }
+            local source = { name = mob, chance = row[3] }
+            self.sourceItem[source] = { name = row[1], id = row[2] }
+            entries[#entries + 1] = source
         end
         byName[mob] = entries
     end

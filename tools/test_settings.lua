@@ -237,6 +237,7 @@ local buttons = {
     xpBarReset = "xpbar reset",
     statsTab = "charts",
     killGoal = "killgoal", killGoalSummary = "killgoal summary",
+    resetPositions = "windows reset",
 }
 local wrong = {}
 for key, command in pairs(buttons) do
@@ -264,8 +265,8 @@ end
 -- above, a control that writes the same setting, or the window itself.
 local covered = {
     settings = true, tracker = true, worlddrops = true, report = true, celebrate = true,
-    raresound = true, voice = true, effects = true, markers = true, heat = true, tooltip = true, killcount = true, sparkle = true, questcount = true, plates = true, numbers = true,
-    seethrough = true, transparent = true, arrow = true, openbutton = true, fishingbar = true, fishpanel = true, grind = true, trash = true, opennote = true, bagsfull = true, export = true, sisters = true, skinning = true, hide = true, unhide = true,
+    raresound = true, voice = true, effects = true, markers = true, heat = true, tooltip = true, killcount = true, sparkle = true, lootbeacon = true, questcount = true, plates = true, numbers = true,
+    seethrough = true, transparent = true, arrow = true, openbutton = true, fishingbar = true, fishpanel = true, grind = true, trash = true, opennote = true, bagsfull = true, mute = true, export = true, sisters = true, skinning = true, hide = true, unhide = true,
 }
 for _, command in pairs(buttons) do covered[command:match("^(%S*)")] = true end
 -- Chat-only commands are typed only (the owner, 2026-10-15): the ones that
@@ -406,6 +407,13 @@ suite.check("the search window goes back", ns.db.point == ns.DEFAULTS.point
 suite.check("so does the tally", ns.db.trackerPoint == ns.DEFAULTS.trackerPoint
     and ns.db.trackerX == ns.DEFAULTS.trackerX)
 
+-- Window Spots: Set Default runs every addon's reset through the shared
+-- window, so /farm windows reset puts Farmer's own windows back too.
+ns.db.point, ns.db.x, ns.db.y = "TOPLEFT", 4000, -4000
+ns.HandleSlash("windows reset")
+suite.check("/farm windows reset puts the windows back", ns.db.point == ns.DEFAULTS.point
+    and ns.db.x == ns.DEFAULTS.x and ns.db.y == ns.DEFAULTS.y)
+
 --------------------------------------------------------------------------------
 -- Nothing here deletes data
 --------------------------------------------------------------------------------
@@ -423,6 +431,20 @@ end
 
 suite.check("no control on the page clears recorded loot",
     ns.Harvest:CountCorpses() == corpses, ns.Harvest:CountCorpses())
+
+-- Mute All Sounds (2026-11-12): the box and /farm mute write the same.
+SettingsUI:SetMuteSounds(false)
+suite.check("sounds start on", not ns.Muted() and not controls.muteSounds:GetChecked())
+Toggle(controls.muteSounds)
+suite.check("ticking Mute All Sounds quiets every sound", ns.Muted() and ns.db.muteSounds == true)
+suite.check("and keeps when it was set", type(ns.db.muteSoundsAt) == "number")
+suite.check("a muted sound is not played", ns.Tracker.PlayFile("x.ogg") == false)
+ns.HandleSlash("mute off")
+suite.check("/farm mute off brings them back", not ns.Muted() and ns.db.muteSounds == false)
+suite.check("and the box follows", not controls.muteSounds:GetChecked())
+ns.HandleSlash("mute")
+suite.check("/farm mute alone flips it", ns.Muted())
+ns.HandleSlash("mute off")
 
 --------------------------------------------------------------------------------
 -- The export hint stays inside the window

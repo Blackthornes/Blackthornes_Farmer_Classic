@@ -68,6 +68,16 @@ SettingsUI.OLD_PAGES = { windows = "general", advanced = "general" }
 -- Layout helpers
 --------------------------------------------------------------------------------
 
+--- A wrapping line of small text under a row's control, for a status.
+local function StatusText(row, y)
+    local text = Theme.CreateLabel(row, "tiny", "muted")
+    text:SetPoint("TOPLEFT", 0, y)
+    text:SetWidth(COLUMN_WIDTH)
+    text:SetJustifyH("LEFT")
+    if text.SetWordWrap then text:SetWordWrap(true) end
+    return text
+end
+
 --- Make room in a row for a second line of controls under its first, the
 --- description moving down by `by`. Call it before anything changes the
 --- row's description.
@@ -291,6 +301,23 @@ function SettingsUI:ResetPositions()
     if ns.ArrowUI then ns.ArrowUI:ResetPosition() end
 
     if not hosted then self:RestorePosition() end
+end
+
+--- Every Blackthornes window back where it started, in every addon loaded
+--- (the owner, 2026-11-12): the one window, its docked spots, the small
+--- windows and each addon's own. Settings and data stay the same.
+function SettingsUI:ResetAllWindows()
+    local shared = ns.SharedWindow
+    if shared and shared.ResetAllSpots then
+        shared.ResetAllSpots()
+    else
+        SettingsUI:ResetPositions()
+    end
+    ns.Print(L["Every window is back in its first spot."])
+end
+
+if ns.SharedWindow and ns.SharedWindow.AddSpotReset then
+    ns.SharedWindow.AddSpotReset("Farmer", function() SettingsUI:ResetPositions() end)
 end
 
 --------------------------------------------------------------------------------
@@ -611,6 +638,15 @@ function SettingsUI:BuildWindowsPage()
     })
     controls.effects:SetPoint("TOPLEFT", CONTROL_X, 0)
 
+    -- Mute All Sounds (a player asked, the owner said build it, 2026-11-12):
+    -- one box quiets every sound every Blackthornes addon plays. Ticked here
+    -- is ticked in all of them (UI/SharedChoices.lua).
+    local muteRow = pages:Row("general", 1, L["Mute All Sounds:"], nil)
+    controls.muteSounds = Widgets.CreateCheckbox(muteRow, L["On"], function(checked)
+        SettingsUI:SetMuteSounds(checked)
+    end, false)
+    controls.muteSounds:SetPoint("TOPLEFT", CONTROL_X, -2)
+
     -- A player asked (2026-10-28): one minimap button for every Blackthornes
     -- addon loaded. Ticked unless unticked; see UI/SharedMinimap.lua.
     local combineRow = pages:Row("general", 1, L["Combine Addon Buttons:"], nil)
@@ -674,12 +710,11 @@ function SettingsUI:BuildWindowsPage()
     end
     if after then GrowRow(trackerScaleRow, 24) end
 
-    local positionRow = pages:Row("general", 1, L["Window Positions:"],
-        L["Reset the UI windows to their defaults."])
+    local positionRow = pages:Row("general", 1, L["Window Spots:"],
+        L["Puts every Blackthornes window back where it started. Your settings and data stay the same."])
 
     local reset = Widgets.CreateButton(positionRow, L["Set Default"], function()
-        SettingsUI:ResetPositions()
-        ns.Print(L["UI windows set to defaults."])
+        ns.HandleSlash("windows reset")
     end, { width = 110, height = 20 })
     reset:SetPoint("TOPLEFT", CONTROL_X, 0)
     controls.resetPositions = reset
@@ -1029,7 +1064,7 @@ function SettingsUI:BuildLootPage()
 
     -- Which one first (the owner, 2026-10-25).
     local orderRow = pages:Row("loot", 1, L["Price Order:"],
-        L["Picks which addon's price is used first when both have one."])
+        L["Only used when Tradeskills is off. With Tradeskills on, Farmer uses the same prices Tradeskills shows."])
     local orders = { "tsm", "auctionator" }
     local orderNames = { L["TSM First"], L["Auctionator First"] }
     controls.priceOrder = Widgets.CreateChoice(orderRow, {
@@ -1039,6 +1074,56 @@ function SettingsUI:BuildLootPage()
     })
     ns.SettingsPages.FitStepper(controls.priceOrder, orderNames)
     controls.priceOrder:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    -- The TSM price read instead of DBMarket (a player asked, the owner
+    -- said build it, 2026-11-13). Saved when the box loses the keyboard.
+    local sourceRow = pages:Row("loot", 1, L["TSM Price Source:"],
+        L["The TSM price to use, like DBRecent or DBMarket. You can also type one of your own TSM custom prices."])
+    GrowRow(sourceRow, 26)
+    local source = Widgets.CreateSearchBox(sourceRow, "DBRecent", nil, nil, { plain = true })
+    source:SetPoint("TOPLEFT", 0, -26)
+    source:SetWidth(COLUMN_WIDTH)
+    source:SetHeight(20)
+    source.editBox:HookScript("OnEditFocusLost", function(box)
+        local text = box:GetText()
+        if (text or "") ~= (ns.db and ns.db.tsmPriceSource or "") then
+            ns.Value:SetTSMSource(text)
+            SettingsUI:Refresh()
+        end
+    end)
+    source.editBox:HookScript("OnEscapePressed", function()
+        source:SetText(ns.db and ns.db.tsmPriceSource or "")
+    end)
+    controls.tsmSourceRow = sourceRow
+    controls.tsmPriceSource = source
+    -- Says so when TSM doesn't know what was typed.
+    GrowRow(sourceRow, 18)
+    controls.tsmSourceNote = StatusText(sourceRow, -50)
+
+    -- A second TSM price for gear that binds when worn (a player asked, the
+    -- owner said build it, 2026-11-14). Empty reads the box above, whose
+    -- source shows dim in it.
+    local gearRow = pages:Row("loot", 1, L["TSM BoE Price Source:"],
+        L["Used for gear that binds when worn. Leave it empty to use your TSM Price Source."])
+    GrowRow(gearRow, 26)
+    local gear = Widgets.CreateSearchBox(gearRow, "DBRecent", nil, nil, { plain = true })
+    gear:SetPoint("TOPLEFT", 0, -26)
+    gear:SetWidth(COLUMN_WIDTH)
+    gear:SetHeight(20)
+    gear.editBox:HookScript("OnEditFocusLost", function(box)
+        local text = box:GetText()
+        if (text or "") ~= (ns.db and ns.db.tsmGearPriceSource or "") then
+            ns.Value:SetTSMGearSource(text)
+            SettingsUI:Refresh()
+        end
+    end)
+    gear.editBox:HookScript("OnEscapePressed", function()
+        gear:SetText(ns.db and ns.db.tsmGearPriceSource or "")
+    end)
+    controls.tsmGearRow = gearRow
+    controls.tsmGearPriceSource = gear
+    GrowRow(gearRow, 18)
+    controls.tsmGearNote = StatusText(gearRow, -50)
 
     -- How often green gear and better drops, by mob level (2026-10-13).
     pages:Section("loot", 1, L["WORLD DROPS"])
@@ -1148,6 +1233,46 @@ function SettingsUI:BuildLootPage()
         ns.FishingPanel:SetEnabled(checked)
     end, false)
     controls.fishingPanel:SetPoint("TOPLEFT", CONTROL_X, -2)
+    -- A beam over the body you can loot (a player asked, the owner said
+    -- build it from a mockup, 2026-11-09). UI/NodeSparkle.lua.
+    pages:Section("loot", 2, L["LOOT BEACONS"])
+
+    local Sparkle = ns.NodeSparkle
+    local beaconRow = pages:Row("loot", 2, L["Loot Beacons:"],
+        L["A beam of light rises off a body you can loot. It lights the one in front of you, then the next as you loot."])
+    controls.lootBeacon = Widgets.CreateCheckbox(beaconRow, L["On"], function(checked)
+        Sparkle:SetLoot(checked)
+    end, false)
+    controls.lootBeacon:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    local colorNames = {}
+    for i, key in ipairs(Sparkle.LOOT_COLOR_ORDER) do colorNames[i] = Sparkle.LootColorLabel(key) end
+    local colorRow = pages:Row("loot", 2, L["Beacon Color:"], nil)
+    controls.lootBeaconColor = Widgets.CreateChoice(colorRow, {
+        min = 1, max = #Sparkle.LOOT_COLOR_ORDER, step = 1, value = 1,
+        format = function(index) return colorNames[index] end,
+        onChange = function(index) Sparkle:SetLootColor(Sparkle.LOOT_COLOR_ORDER[index]) end,
+    })
+    ns.SettingsPages.FitStepper(controls.lootBeaconColor, colorNames)
+    controls.lootBeaconColor:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    local heightRow = pages:Row("loot", 2, L["Beacon Height:"], nil)
+    controls.lootBeaconHeight = Widgets.CreateStepper(heightRow, {
+        min = Sparkle.LOOT_SIZE_MIN, max = Sparkle.LOOT_SIZE_MAX, step = Sparkle.LOOT_SIZE_STEP,
+        value = 100, format = Percent,
+        onChange = function(value) Sparkle:SetLootHeight(value) end,
+    })
+    ns.SettingsPages.FitStepper(controls.lootBeaconHeight, { Percent(Sparkle.LOOT_SIZE_MAX) })
+    controls.lootBeaconHeight:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    local widthRow = pages:Row("loot", 2, L["Beacon Width:"], nil)
+    controls.lootBeaconWidth = Widgets.CreateStepper(widthRow, {
+        min = Sparkle.LOOT_SIZE_MIN, max = Sparkle.LOOT_SIZE_MAX, step = Sparkle.LOOT_SIZE_STEP,
+        value = 100, format = Percent,
+        onChange = function(value) Sparkle:SetLootWidth(value) end,
+    })
+    ns.SettingsPages.FitStepper(controls.lootBeaconWidth, { Percent(Sparkle.LOOT_SIZE_MAX) })
+    controls.lootBeaconWidth:SetPoint("TOPLEFT", CONTROL_X, -2)
 end
 
 --- Map and goals: what is drawn on the maps, and the goals and their arrow.
@@ -1172,6 +1297,15 @@ function SettingsUI:BuildMapPage()
         ns.MapMarkers:SetMinimap(checked)
     end, true)
     controls.markersMinimap:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    -- The gold gem on the world map that hides every Farmer mark at once
+    -- (a player asked, the owner said build it, 2026-11-10).
+    local mapButtonRow = pages:Row("map", 1, L["Map Button:"], nil)
+
+    controls.mapButton = Widgets.CreateCheckbox(mapButtonRow, L["Show"], function(checked)
+        if ns.MapToggle then ns.MapToggle:SetButton(checked) end
+    end, true)
+    controls.mapButton:SetPoint("TOPLEFT", CONTROL_X, -2)
 
     -- Only the spots this character's gathering skills can use (a player
     -- asked, the owner said on by default, 2026-11-01).
@@ -1325,6 +1459,27 @@ function SettingsUI:BuildMapPage()
     end, true)
     controls.questMobCount:SetPoint("TOPLEFT", CONTROL_X, -2)
 
+    -- Where the quest count sits by the plate (a player's report,
+    -- 2026-11-11: it lay over the mob's level).
+    local sideNames = { above = L["Above"], below = L["Below"], left = L["Left"], right = L["Right"] }
+    local questSideRow = pages:Row("map", 1, L["Quest Count Position:"], nil)
+    controls.questMobCountSide = Widgets.CreateChoice(questSideRow, {
+        min = 1, max = #ns.QuestMobs.SIDES, step = 1, value = 4,
+        format = function(index) return sideNames[ns.QuestMobs.SIDES[index]] end,
+        onChange = function(index) ns.QuestMobs:SetSide(ns.QuestMobs.SIDES[index]) end,
+    })
+    ns.SettingsPages.FitStepper(controls.questMobCountSide, sideNames)
+    controls.questMobCountSide:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    -- Only your own quests, not what your group's still want (a player
+    -- asked, the owner said build it, 2026-11-14).
+    local questMineRow = pages:Row("map", 1, L["Only My Quests:"],
+        L["Shows only what your own quests still need, not your group's."])
+    controls.questMobCountMine = Widgets.CreateCheckbox(questMineRow, L["On"], function(checked)
+        ns.QuestMobs:SetMineOnly(checked)
+    end, true)
+    controls.questMobCountMine:SetPoint("TOPLEFT", CONTROL_X, -2)
+
     -- Your kills beside a mob's nameplate (2026-10-15).
     local platesRow = pages:Row("map", 1, L["Nameplate Kills:"],
         L["Shows your kill count beside a mob's nameplate."])
@@ -1334,7 +1489,6 @@ function SettingsUI:BuildMapPage()
     controls.killPlates:SetPoint("TOPLEFT", CONTROL_X, -2)
 
     -- Where the count sits by the plate (a player asked, 2026-10-18).
-    local sideNames = { above = L["Above"], below = L["Below"], left = L["Left"], right = L["Right"] }
     local platesSideRow = pages:Row("map", 1, L["Counter Position:"], nil)
     controls.killPlatesSide = Widgets.CreateChoice(platesSideRow, {
         min = 1, max = #ns.KillPlates.SIDES, step = 1, value = 3,
@@ -1431,16 +1585,6 @@ function SettingsUI:BuildMapPage()
     })
     ns.SettingsPages.FitStepper(controls.heatLevel, heatNames)
     controls.heatLevel:SetPoint("TOPLEFT", CONTROL_X, -2)
-end
-
---- A wrapping line of small text under a row's control, for a status.
-local function StatusText(row, y)
-    local text = Theme.CreateLabel(row, "tiny", "muted")
-    text:SetPoint("TOPLEFT", 0, y)
-    text:SetWidth(COLUMN_WIDTH)
-    text:SetJustifyH("LEFT")
-    if text.SetWordWrap then text:SetWordWrap(true) end
-    return text
 end
 
 --- Sharing: kills, drop rates and gathering with your other account.
@@ -1637,6 +1781,7 @@ function SettingsUI:Refresh()
     if controls.shareDrops then controls.shareDrops:SetChecked(db.shareDrops == true) end
     controls.markersWorld:SetChecked(db.markersWorld ~= false)
     controls.markersMinimap:SetChecked(db.markersMinimap ~= false)
+    if controls.mapButton then controls.mapButton:SetChecked(db.mapButton ~= false) end
     controls.markersMine:SetChecked(db.markersMyProfessions ~= false)
     controls.heatWorld:SetChecked(db.heatWorld == true)
     controls.heatMinimap:SetChecked(db.heatMinimap == true)
@@ -1653,11 +1798,24 @@ function SettingsUI:Refresh()
     controls.nodeSparkleColors:SetChecked(db.nodeSparkleColors ~= false)
     controls.nodeSparkleCorpses:SetChecked(db.nodeSparkleCorpses == true)
     controls.nodeSparkleBobber:SetChecked(db.nodeSparkleBobber ~= false)
+    controls.lootBeacon:SetChecked(db.lootBeacon == true)
+    for i, key in ipairs(ns.NodeSparkle.LOOT_COLOR_ORDER) do
+        if key == ns.NodeSparkle:LootColorName() then controls.lootBeaconColor:SetValue(i, true) end
+    end
+    controls.lootBeaconHeight:SetValue(ns.NodeSparkle:LootHeight(), true)
+    controls.lootBeaconWidth:SetValue(ns.NodeSparkle:LootWidth(), true)
     for _, name in ipairs({ "itemTooltip", "itemTooltipCraft", "killTooltip", "killTooltipDrops" }) do
         local stepper = controls[name]
         stepper:SetValue(ns.TooltipShift:Mode(stepper.isOn(), stepper.shiftKey), true)
     end
     controls.questMobCount:SetChecked(db.questMobCount ~= false)
+    controls.questMobCountMine:SetChecked(db.questMobCountMine == true)
+    do
+        local side = ns.QuestMobs:Side()
+        for index, each in ipairs(ns.QuestMobs.SIDES) do
+            if each == side then controls.questMobCountSide:SetValue(index, true) end
+        end
+    end
     controls.killPlates:SetChecked(db.killPlates ~= false)
     controls.killPlatesWorth:SetChecked(db.killPlatesWorth == true)
     do
@@ -1668,7 +1826,29 @@ function SettingsUI:Refresh()
     end
     controls.hideSkinning:SetChecked(db.hideSkinning ~= false)
     controls.otherPriceAddons:SetChecked(db.otherPriceAddons ~= false)
-    controls.priceOrder:SetValue(db.priceOrder == "auctionator" and 2 or 1, true)
+    controls.priceOrder:SetValue(ns.Value:PriceOrder() == "auctionator" and 2 or 1, true)
+    do
+        local on = db.otherPriceAddons ~= false
+        local box = controls.tsmPriceSource
+        if not (box.editBox.HasFocus and box.editBox:HasFocus()) then
+            box:SetText(db.tsmPriceSource or "")
+        end
+        if not on then box:ClearFocus() end
+        box.editBox:EnableMouse(on)
+        controls.tsmSourceRow:SetAlpha(on and 1 or 0.4)
+        controls.tsmSourceNote:SetText(ns.Value:TSMSourceRefused()
+            and L["TSM doesn't know that price. Using DBRecent."] or "")
+        local gear = controls.tsmGearPriceSource
+        if not (gear.editBox.HasFocus and gear.editBox:HasFocus()) then
+            gear:SetText(db.tsmGearPriceSource or "")
+        end
+        if gear.hint then gear.hint:SetText(ns.Value:TSMSource()) end
+        if not on then gear:ClearFocus() end
+        gear.editBox:EnableMouse(on)
+        controls.tsmGearRow:SetAlpha(on and 1 or 0.4)
+        controls.tsmGearNote:SetText(ns.Value:TSMGearSourceRefused()
+            and L["TSM doesn't know that price. Using your TSM Price Source."] or "")
+    end
     controls.worldDrops:SetChecked(db.worldDrops ~= false)
     controls.rankingsOutside:SetChecked(db.rankingsOutside == true)
     controls.rankingsSkipUncommon:SetChecked(db.rankingsSkipUncommon == true)
@@ -1713,6 +1893,7 @@ function SettingsUI:Refresh()
         if name == level then controls.effects:SetValue(index, true) end
     end
     controls.rareSound:SetChecked(ns.TrackerFX.RareSoundOn())
+    controls.muteSounds:SetChecked(ns.Muted and ns.Muted() or false)
     if ns.RankUp then
         controls.rankUp:SetChecked(ns.RankUp.On())
         controls.rankUpSound:SetChecked(ns.RankUp.SoundOn())
@@ -1977,8 +2158,45 @@ if ns.SharedChoices then
             if ns.TomTom then ns.TomTom:SetOn(value and true or false) end
         elseif choice == "arrowRoute" then
             if ns.Travel then ns.Travel:SetOn(value and true or false) end
+        elseif choice == "muteSounds" then
+            ns.db.muteSounds = value == true
+            ns.db.muteSoundsAt = ns.SharedChoices.board.mute.at
         end
         -- Era's Farmer has no Arrow Size: an arrowSize from a sister is left alone.
         if ns.SettingsUI and ns.SettingsUI.Refresh and ns.SettingsUI.frame and ns.SettingsUI.frame:IsShown() then pcall(ns.SettingsUI.Refresh, ns.SettingsUI) end
+    end, function()
+        if not ns.db then return nil end
+        return ns.db.muteSounds == true, ns.db.muteSoundsAt
     end)
 end
+
+--- Mute All Sounds, ticked or unticked here: every Blackthornes addon goes
+--- quiet or plays again, and each keeps it in its own save.
+function SettingsUI:SetMuteSounds(on)
+    on = on == true
+    local at = ns.SharedChoices and ns.SharedChoices:SetMute(on) or nil
+    if ns.db then
+        ns.db.muteSounds = on
+        ns.db.muteSoundsAt = at
+    end
+    if self.controls and self.controls.muteSounds then self.controls.muteSounds:SetChecked(on) end
+end
+
+ns.RegisterCommand("mute", L["turn every Blackthornes sound off or back on (on/off)"], function(rest)
+    local argument = Util.Trim(rest or ""):lower()
+    local on
+    if argument == "on" then on = true
+    elseif argument == "off" then on = false
+    else on = not (ns.Muted and ns.Muted()) end
+    SettingsUI:SetMuteSounds(on)
+    ns.Print(on and L["All Blackthornes sounds are off. /farm mute off turns them back on."]
+        or L["Blackthornes sounds are back on."])
+end)
+
+ns.RegisterCommand("windows", L["put every Blackthornes window back where it started (reset)"], function(rest)
+    if Util.Trim(rest or ""):lower() == "reset" then
+        SettingsUI:ResetAllWindows()
+    else
+        ns.Print(L["Type /farm windows reset to put every window back in its first spot."])
+    end
+end)

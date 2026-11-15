@@ -123,19 +123,33 @@ end
 -- Same creature or node, same zone, same subzone. Compared case-insensitively
 -- because the two sides come from different places: the seed files are typed
 -- by hand and the harvested ones come back from the client.
+-- Lower case names, kept once each. Loading the data compares every new row
+-- with the rows already on its item, which lowered the same few thousand
+-- names and zones over and over and left the copies for the collector.
+local lowered = {}
+local function Lower(text)
+    local low = lowered[text]
+    if not low then
+        low = text:lower()
+        lowered[text] = low
+    end
+    return low
+end
+DB.Lower = Lower
+
 local function SameSpot(item, source)
     if type(source.name) ~= "string" or source.name == "" then return nil end
 
-    local name = source.name:lower()
-    local zone = source.zone:lower()
-    local location = (source.location or ""):lower()
+    local name = Lower(source.name)
+    local zone = Lower(source.zone)
+    local location = Lower(source.location or "")
 
     for index, existing in ipairs(item.sources) do
         if type(existing.name) == "string"
-            and existing.name:lower() == name
+            and Lower(existing.name) == name
             and type(existing.zone) == "string"
-            and existing.zone:lower() == zone
-            and (existing.location or ""):lower() == location then
+            and Lower(existing.zone) == zone
+            and Lower(existing.location or "") == location then
             return index, existing
         end
     end
@@ -150,15 +164,15 @@ end
 local function SameMob(item, source)
     if type(source.name) ~= "string" or source.name == "" then return nil end
 
-    local name = source.name:lower()
-    local zone = source.zone:lower()
+    local name = Lower(source.name)
+    local zone = Lower(source.zone)
     local classic = source.provenance == DB.DEFAULT_PROVENANCE
 
     for index, existing in ipairs(item.sources) do
         if type(existing.name) == "string"
-            and existing.name:lower() == name
+            and Lower(existing.name) == name
             and type(existing.zone) == "string"
-            and existing.zone:lower() == zone
+            and Lower(existing.zone) == zone
             -- A generated row gives way to any row already there, the
             -- hand-typed ones included, and a measured row takes its place.
             and (source.searchOnly or (existing.searchOnly and not classic)) then
@@ -183,7 +197,9 @@ function DB:AddSource(item, source)
         return nil
     end
 
-    source.kind = source.kind or "mob"
+    -- A mob row leaves kind empty: DB.KindOf reads it as "mob". Most rows
+    -- are mobs, and a ninth field would double each row's table in memory.
+    if source.kind == "mob" then source.kind = nil end
     -- An item the data names a skinning spot for comes from skinning, also
     -- where it was looted (a skin opens a loot window too): DB:FromSkinning.
     if source.kind == "skinning" then item.fromSkinning = true end
@@ -499,18 +515,25 @@ function DB:CountSources()
     return total
 end
 
---- Every source by the name of its mob or node: [name] = { { item, source },
---- ... }, items in registration order and each item's sources in order, as
---- walking Iterate would find them. Built on first use and again only after
---- a source is added, so valuing a mob no longer walks the whole database.
+--- Every source by the name of its mob or node: [name] = { source, ... },
+--- items in registration order and each item's sources in order, as walking
+--- Iterate would find them. DB:ItemOf(source) gives the item a source is on.
+--- Built on first use and again only after a source is added or the hide
+--- list moves, so valuing a mob no longer walks the whole database. The lists
+--- hold the source rows themselves, not a small table for each pair, and the
+--- map back to items is only laid out again when a source is added.
 function DB:ByName()
-    local stamp = self.changes .. ":" .. self.hiddenVersion
+    local changes = self.changes or 0
+    local stamp = changes .. ":" .. self.hiddenVersion
     if self.byName and self.byNameAt == stamp then return self.byName end
 
+    local mapNew = self.sourceItemAt ~= changes or not self.sourceItem
+    local sourceItem = mapNew and {} or self.sourceItem
     local byName = {}
     for _, key in ipairs(self.order) do
         local item = self.items[key]
         for _, source in ipairs(item.sources or {}) do
+            if mapNew then sourceItem[source] = item end
             local name = source.name
             if type(name) == "string" and not self:HidesSource(source, item) then
                 local list = byName[name]
@@ -518,13 +541,21 @@ function DB:ByName()
                     list = {}
                     byName[name] = list
                 end
-                list[#list + 1] = { item = item, source = source }
+                list[#list + 1] = source
             end
         end
     end
 
+    if mapNew then self.sourceItem, self.sourceItemAt = sourceItem, changes end
     self.byName, self.byNameAt = byName, stamp
     return byName
+end
+
+--- The item a source row belongs to, from the index ByName lays out.
+function DB:ItemOf(source)
+    if not source then return nil end
+    if not self.sourceItem or self.sourceItemAt ~= (self.changes or 0) then self:ByName() end
+    return self.sourceItem[source]
 end
 
 --------------------------------------------------------------------------------
@@ -758,7 +789,14 @@ function DB:Iterate()
     end
 end
 
+--- A source's kind. A mob row keeps none (DB:AddSource), so every reader
+--- that compares or groups by kind goes through this.
+function DB.KindOf(source)
+    return source and source.kind or "mob"
+end
+
 function DB:KindLabel(kind)
+    kind = kind or "mob"
     return self.KIND_LABEL[kind] or kind
 end
 
@@ -775,7 +813,8 @@ DB.KIND_TAG = {
 }
 
 function DB:KindTag(kind)
-    return self.KIND_TAG[kind] or string.upper(kind or "?")
+    kind = kind or "mob"
+    return self.KIND_TAG[kind] or string.upper(kind)
 end
 
 --- "Durnholde Keep, 80.6 45.2" -- whichever parts are known.

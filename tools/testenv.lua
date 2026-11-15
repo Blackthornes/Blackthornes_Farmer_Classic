@@ -419,6 +419,7 @@ local UI_FILES = {
     "UI/MapMarkers.lua",
     "UI/Heat.lua",
     "UI/GrindPins.lua",
+    "UI/MapToggle.lua",
     "UI/Arrow.lua",
     "UI/TravelCard.lua",
     "UI/TravelMap.lua",

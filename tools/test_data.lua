@@ -35,7 +35,7 @@ for item in DB:Iterate() do
             DB.PROVENANCE[source.provenance] ~= nil, source.provenance)
 
         suite.check(("%s source in %s has a known kind"):format(item.name, source.zone),
-            DB.KIND_LABEL[source.kind] ~= nil, source.kind)
+            DB.KIND_LABEL[DB.KindOf(source)] ~= nil, source.kind)
     end
 end
 
@@ -71,7 +71,7 @@ local mobSources, namedMobSources = 0, 0
 
 for item in DB:Iterate() do
     for _, source in ipairs(item.sources) do
-        if source.kind == "mob" then
+        if DB.KindOf(source) == "mob" then
             mobSources = mobSources + 1
             if source.name and source.name ~= "" then
                 namedMobSources = namedMobSources + 1

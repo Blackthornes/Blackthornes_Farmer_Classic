@@ -4,9 +4,11 @@
 -- mobs; click it to point the arrow there.
 --
 -- Only camps with a spot are drawn, at the spot of one of their own mobs
--- (Logic/Grinding.lua), never at a place made up. Nothing is drawn until
--- the Grind tab has been opened this session, and "Grinding camps on the
--- world map" in Settings (/farm grind pins) turns them off.
+-- (Logic/Grinding.lua), never at a place made up. They show only while the
+-- Grind tab is open, and the camp the arrow follows stays after it closes
+-- (a player found the swords always there, 2026-11-10). "Grinding Camps:"
+-- in Settings (/farm grind pins) and the world map's gem
+-- (UI/MapToggle.lua) turn them off.
 --
 -- Drawn the way UI/MapMarkers.lua draws its markers: plain frames on the
 -- map's canvas, every client call guarded.
@@ -44,16 +46,41 @@ function GrindPins:Show(camps)
     self.version = self.version + 1
 end
 
---- The camps on the map called `mapName` (map `mapID`), with a spot.
+--- Is the Grind tab on screen now?
+function GrindPins.TabOpen()
+    local view = ns.GrindingUI and ns.GrindingUI.view
+    if not (view and ns.UI and ns.UI.tab == "grind") then return false end
+    local frame = ns.UI.frame
+    if frame and not frame:IsShown() then return false end
+    local ok, shown = pcall(view.IsShown, view)
+    return ok and shown and true or false
+end
+
+--- The camp the arrow follows, or nil.
+function GrindPins.Followed()
+    local camp = ns.Arrow and ns.Arrow.grind
+    return type(camp) == "table" and camp or nil
+end
+
+--- The camps to draw now: all the tab lists while it is open, else only
+--- the one the arrow follows.
+function GrindPins:Shown()
+    if GrindPins.TabOpen() then return self.camps end
+    local camp = GrindPins.Followed()
+    return camp and { camp } or {}
+end
+
+--- The camps on the map called `mapName` (map `mapID`), with a spot, out of
+--- `camps` (all the tab lists when nil).
 --
 -- The camps' zones are the data's English names; a client in another
 -- language names its maps in its own, so there the map's ID is matched too
 -- (Spots.ZONE_MAPS).
-function GrindPins:CampsOn(mapName, mapID)
+function GrindPins:CampsOn(mapName, mapID, camps)
     local on = {}
     if type(mapName) ~= "string" then return on end
     local byID = mapID and not ns.Util.EnglishClient()
-    for _, camp in ipairs(self.camps) do
+    for _, camp in ipairs(camps or self.camps) do
         local here = camp.zone == mapName
             or (byID and ns.Spots.ZONE_MAPS[ns.Spots.English(camp.zone)] == mapID)
         if here and type(camp.coords) == "table" then on[#on + 1] = camp end
@@ -135,7 +162,10 @@ function GrindPins:Draw()
     end
     self.hiddenAll = nil
 
-    local key = ("%d:%s:%s:%s:%d"):format(view.mapID, view.scale, view.width, view.height, self.version)
+    local open = GrindPins.TabOpen()
+    local followed = not open and GrindPins.Followed() or nil
+    local key = ("%d:%s:%s:%s:%d:%s:%s"):format(view.mapID, view.scale, view.width, view.height, self.version,
+        open and "tab" or "", followed and tostring(followed) or "")
     if key == self.drawnKey then return nil end
     self.drawnKey = key
 
@@ -151,7 +181,7 @@ function GrindPins:Draw()
     local scale = 1 / view.scale
 
     local used = 0
-    for _, camp in ipairs(self:CampsOn(MapName(view.mapID), view.mapID)) do
+    for _, camp in ipairs(self:CampsOn(MapName(view.mapID), view.mapID, self:Shown())) do
         used = used + 1
         local pin = pins[used]
         if not pin then

@@ -148,7 +148,7 @@ UI:Render()
 
 local mobOnly = true
 for _, entry in ipairs(UI.list.data) do
-    if entry.type == "source" and entry.source.kind ~= "mob" then
+    if entry.type == "source" and ns.DB.KindOf(entry.source) ~= "mob" then
         mobOnly = false
     end
 end

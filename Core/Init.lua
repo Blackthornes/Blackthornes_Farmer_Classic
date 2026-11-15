@@ -487,6 +487,8 @@ local DEFAULTS = {
     -- 2026-10-14). Never rename it.
     killTooltipDrops = true,
     questMobCount = true,
+    questMobCountSide = "right",
+    questMobCountMine = false,       -- only your own quests, not the group's
     -- Your kill count beside a mob's nameplate, and what a kill is worth
     -- after it (UI/KillPlates.lua; a player asked, the owner said build it
     -- 2026-10-15). Never rename either.

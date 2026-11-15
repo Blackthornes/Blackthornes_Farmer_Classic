@@ -57,14 +57,34 @@ end
 -- Read only, inside a pcall, through each addon's own API, with no TOC
 -- dependency. Tradeskills, when loaded, already asks them itself for items
 -- it has not priced, so they are read here only without it:
---   TSM_API.GetCustomPriceValue("DBMarket", "i:<itemID>")
+--   TSM_API.GetCustomPriceValue("DBRecent", "i:<itemID>")
 --   Auctionator.API.v1.GetAuctionPriceByItemID("Blackthornes_Farmer", itemID)
--- TSM first. Prices are read many times a draw, so each answer is kept
+-- TSM first unless the player picked Auctionator first ("Price Order:",
+-- `priceOrder`, "tsm" or nil, else "auctionator"; the owner 2026-10-26).
+-- "TSM Price Source:" (a player asked, the owner said build it, 2026-11-13)
+-- names the TSM price read instead of DBRecent: DBMarket, DBMinBuyout or
+-- one of the player's own TSM custom prices (`tsmPriceSource`, account
+-- wide, nil or empty for DBRecent, never rename it; the owner, 2026-11-13).
+-- A source TSM says is not valid (TSM_API.IsCustomPriceValid), or one that
+-- gives no price for an item, falls back to DBRecent, and when DBRecent has
+-- none either, quietly to DBMarket, so a price never goes blank.
+-- "TSM BoE Price Source:" under it (a player asked, the owner said build it,
+-- 2026-11-14) names a second TSM price for gear that binds when worn
+-- (item class 2 or 4, bind type 2; `Value.IsBoEGear`), so trade goods and
+-- gear can read different prices (`tsmGearPriceSource`, account wide, nil
+-- or empty for the TSM Price Source, never rename it). One TSM refuses, or
+-- one with no price for an item, falls back to the TSM Price Source and
+-- then as above. Gear whose bind type the client hasn't loaded yet reads
+-- the TSM Price Source and is not kept, so it is asked again.
+-- Prices are read many times a draw, so each answer is kept
 -- OTHER_CACHE_FOR seconds.
 
 Value.OTHER_CACHE_FOR = 60
 Value.OTHER_MAX_PRICE = 1e11   -- above this is not a price (10 million gold)
+Value.TSM_DEFAULT_SOURCE = "DBRecent"
+Value.TSM_FALLBACK_SOURCE = "DBMarket"   -- when DBRecent has no price for an item
 local otherCache = {}          -- [itemID] = { copper or false, at }
+local sourceValid = {}         -- [source text] = true or false
 
 local function Clock()
     if type(GetTime) ~= "function" then return 0 end
@@ -80,6 +100,107 @@ local function TSMCall()
     local api = rawget(_G, "TSM_API")
     if type(api) ~= "table" or type(api.GetCustomPriceValue) ~= "function" then return nil end
     return api.GetCustomPriceValue
+end
+
+--- The TSM source the player typed, trimmed, or nil for DBRecent.
+function Value:TSMSourceTyped()
+    local text = ns.db and ns.db.tsmPriceSource
+    if type(text) ~= "string" then return nil end
+    text = text:match("^%s*(.-)%s*$")
+    if text == "" or text:lower() == Value.TSM_DEFAULT_SOURCE:lower() then return nil end
+    return text
+end
+
+--- The TSM gear source the player typed, trimmed, or nil to use the TSM
+--- Price Source.
+function Value:TSMGearSourceTyped()
+    local text = ns.db and ns.db.tsmGearPriceSource
+    if type(text) ~= "string" then return nil end
+    text = text:match("^%s*(.-)%s*$")
+    if text == "" then return nil end
+    return text
+end
+
+--- false when TSM says the typed source is not one it knows; true when it
+--- is, or when TSM can't say.
+function Value:TSMSourceValid(text)
+    text = text or self:TSMSourceTyped()
+    if not text then return true end
+    local api = rawget(_G, "TSM_API")
+    if type(api) ~= "table" or type(api.IsCustomPriceValid) ~= "function" then return true end
+    if sourceValid[text] == nil then
+        local ok, valid = pcall(api.IsCustomPriceValid, text)
+        sourceValid[text] = (not ok) or (valid and true or false)
+    end
+    return sourceValid[text]
+end
+
+--- The TSM source read: the player's own when TSM knows it, else DBRecent.
+function Value:TSMSource()
+    local text = self:TSMSourceTyped()
+    if text and self:TSMSourceValid(text) then return text end
+    return Value.TSM_DEFAULT_SOURCE
+end
+
+--- True while a typed source is one TSM says it doesn't know.
+function Value:TSMSourceRefused()
+    local text = self:TSMSourceTyped()
+    return text ~= nil and TSMCall() ~= nil and not self:TSMSourceValid(text)
+end
+
+--- Save the TSM source (nil or empty for DBRecent) and forget kept prices.
+function Value:SetTSMSource(text)
+    if not ns.db then return end
+    if type(text) == "string" then text = text:match("^%s*(.-)%s*$") end
+    if text == "" then text = nil end
+    ns.db.tsmPriceSource = text
+    otherCache = {}
+    sourceValid = {}
+end
+
+--- True while a typed gear source is one TSM says it doesn't know.
+function Value:TSMGearSourceRefused()
+    local text = self:TSMGearSourceTyped()
+    return text ~= nil and TSMCall() ~= nil and not self:TSMSourceValid(text)
+end
+
+--- The TSM source read for gear that binds when worn, or nil when it is
+--- the TSM Price Source.
+function Value:TSMGearSource()
+    local text = self:TSMGearSourceTyped()
+    if text and self:TSMSourceValid(text) and text ~= self:TSMSource() then return text end
+    return nil
+end
+
+--- Save the TSM gear source (nil or empty for the TSM Price Source) and
+--- forget kept prices.
+function Value:SetTSMGearSource(text)
+    if not ns.db then return end
+    if type(text) == "string" then text = text:match("^%s*(.-)%s*$") end
+    if text == "" then text = nil end
+    ns.db.tsmGearPriceSource = text
+    otherCache = {}
+    sourceValid = {}
+end
+
+--- true for gear that binds when worn, false for anything else, nil while
+--- the client hasn't loaded the item's bind type.
+function Value.IsBoEGear(itemID)
+    if type(itemID) ~= "number" then return false end
+    local instant = (C_Item and C_Item.GetItemInfoInstant) or rawget(_G, "GetItemInfoInstant")
+    if type(instant) ~= "function" then return nil end
+    local ok, _, _, _, _, _, classID = pcall(instant, itemID)
+    if not ok then return nil end
+    classID = tonumber(classID)
+    if classID == nil then return nil end
+    if classID ~= 2 and classID ~= 4 then return false end
+    local info = (C_Item and C_Item.GetItemInfo) or rawget(_G, "GetItemInfo")
+    if type(info) ~= "function" then return nil end
+    local got = { pcall(info, itemID) }
+    if not got[1] then return nil end
+    local bindType = tonumber(got[15])
+    if bindType == nil then return nil end
+    return bindType == 2
 end
 
 local function AuctionatorCall()
@@ -119,18 +240,43 @@ function Value:OtherPrice(itemID)
         return kept[1] or nil
     end
 
+    local source = tsm and self:TSMSource()
+    local gearSource = tsm and self:TSMGearSource()
+    local keep = true
+    local function FromTSM()
+        if not tsm then return nil end
+        local copper
+        if gearSource then
+            local boe = Value.IsBoEGear(itemID)
+            if boe then
+                copper = Copper(pcall(tsm, gearSource, "i:" .. itemID))
+            elseif boe == nil then
+                keep = false
+            end
+        end
+        if not copper and source ~= Value.TSM_DEFAULT_SOURCE then
+            copper = Copper(pcall(tsm, source, "i:" .. itemID))
+        end
+        return copper or Copper(pcall(tsm, Value.TSM_DEFAULT_SOURCE, "i:" .. itemID))
+            or Copper(pcall(tsm, Value.TSM_FALLBACK_SOURCE, "i:" .. itemID))
+    end
+    local function FromAuctionator()
+        return auctionator and Copper(pcall(auctionator, "Blackthornes_Farmer", itemID)) or nil
+    end
     -- TSM first unless "Price Order:" says Auctionator first (`priceOrder`).
     local copper
-    local auctionatorFirst = ns.db and ns.db.priceOrder == "auctionator"
-    if auctionatorFirst and auctionator then
-        copper = Copper(pcall(auctionator, "Blackthornes_Farmer", itemID))
+    if self:PriceOrder() == "auctionator" then
+        copper = FromAuctionator() or FromTSM()
+    else
+        copper = FromTSM() or FromAuctionator()
     end
-    if not copper and tsm then copper = Copper(pcall(tsm, "DBMarket", "i:" .. itemID)) end
-    if not copper and auctionator and not auctionatorFirst then
-        copper = Copper(pcall(auctionator, "Blackthornes_Farmer", itemID))
-    end
-    otherCache[itemID] = { copper or false, now }
+    if keep then otherCache[itemID] = { copper or false, now } end
     return copper
+end
+
+--- "tsm" or "auctionator": which is asked first.
+function Value:PriceOrder()
+    return ns.db and ns.db.priceOrder == "auctionator" and "auctionator" or "tsm"
 end
 
 --- Ask "tsm" or "auctionator" first.
@@ -145,6 +291,7 @@ function Value:SetUsesOtherAddons(on)
     if not ns.db then return end
     ns.db.otherPriceAddons = on and true or false
     otherCache = {}
+    sourceValid = {}
 end
 
 -- What item tooltips said a vendor pays, kept for the session.
@@ -573,15 +720,15 @@ function Value:FromDatabase(mobName)
     local rows = ns.DB:ByName()[name] or {}
     if zone then
         local here = {}
-        for _, entry in ipairs(rows) do
-            if entry.source and entry.source.zone == zone then here[#here + 1] = entry end
+        for _, source in ipairs(rows) do
+            if source.zone == zone then here[#here + 1] = source end
         end
         if #here > 0 then rows = here end
     end
 
-    for _, entry in ipairs(rows) do
-        local item, source = entry.item, entry.source
-        if source.chance and not seen[item.name] then
+    for _, source in ipairs(rows) do
+        local item = ns.DB:ItemOf(source)
+        if item and source.chance and not seen[item.name] then
             seen[item.name] = true
 
             local unit, from = self:WorthOf(item.name, item.id)
